@@ -12,7 +12,6 @@ CANDIDATES_SCHEMA = {
     'english_name': 'TEXT',
     'graduation_year': 'INTEGER',
     'nationality': 'TEXT',
-    'gender': 'TEXT',
     'email': 'TEXT',
     'phone_number': 'TEXT',
     'current_city': 'TEXT',

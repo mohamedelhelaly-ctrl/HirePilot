@@ -39,7 +39,7 @@ def extract_cv_data(cv_path: str, job_description: str) -> dict:
         jd_entities = json.loads(jd_repaired)
         
         # Extract CV data
-        cv_schema = json.dumps(CVDetails.model_json_schema(), indent=2)
+        cv_schema = CVDetails.model_json_schema()  # This is already a dictionary
         cv_prompt = get_extraction_prompt(cv_text, job_description, jd_entities, cv_schema)
         cv_response = llm_extraction.generate(cv_prompt)
         cv_extracted_text = cv_response['results'][0]['generated_text']

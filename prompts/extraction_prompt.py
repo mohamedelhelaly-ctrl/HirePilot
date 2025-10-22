@@ -11,28 +11,14 @@ def get_extraction_prompt(cv_text: str, job_description: str, jd_entities: dict,
     current_numeric = datetime.now().strftime("%m/%Y")
     
     jd_experience = jd_entities.get("years_of_experience", "0-2")
+    if isinstance(schema, str):
+        schema = json.loads(schema)
+    schema_section = "\n".join([f"- {k}: {v}" for k, v in schema.items()])
     
     prompt = f"""Extract structured data from the CV and calculate a match score against the job description.
 
 ### DATABASE SCHEMA
-Output must match these fields:
-- english_name: TEXT
-- graduation_year: INTEGER (e.g., 2020)
-- nationality: TEXT
-- gender: TEXT
-- email: TEXT
-- phone_number: TEXT
-- current_city: TEXT
-- years_of_experience: INTEGER (will be recalculated by system)
-- study_field: TEXT
-- universities: JSON array
-- soft_skills: JSON array
-- technical_skills: JSON array
-- Certifications: JSON array
-- Languages: JSON array
-- linkedin_url: TEXT
-- score: TEXT (float as string, e.g., "75.5")
-- justification: TEXT (one sentence, max 20 words)
+{schema_section}
 
 ### CRITICAL INSTRUCTIONS
 
@@ -155,7 +141,6 @@ Return ONLY valid JSON (no text before or after):
   "english_name": "Ahmed Mohamed",
   "graduation_year": 2020,
   "nationality": "Egyptian",
-  "gender": "Male",
   "email": "ahmed@example.com",
   "phone_number": "+201234567890",
   "current_city": "Cairo, Egypt",

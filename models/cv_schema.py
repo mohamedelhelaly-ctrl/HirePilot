@@ -8,7 +8,6 @@ class CVDetails(BaseModel):
     email: Optional[str] = Field(default=None, description="Email address")
     phone_number: Optional[str] = Field(default=None, description="Phone number")
     nationality: Optional[str] = Field(default=None, description="Nationality")
-    gender: Optional[str] = Field(default=None, description="Gender (Male/Female)")
     current_city: Optional[str] = Field(default=None, description="Current city of residence")
     linkedin_url: Optional[str] = Field(default=None, description="LinkedIn profile URL")
     graduation_year: Optional[int] = Field(default=None, description="Year of graduation")
