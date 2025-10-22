@@ -601,7 +601,6 @@ async def chat_interface(thread_id: str):
                 </div>
                 <img src="/assets/logo.png" alt="Incorta Logo" class="logo">
             </div>
-            <button class="clear-chat-btn" onclick="clearChat()">Clear Chat</button>
             <div class="filter-toggle" onclick="toggleFilter()">🔍 Filter Candidates</div>
             <div class="filter-dropdown" id="filterDropdown">
                 <div class="filter-section">
@@ -776,26 +775,6 @@ async def chat_interface(thread_id: str):
                 }} finally {{
                     document.getElementById('loading').style.display = 'none';
                     document.getElementById('filterDropdown').classList.remove('active');
-                }}
-            }}
-            async function clearChat() {{
-                if (confirm("Are you sure you want to clear the chat history?")) {{
-                    try {{
-                        const response = await fetch('/api/clear_chat', {{
-                            method: 'POST',
-                            headers: {{
-                                'Content-Type': 'application/json',
-                            }},
-                            body: JSON.stringify({{
-                                thread_id: threadId
-                            }})
-                        }});
-                        if (response.ok) {{
-                            window.location.reload();
-                        }}
-                    }} catch (error) {{
-                        addMessage('assistant', '❌ Error clearing chat: ' + error.message);
-                    }}
                 }}
             }}
             window.onclick = function(event) {{

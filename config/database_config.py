@@ -37,18 +37,31 @@ def get_db_connection(db_path=DB_PATH):
 
 def initialize_database():
     """Initialize candidates database with schema"""
+    # Check if database file exists
+    db_exists = os.path.exists(DB_PATH)
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Create table with schema
-    columns_sql = ", ".join([f"{col} {col_type}" for col, col_type in CANDIDATES_SCHEMA.items()])
+    # Check if table exists
     cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
-            candidate_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            {columns_sql}
-        )
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name='{TABLE_NAME}'
     """)
+    table_exists = cursor.fetchone() is not None
     
-    conn.commit()
+    # Create table if it doesn't exist
+    if not table_exists:
+        columns_sql = ", ".join([f"{col} {col_type}" for col, col_type in CANDIDATES_SCHEMA.items()])
+        cursor.execute(f"""
+            CREATE TABLE {TABLE_NAME} (
+                candidate_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                {columns_sql}
+            )
+        """)
+        conn.commit()
+        print(f"✅ Database initialized at {DB_PATH}")
+    else:
+        print(f"✅ Database connected at {DB_PATH}")
+    
     conn.close()
-    print(f"✅ Database initialized at {DB_PATH}")
