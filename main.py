@@ -13,6 +13,7 @@ from config.vector_config import get_vector_index
 from utils.cv_processing import process_and_vectorize_cv
 from utils.initial_filter import apply_initial_filter
 from graph import run_workflow
+from models.conversation import ConversationStore
 
 # Initialize FastAPI
 app = FastAPI(title="Incorta Recruitment Demo")
@@ -283,9 +284,39 @@ async def root():
 @app.get("/chat", response_class=HTMLResponse)
 async def chat_interface(thread_id: str):
     """Chat interface for specific job thread with upload/filter capabilities"""
-    
+
     job_title = "Senior AI/ML Engineer" if thread_id == "senior_ai_ml" else "Junior AI Engineer"
-    
+
+    # Load conversation history
+    conv_store = ConversationStore(thread_id)
+    messages_html = ""
+    for msg in conv_store.recent_messages:
+        role = "You" if msg["role"] == "user" else "Assistant"
+        messages_html += f"""
+        <div class="message {'user-message' if msg['role'] == 'user' else 'assistant-message'}">
+            <strong>{role}:</strong><br>
+            {msg['content']}
+        </div>
+        """
+
+    # If no messages, add the welcome message
+    if not messages_html:
+        messages_html = f"""
+        <div class="message assistant-message">
+            <strong>Assistant:</strong><br>
+            Hello! I'm your recruitment assistant for the {job_title} position. How can I help you today?
+            <br><br>
+            💡 <strong>Quick tips:</strong>
+            <ul style="margin-top: 10px; padding-left: 20px;">
+                <li>Use the upload button to upload candidate resumes</li>
+                <li>Use the filter button above for initial keyword screening</li>
+                <li>Ask me to "screen the CVs" after uploading</li>
+                <li>Query candidates: "show me candidates with Python experience"</li>
+                <li>Get insights: "why did candidate X score higher than Y?"</li>
+            </ul>
+        </div>
+        """
+
     html_content = f"""
     <!DOCTYPE html>
     <html lang="en">
@@ -570,7 +601,7 @@ async def chat_interface(thread_id: str):
                 </div>
                 <img src="/assets/logo.png" alt="Incorta Logo" class="logo">
             </div>
-
+            <button class="clear-chat-btn" onclick="clearChat()">Clear Chat</button>
             <div class="filter-toggle" onclick="toggleFilter()">🔍 Filter Candidates</div>
             <div class="filter-dropdown" id="filterDropdown">
                 <div class="filter-section">
@@ -591,35 +622,19 @@ async def chat_interface(thread_id: str):
                 </div>
                 <button onclick="applyFilter()">Apply Filter</button>
             </div>
-
             <div class="chat-container">
                 <div class="messages" id="messages">
-                    <div class="message assistant-message">
-                        <strong>Assistant:</strong><br>
-                        Hello! I'm your recruitment assistant for the {job_title} position. How can I help you today?
-                        <br><br>
-                        💡 <strong>Quick tips:</strong>
-                        <ul style="margin-top: 10px; padding-left: 20px;">
-                            <li>Use the upload button to upload candidate resumes</li>
-                            <li>Use the filter button above for initial keyword screening</li>
-                            <li>Ask me to "screen the CVs" after uploading</li>
-                            <li>Query candidates: "show me candidates with Python experience"</li>
-                            <li>Get insights: "why did candidate X score higher than Y?"</li>
-                        </ul>
-                    </div>
+                    {messages_html}
                 </div>
-
                 <div class="loading" id="loading">
                     ⏳ Processing your request...
                 </div>
-
                 <div class="input-container">
                     <input type="text" id="messageInput" placeholder="Ask me anything about this position..." onkeypress="handleKeyPress(event)">
                     <button onclick="sendMessage()">Send</button>
                     <button class="upload-btn" onclick="openUploadModal()">📤 Upload CVs</button>
                 </div>
             </div>
-
             <!-- Upload Modal -->
             <div id="uploadModal" class="modal">
                 <div class="modal-content">
@@ -638,32 +653,24 @@ async def chat_interface(thread_id: str):
                 </div>
             </div>
         </div>
-
         <script>
             const threadId = "{thread_id}";
-
             function toggleFilter() {{
                 const filterDropdown = document.getElementById('filterDropdown');
                 filterDropdown.classList.toggle('active');
             }}
-
             function handleKeyPress(event) {{
                 if (event.key === 'Enter') {{
                     sendMessage();
                 }}
             }}
-
             async function sendMessage() {{
                 const input = document.getElementById('messageInput');
                 const message = input.value.trim();
-
                 if (!message) return;
-
                 addMessage('user', message);
                 input.value = '';
-
                 document.getElementById('loading').style.display = 'block';
-
                 try {{
                     const response = await fetch('/api/chat', {{
                         method: 'POST',
@@ -675,7 +682,6 @@ async def chat_interface(thread_id: str):
                             thread_id: threadId
                         }})
                     }});
-
                     const data = await response.text();
                     addMessage('assistant', data);
                 }} catch (error) {{
@@ -684,7 +690,6 @@ async def chat_interface(thread_id: str):
                     document.getElementById('loading').style.display = 'none';
                 }}
             }}
-
             function addMessage(role, content) {{
                 const messagesDiv = document.getElementById('messages');
                 const messageDiv = document.createElement('div');
@@ -693,47 +698,36 @@ async def chat_interface(thread_id: str):
                 messagesDiv.appendChild(messageDiv);
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
             }}
-
             function openUploadModal() {{
                 document.getElementById('uploadModal').style.display = 'block';
             }}
-
             function closeUploadModal() {{
                 document.getElementById('uploadModal').style.display = 'none';
             }}
-
             async function uploadCVs() {{
                 const files = document.getElementById('cvFiles').files;
-
                 if (files.length === 0) {{
                     alert('Please select at least one PDF file');
                     return;
                 }}
-
                 const formData = new FormData();
                 formData.append('thread_id', threadId);
-
                 for (let file of files) {{
                     formData.append('files', file);
                 }}
-
                 addMessage('user', `Uploading ${{files.length}} CV(s)...`);
                 closeUploadModal();
                 document.getElementById('loading').style.display = 'block';
-
                 try {{
                     const response = await fetch('/api/upload_cvs', {{
                         method: 'POST',
                         body: formData
                     }});
-
                     const result = await response.json();
-
                     let message = `✅ Upload complete!<br>Success: ${{result.success.length}}<br>Failed: ${{result.failed.length}}`;
                     if (result.success.length > 0) {{
                         message += `<br><br>Uploaded files:<ul>${{result.success.map(f => '<li>' + f + '</li>').join('')}}</ul>`;
                     }}
-
                     addMessage('assistant', message);
                 }} catch (error) {{
                     addMessage('assistant', '❌ Upload failed: ' + error.message);
@@ -742,13 +736,11 @@ async def chat_interface(thread_id: str):
                     document.getElementById('cvFiles').value = '';
                 }}
             }}
-
             async function applyFilter() {{
                 const techSkills = document.getElementById('techSkills').value.split(',').map(s => s.trim()).filter(s => s);
                 const languages = document.getElementById('languages').value.split(',').map(s => s.trim()).filter(s => s);
                 const certificates = document.getElementById('certificates').value.split(',').map(s => s.trim()).filter(s => s);
                 const education = document.getElementById('education').value.split(',').map(s => s.trim()).filter(s => s);
-
                 const config = {{
                     "Technical Skills": {{
                         "keywords": techSkills,
@@ -767,20 +759,16 @@ async def chat_interface(thread_id: str):
                         "required_ratio": 0.3
                     }}
                 }};
-
                 addMessage('user', 'Applying keyword filter...');
                 document.getElementById('loading').style.display = 'block';
-
                 try {{
                     const formData = new FormData();
                     formData.append('thread_id', threadId);
                     formData.append('filter_config', JSON.stringify(config));
-
                     const response = await fetch('/api/initial_filter', {{
                         method: 'POST',
                         body: formData
                     }});
-
                     const result = await response.text();
                     addMessage('assistant', result);
                 }} catch (error) {{
@@ -790,7 +778,26 @@ async def chat_interface(thread_id: str):
                     document.getElementById('filterDropdown').classList.remove('active');
                 }}
             }}
-
+            async function clearChat() {{
+                if (confirm("Are you sure you want to clear the chat history?")) {{
+                    try {{
+                        const response = await fetch('/api/clear_chat', {{
+                            method: 'POST',
+                            headers: {{
+                                'Content-Type': 'application/json',
+                            }},
+                            body: JSON.stringify({{
+                                thread_id: threadId
+                            }})
+                        }});
+                        if (response.ok) {{
+                            window.location.reload();
+                        }}
+                    }} catch (error) {{
+                        addMessage('assistant', '❌ Error clearing chat: ' + error.message);
+                    }}
+                }}
+            }}
             window.onclick = function(event) {{
                 if (event.target.className === 'modal') {{
                     event.target.style.display = 'none';
