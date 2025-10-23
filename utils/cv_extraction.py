@@ -1,6 +1,6 @@
 import json
 from json_repair import repair_json
-from config.llm_config import llm_extraction
+from config.llm_config import llm_extraction, llm_rag
 from prompts.extraction_prompt import get_extraction_prompt
 from prompts.jd_extraction_prompt import get_jd_extraction_prompt
 from models.cv_schema import CVDetails
@@ -41,7 +41,7 @@ def extract_cv_data(cv_path: str, job_description: str) -> dict:
         # Extract CV data
         cv_schema = CVDetails.model_json_schema()  # This is already a dictionary
         cv_prompt = get_extraction_prompt(cv_text, job_description, jd_entities, cv_schema)
-        cv_response = llm_extraction.generate(cv_prompt)
+        cv_response = llm_rag.generate(cv_prompt)
         cv_extracted_text = cv_response['results'][0]['generated_text']
         
         if not cv_extracted_text.strip():
