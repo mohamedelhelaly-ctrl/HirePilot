@@ -1,8 +1,8 @@
 import { FiThumbsDown } from "react-icons/fi";
 
-export default function CandidateRow({ name, score, scoreColor, status, statusBg, statusText, actionButton, actionBg }) {
+export default function CandidateRow({ name, score, scoreColor, status, statusBg, statusText, actionButton, actionBg, onCandidateClick, candidateData }) {
   return (
-    <tr className="border-b border-gray-200 hover:bg-gray-50 transition">
+    <tr className="border-b border-gray-200 hover:bg-gray-50 transition cursor-pointer" onClick={() => onCandidateClick(candidateData)}>
       <td className="px-4 py-4 w-2/5 text-sm font-medium text-gray-900">{name}</td>
       <td className="px-4 py-4 w-1/5">
         <div className="flex items-center gap-3">
