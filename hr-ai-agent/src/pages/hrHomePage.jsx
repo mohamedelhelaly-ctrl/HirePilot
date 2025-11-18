@@ -3,9 +3,12 @@ import JobRow from "../components/jobCard";
 import Button from "../components/button";
 import { jobs } from "../data/jobs";
 import { FiPlus } from "react-icons/fi";
+import Footer from "../components/footer";
+import { useState } from "react";
 
 export default function HrDashboard() {
   const departments = ["All", "Engineering", "Sales", "Marketing", "Finance"];
+  const [selectedDept, setSelectedDept] = useState("All");
 
   return (
     <DashboardLayout>
@@ -13,7 +16,7 @@ export default function HrDashboard() {
         <div className="w-full flex items-center justify-between gap-6 mt-10">
           <div>
             <h1 className="text-3xl md:text-6xl font-bold">Incorta AI HR Agent</h1>
-            <p className="text-gray-600 mt-3 text-xl">
+            <p className="text-gray-600 mt-5 text-xl">
               Streamline Your Hiring Process with AI-Powered Insights.
             </p>
           </div>
@@ -31,18 +34,26 @@ export default function HrDashboard() {
           </div>
         </div>
 
-        {/* FILTERS */}
-        <div className="flex gap-4 mt-25">
-          {departments.map((dept, i) => (
-            <button
-              key={i}
-              className={`px-4 py-2 rounded-lg border ${
-                dept === "All" ? "bg-blue-600 text-white" : "bg-white text-gray-600"
-              }`}
-            >
-              {dept}
-            </button>
-          ))}
+        <div className="mt-20">
+          <div className="inline-flex items-center gap-2 bg-gray-50 rounded-lg border border-gray-200 p-1">
+            {departments.map((dept, i) => {
+              const active = selectedDept === dept;
+              return (
+                <button
+                  key={i}
+                  onClick={() => setSelectedDept(dept)}
+                  aria-pressed={active}
+                  className={`focus:outline-none transition ${
+                    active
+                      ? "bg-blue-500 text-white shadow-sm"
+                      : "text-gray-600 hover:bg-gray-50"
+                  } px-4 py-2 rounded-xl text-md`}
+                >
+                  {dept}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* JOB TABLE */}
@@ -67,14 +78,7 @@ export default function HrDashboard() {
           </table>
         </div>
 
-        <footer className="text-center text-gray-500 py-6 mt-10">
-          <div className="flex justify-center gap-8 mb-2">
-            <a>Privacy Policy</a>
-            <a>Terms of Service</a>
-            <a>Contact</a>
-          </div>
-          © 2025 Incorta. All rights reserved.
-        </footer>
+        <Footer />
       </div>
     </DashboardLayout>
   );
