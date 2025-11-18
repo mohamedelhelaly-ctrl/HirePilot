@@ -3,11 +3,24 @@ import { FiSearch, FiChevronDown, FiPlus } from "react-icons/fi";
 import DashboardLayout from "../layouts/hrHomePageLayout";
 import CandidateRow from "../components/candidateRow";
 import AIChatSidebar from "../components/aiChatSidebar";
+import CandidateDetailsModal from "../components/candidateDetailsModal";
 import Button from "../components/button";
 import { candidates } from "../data/candidates";
 
 export default function JobPipeline() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleCandidateClick = (candidate) => {
+    setSelectedCandidate(candidate);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedCandidate(null);
+  };
 
   return (
     <DashboardLayout>
@@ -88,7 +101,12 @@ export default function JobPipeline() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {candidates.map((candidate) => (
-                    <CandidateRow key={candidate.id} {...candidate} />
+                    <CandidateRow 
+                      key={candidate.id} 
+                      {...candidate}
+                      onCandidateClick={handleCandidateClick}
+                      candidateData={candidate}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -99,6 +117,13 @@ export default function JobPipeline() {
         {/* AI Chat Sidebar */}
         <AIChatSidebar />
       </div>
+
+      {/* Candidate Details Modal */}
+      <CandidateDetailsModal 
+        candidate={selectedCandidate}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </DashboardLayout>
   );
 }
