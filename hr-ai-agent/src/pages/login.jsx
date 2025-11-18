@@ -3,8 +3,28 @@ import Button from "../components/button";
 import illustration from "../assets/logo-width.jpg";
 import { FiUser, FiLock } from "react-icons/fi";
 import AuthLayout from "../layouts/AuthLayout";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    
+    // Check credentials (username: "hr", password: "hr")
+    if (username === "hr" && password === "hr") {
+      // Store auth state (optional - you can use localStorage or context)
+      localStorage.setItem("isAuthenticated", "true");
+      navigate("/hr");
+    } else {
+      setError("Invalid username or password");
+    }
+  };
+
   return (
     <AuthLayout>
       <div className="flex w-full">
@@ -18,11 +38,22 @@ export default function Login() {
           <h2 className="text-3xl font-bold mb-2">Sign in to your accoaunt</h2>
           <p className="text-gray-500 mb-8">Welcome to the AI HR Agent.</p>
 
-          <div className="flex flex-col gap-5">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="flex flex-col gap-5">
             <InputField
               label="Username"
               placeholder="Enter your username"
               icon={<FiUser size={18} />}
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                setError("");
+              }}
             />
 
             <InputField
@@ -30,6 +61,11 @@ export default function Login() {
               type="password"
               placeholder="Enter your password"
               icon={<FiLock size={18} />}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError("");
+              }}
             />
 
             <div className="flex justify-between items-center mt-2">
@@ -44,7 +80,13 @@ export default function Login() {
             </div>
 
             <Button title="Login" />
-          </div>
+          </form>
+
+          <p className="text-gray-600 text-sm mt-4">
+            Demo credentials: <br />
+            Username: <strong>hr</strong> <br />
+            Password: <strong>hr</strong>
+          </p>
         </div>
       </div>
     </AuthLayout>

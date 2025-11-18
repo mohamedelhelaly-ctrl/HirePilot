@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function InputField({ label, placeholder, type = "text", icon }) {
+export default function InputField({ label, placeholder, type = "text", icon, value, onChange }) {
   return (
     <div className="flex flex-col">
       {label && <label className="text-sm text-gray-700 mb-1">{label}</label>}
@@ -13,6 +13,8 @@ export default function InputField({ label, placeholder, type = "text", icon }) 
         <input
           type={type}
           placeholder={placeholder}
+          value={value}
+          onChange={onChange}
           className={`w-full border rounded-lg py-3 ${
             icon ? "pl-10 pr-3" : "px-3"
           } focus:outline-none focus:ring-2 focus:ring-blue-200`}
