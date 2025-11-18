@@ -1,6 +1,6 @@
 import InputField from "../components/inputField";
 import Button from "../components/button";
-import illustration from "../assets/react.svg";
+import illustration from "../assets/logo-width.jpg";
 import { FiUser, FiLock } from "react-icons/fi";
 import AuthLayout from "../layouts/AuthLayout";
 
@@ -10,7 +10,7 @@ export default function Login() {
       <div className="flex w-full">
         {/* Left Image */}
         <div className="w-1/2 bg-white p-10 flex items-center justify-center">
-          <img src={illustration} className="rounded-xl w-full" />
+          <img src={illustration} className="rounded-xl w-full h-full" />
         </div>
 
         {/* Right Form */}
@@ -38,7 +38,7 @@ export default function Login() {
                 <span className="text-gray-600">Remember me</span>
               </label>
 
-              <a href="#" className="text-blue-500 text-sm hover:underline">
+              <a href="#" className="text-blue-700 text-sm hover:underline">
                 Forgot password?
               </a>
             </div>

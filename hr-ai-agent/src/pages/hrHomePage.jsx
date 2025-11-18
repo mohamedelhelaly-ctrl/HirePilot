@@ -45,7 +45,7 @@ export default function HrDashboard() {
                   aria-pressed={active}
                   className={`focus:outline-none transition ${
                     active
-                      ? "bg-blue-500 text-white shadow-sm"
+                      ? "bg-blue-700 text-white shadow-sm"
                       : "text-gray-600 hover:bg-gray-50"
                   } px-4 py-2 rounded-xl text-md`}
                 >
