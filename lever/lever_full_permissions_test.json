@@ -1,0 +1,167 @@
+{
+  "test_date": "2025-11-14 19:12:40 UTC",
+  "user": "SaiffMoh",
+  "total_tests": 16,
+  "results": {
+    "opportunities_list": {
+      "success": false,
+      "has_access": false,
+      "status": 400,
+      "count": 0,
+      "priority": "🔴 CRITICAL",
+      "type": "READ",
+      "tested_via": "Direct API Call",
+      "error": "{'code': 'BadRequestError', 'message': 'applications,resumes,stage is not expandable'}"
+    },
+    "postings_list": {
+      "success": true,
+      "has_access": true,
+      "status": 200,
+      "count": 5,
+      "priority": "🔴 CRITICAL",
+      "type": "READ",
+      "tested_via": "Direct API Call",
+      "error": null
+    },
+    "stages_list": {
+      "success": true,
+      "has_access": true,
+      "status": 200,
+      "count": 11,
+      "priority": "🔴 CRITICAL",
+      "type": "READ",
+      "tested_via": "Direct API Call",
+      "error": null
+    },
+    "users_list": {
+      "success": false,
+      "has_access": false,
+      "status": 403,
+      "count": 0,
+      "priority": "🟡 HIGH",
+      "type": "READ",
+      "tested_via": "Direct API Call",
+      "error": "{'code': 'ForbiddenError', 'message': 'The key you provided does not have access to this endpoint'}"
+    },
+    "archive_reasons": {
+      "success": false,
+      "has_access": false,
+      "status": 403,
+      "count": 0,
+      "priority": "🟡 HIGH",
+      "type": "READ",
+      "tested_via": "Direct API Call",
+      "error": "{'code': 'ForbiddenError', 'message': 'The key you provided does not have access to this endpoint'}"
+    },
+    "sources": {
+      "success": true,
+      "has_access": true,
+      "status": 200,
+      "count": 47,
+      "priority": "🟢 MEDIUM",
+      "type": "READ",
+      "tested_via": "Direct API Call",
+      "error": null
+    },
+    "tags": {
+      "success": true,
+      "has_access": true,
+      "status": 200,
+      "count": 279,
+      "priority": "🟢 MEDIUM",
+      "type": "READ",
+      "tested_via": "Direct API Call",
+      "error": null
+    },
+    "feedback_templates": {
+      "success": true,
+      "has_access": true,
+      "status": 200,
+      "count": 19,
+      "priority": "🟢 MEDIUM",
+      "type": "READ",
+      "tested_via": "Direct API Call",
+      "error": null
+    },
+    "requisitions": {
+      "success": false,
+      "has_access": false,
+      "status": 403,
+      "count": 0,
+      "priority": "🔵 LOW",
+      "type": "READ",
+      "tested_via": "Direct API Call",
+      "error": "{'code': 'ForbiddenError', 'message': 'The key you provided does not have access to this endpoint'}"
+    },
+    "webhooks": {
+      "success": false,
+      "has_access": false,
+      "status": 403,
+      "count": 0,
+      "priority": "🟢 MEDIUM",
+      "type": "READ",
+      "tested_via": "Direct API Call",
+      "error": "{'code': 'ForbiddenError', 'message': 'The key you provided does not have access to this endpoint'}"
+    },
+    "forms": {
+      "success": false,
+      "has_access": false,
+      "status": 404,
+      "count": 0,
+      "priority": "🔵 LOW",
+      "type": "READ",
+      "tested_via": "Direct API Call",
+      "error": "{'code': 'ResourceNotFound', 'message': '/v1/forms does not exist'}"
+    },
+    "posting_detail": {
+      "success": true,
+      "has_access": true,
+      "status": 200,
+      "count": 23,
+      "priority": "🔴 CRITICAL",
+      "type": "READ",
+      "tested_via": "Direct API Call",
+      "error": null
+    },
+    "posting_applications": {
+      "success": false,
+      "has_access": false,
+      "status": 404,
+      "count": 0,
+      "priority": "🔴 CRITICAL",
+      "type": "READ",
+      "tested_via": "Direct API Call",
+      "error": "{'code': 'ResourceNotFound', 'message': '/v1/postings/ee34e72a-b9da-48e0-8b27-c985d477eed7/applications does not exist'}"
+    },
+    "opportunities_write": {
+      "success": true,
+      "has_access": true,
+      "status": 400,
+      "count": 0,
+      "priority": "🔴 CRITICAL",
+      "type": "WRITE",
+      "tested_via": "Validation Error (Safe)",
+      "error": null
+    },
+    "postings_write": {
+      "success": true,
+      "has_access": true,
+      "status": 400,
+      "count": 0,
+      "priority": "🔵 LOW",
+      "type": "WRITE",
+      "tested_via": "Validation Error (Safe)",
+      "error": null
+    },
+    "webhooks_write": {
+      "success": false,
+      "has_access": false,
+      "status": 403,
+      "count": 0,
+      "priority": "🟢 MEDIUM",
+      "type": "WRITE",
+      "tested_via": "Direct API Call",
+      "error": "{'code': 'ForbiddenError', 'message': 'The key you provided does not have access to this endpoint'}"
+    }
+  }
+}

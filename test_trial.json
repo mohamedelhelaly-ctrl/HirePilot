@@ -1,0 +1,48 @@
+{
+      "id": "97086bc6-6b08-4aff-96c5-6b9ef4eb237e",
+      "text": "Test - Trial",
+      "state": "internal",
+      "distributionChannels": null,
+      "user": "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+      "owner": "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+      "hiringManager": "de7f1232-5870-4d8a-bfb3-bb28a1eee01e",
+      "categories": {
+        "commitment": "Full-time",
+        "department": "Research & Development",
+        "level": null,
+        "location": "Cairo",
+        "team": "Product",
+        "allLocations": [
+          "Cairo"
+        ]
+      },
+      "tags": [],
+      "content": {
+        "description": "",
+        "descriptionHtml": "",
+        "lists": [],
+        "closing": "",
+        "closingHtml": ""
+      },
+      "country": "EG",
+      "followers": [
+        "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+        "de7f1232-5870-4d8a-bfb3-bb28a1eee01e"
+      ],
+      "reqCode": "",
+      "requisitionCodes": [],
+      "urls": {
+        "list": "https://jobs.lever.co/incorta",
+        "show": "https://jobs.lever.co/incorta/97086bc6-6b08-4aff-96c5-6b9ef4eb237e",
+        "apply": "https://jobs.lever.co/incorta/97086bc6-6b08-4aff-96c5-6b9ef4eb237e/apply"
+      },
+      "confidentiality": "non-confidential",
+      "createdAt": 1762338314251,
+      "updatedAt": 1765369172747,
+      "workplaceType": "onsite",
+      "screening": {
+        "enabled": false
+      },
+      "createdAt_readable": "2025-11-05T10:25:14.251000+00:00",
+      "updatedAt_readable": "2025-12-10T12:19:32.747000+00:00"
+    }
