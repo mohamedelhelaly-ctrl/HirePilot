@@ -11,7 +11,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/hr" element={<HrDashboard />} />
-        <Route path="/jobs" element={<JobPipeline />} />
+        <Route path="/jobs/:jobId" element={<JobPipeline />} />
         <Route path="/hiring-manager" element={<HiringManagerDashboard />} />
       </Routes>
     </BrowserRouter>

@@ -3,7 +3,8 @@ from models.state import ApplicationState
 from utils.screening_engine import screen_cvs
 from utils.html_formatter import dataframe_to_html
 from utils.rag_retrieval import index_all_candidates_for_thread
-
+import json
+import os
 def background_rag_indexing(thread_id: str):
     """Background task to index candidates for RAG"""
     try:
@@ -20,15 +21,31 @@ def screening_node(state: ApplicationState) -> ApplicationState:
     
     thread_id = state.get("thread_id")
     job_description = state.get("job_description")
+    # If job_description is not provided, load from jobs.json using thread_id
+    if not job_description:
+        thread_id = state.get("thread_id")
+        jobs_path = os.path.join(os.path.dirname(__file__), "..", "data", "jobs.json")
+        try:
+            with open(jobs_path, "r", encoding="utf-8") as f:
+                jobs = json.load(f)
+            job = next((j for j in jobs if j["id"] == thread_id), None)
+            if job:
+                job_description = job.get("details") or job.get("description")
+                state["job_description"] = job_description
+        except Exception as e:
+            print(f"Error loading job description from jobs.json: {e}")
+            state["response_json"] = {"error": "Job description not available and could not be loaded from jobs.json."}
+            return state
     num_cvs = state.get("retrieved_n_cvs", 20)
     
     # Validation
     if not job_description:
-        state["response_message"] = "<p>❌ Job description not available for this position.</p>"
+        state["response_json"] = {"error": "Job description not available for this position."}
+        state["response_message"] = "Job description not available for this position."
         return state
-    
     if not state.get("cvs_available"):
-        state["response_message"] = "<p>❌ No CVs uploaded yet. Please upload CVs first.</p>"
+        state["response_json"] = {"error": "No CVs uploaded yet. Please upload CVs first."}
+        state["response_message"] = "No CVs uploaded yet. Please upload CVs first."
         return state
     
     try:
@@ -36,32 +53,28 @@ def screening_node(state: ApplicationState) -> ApplicationState:
         df = screen_cvs(job_description, num_cvs, thread_id, max_workers=3)
         
         if df.empty:
-            state["response_message"] = "<p>❌ No candidates could be processed.</p>"
+            state["response_json"] = {"error": "No candidates could be processed."}
+            state["response_message"] = "No candidates could be processed."
             return state
         
         # Sort by score
         if "score" in df.columns:
             df = df.astype({"score": float}).sort_values("score", ascending=False)
-        
         # Remove internal columns
         drop_cols = ["cv_path", "thread_id", "job_desc", "status"]
         df = df.drop(columns=[col for col in drop_cols if col in df.columns], errors='ignore')
-        
-        # Generate HTML table
-        html_table = dataframe_to_html(df)
-        
-        state["response_message"] = f"""
-        {html_table}
-        
-        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #0066cc;">
-            <h3 style="margin-top: 0; font-size: 16px;">📊 Screening Complete</h3>
-            <p style="margin: 10px 0;"><strong>Total Candidates:</strong> {len(df)}</p>
-            <p style="margin: 10px 0;">💡 <strong>Tip:</strong> Ask questions like "why did candidate X score higher than Y?" or "show me candidates with Python experience"</p>
-        </div>
-        """
-        
+        # Prepare JSON response
+        state["response_json"] = {
+            "total_candidates": len(df),
+            "candidates": df.to_dict('records'),
+            "screening_complete": True,
+            "tip": "Ask questions like 'why did candidate X score higher than Y?' or 'show me candidates with Python experience'"
+        }
         state["screening_complete"] = True
         state["screening_results"] = df.to_dict('records')
+        
+        # Format message for frontend
+        state["response_message"] = f"✅ Screening complete! Processed {len(df)} candidates.\n\nTop 5 candidates:\n" + "\n".join([f"{i+1}. {row.get('english_name', 'Unknown')} - Score: {row.get('score', 'N/A')}%" for i, row in enumerate(df.head(5).to_dict('records'))])
         
         # Launch background RAG indexing
         rag_thread = threading.Thread(
@@ -72,11 +85,10 @@ def screening_node(state: ApplicationState) -> ApplicationState:
         rag_thread.start()
         
         print(f"✅ Screening complete: {len(df)} candidates")
-        
     except Exception as e:
-        state["response_message"] = f"<p>❌ Error during screening: {str(e)}</p>"
+        state["response_json"] = {"error": f"Error during screening: {str(e)}"}
+        state["response_message"] = f"Error during screening: {str(e)}"
         print(f"❌ Screening error: {e}")
         import traceback
         traceback.print_exc()
-    
     return state

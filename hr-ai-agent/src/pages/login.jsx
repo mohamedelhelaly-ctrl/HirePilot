@@ -35,7 +35,7 @@ export default function Login() {
 
         {/* Right Form */}
         <div className="w-1/2 p-12 flex flex-col justify-center border-l border-gray-200">
-          <h2 className="text-3xl font-bold mb-2">Sign in to your accoaunt</h2>
+          <h2 className="text-3xl font-bold mb-2">Sign in to your account</h2>
           <p className="text-gray-500 mb-8">Welcome to the AI HR Agent.</p>
 
           {error && (

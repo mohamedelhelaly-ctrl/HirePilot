@@ -2,17 +2,18 @@ import os
 import uuid
 import json
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from typing import List, Dict, Any
 from pydantic import BaseModel
 
-from config.database_config import initialize_database
+from config.database_config import initialize_database, get_db_connection
 from config.vector_config import get_vector_index
 from utils.cv_processing import process_and_vectorize_cv
 from utils.initial_filter import apply_initial_filter
 from graph import run_workflow
+from database.schema import execute_sql_query, fetch_candidate_by_path
 from models.conversation import ConversationStore
 
 # Initialize FastAPI
@@ -790,27 +791,18 @@ async def chat_interface(thread_id: str):
 
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest):
-    """Main chat endpoint"""
-    
+    """Main chat endpoint (returns structured JSON)"""
     user_message = request.user_message
     thread_id = request.thread_id
-    
     if not user_message or not user_message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
-    
-    # Get job description for thread
     job_description = JOB_DESCRIPTIONS.get(thread_id)
-    
     if not job_description:
         raise HTTPException(status_code=404, detail="Invalid thread ID")
-    
     try:
-        # Run workflow
         result_state = run_workflow(user_message, thread_id, job_description)
-        response_html = result_state.get("response_message", "")
-        
-        return HTMLResponse(content=response_html)
-    
+        # Return the entire state as JSON
+        return JSONResponse(content=result_state)
     except Exception as e:
         print(f"Error in chat endpoint: {e}")
         import traceback
@@ -822,97 +814,142 @@ async def upload_cvs(
     files: List[UploadFile] = File(...),
     thread_id: str = Form(...)
 ):
-    """Upload CVs endpoint"""
-    
+    """Upload CVs endpoint (returns JSON)"""
     print(f"📤 Uploading {len(files)} CVs for thread {thread_id}")
-    
-    # Create directory for thread
     cvs_dir = f"assets/cvs/{thread_id}"
     os.makedirs(cvs_dir, exist_ok=True)
-    
     success = []
     failed = []
-    
-    # Get vector index
     vector_index = get_vector_index()
-    
     for file in files:
         try:
-            # Read file content
             content = await file.read()
-            
-            # Save to disk
             file_path = os.path.join(cvs_dir, file.filename)
             with open(file_path, "wb") as f:
                 f.write(content)
-            
-            # Vectorize
             status, filename = process_and_vectorize_cv(
                 content,
                 file.filename,
                 vector_index,
                 thread_id
             )
-            
             if status == "success":
                 success.append(filename)
             else:
                 failed.append(filename)
-        
         except Exception as e:
             print(f"Error uploading {file.filename}: {e}")
             failed.append(file.filename)
-    
-    return {
+    return JSONResponse(content={
         "success": success,
         "failed": failed,
         "total": len(files)
-    }
+    })
+
 
 @app.post("/api/initial_filter")
 async def initial_filter_endpoint(
     thread_id: str = Form(...),
     filter_config: str = Form(...)
 ):
-    """Apply initial keyword filter"""
-    
+    """Apply initial keyword filter (returns JSON)"""
     try:
         config = json.loads(filter_config)
     except:
         raise HTTPException(status_code=400, detail="Invalid filter configuration")
-    
     vector_index = get_vector_index()
     result = apply_initial_filter(thread_id, config, vector_index)
-    
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
-    
-    html_response = f"""
-    <div style="padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-        <h2 style="color: #667eea;">🔍 Initial Filtration Results</h2>
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Total CVs:</strong> {result['total']}</p>
-            <p style="color: #10b981;"><strong>Passed:</strong> {len(result['passed'])}</p>
-            <p style="color: #ef4444;"><strong>Failed:</strong> {len(result['failed'])}</p>
-        </div>
-        
-        <div style="margin-top: 20px;">
-            <h3 style="color: #10b981;">✅ Passed CVs:</h3>
-            <ul>
-                {''.join([f'<li>{cv}</li>' for cv in result['passed']])}
-            </ul>
-        </div>
-        
-        <div style="margin-top: 20px;">
-            <h3 style="color: #ef4444;">❌ Failed CVs:</h3>
-            <ul>
-                {''.join([f'<li>{cv}</li>' for cv in result['failed']])}
-            </ul>
-        </div>
-    </div>
-    """
-    
-    return HTMLResponse(content=html_response)
+    return JSONResponse(content=result)
+
+# --- New Endpoints ---
+
+@app.get("/api/screening_table/{thread_id}")
+async def get_screening_table(thread_id: str):
+    """Return all screened candidates for a thread, ranked by score desc"""
+    query = "SELECT * FROM candidates WHERE thread_id = ? ORDER BY CAST(score AS REAL) DESC"
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(query, (thread_id,))
+    rows = cursor.fetchall()
+    columns = [desc[0] for desc in cursor.description]
+    conn.close()
+    candidates = [dict(zip(columns, row)) for row in rows]
+    # Parse JSON fields
+    for c in candidates:
+        for key in ['universities', 'soft_skills', 'technical_skills', 'Certifications', 'Languages']:
+            if key in c and c[key]:
+                try:
+                    c[key] = json.loads(c[key])
+                except:
+                    pass
+    return JSONResponse(content={"candidates": candidates})
+
+@app.get("/api/jobs")
+async def get_jobs():
+    """Return all jobs from jobs.json"""
+    jobs_path = os.path.join("data", "jobs.json")
+    with open(jobs_path, "r", encoding="utf-8") as f:
+        jobs = json.load(f)
+    return JSONResponse(content={"jobs": jobs})
+
+@app.get("/api/job_stats")
+async def get_job_stats():
+    """Return jobs, number of candidates screened, and candidates applied (uploaded)"""
+    jobs_path = os.path.join("data", "jobs.json")
+    with open(jobs_path, "r", encoding="utf-8") as f:
+        jobs = json.load(f)
+    stats = []
+    for job in jobs:
+        thread_id = job["id"]
+        # Candidates screened (in DB)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM candidates WHERE thread_id = ?", (thread_id,))
+        screened = cursor.fetchone()[0]
+        # Candidates applied (uploaded CVs)
+        cvs_dir = f"assets/cvs/{thread_id}"
+        applied = 0
+        if os.path.exists(cvs_dir):
+            applied = len([f for f in os.listdir(cvs_dir) if f.endswith('.pdf')])
+        conn.close()
+        stats.append({
+            "job_id": thread_id,
+            "title": job["title"],
+            "screened": screened,
+            "applied": applied
+        })
+    return JSONResponse(content={"job_stats": stats})
+
+@app.get("/api/conversation/{thread_id}")
+async def get_conversation(thread_id: str):
+    """Return conversation history for a thread"""
+    conv_store = ConversationStore(thread_id)
+    return JSONResponse(content={
+        "summary": conv_store.summary,
+        "messages": conv_store.recent_messages
+    })
+
+@app.get("/api/candidate/{candidate_id}")
+async def get_candidate(candidate_id: int):
+    """Return candidate details by candidate_id"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM candidates WHERE candidate_id = ?", (candidate_id,))
+    row = cursor.fetchone()
+    columns = [desc[0] for desc in cursor.description]
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    candidate = dict(zip(columns, row))
+    for key in ['universities', 'soft_skills', 'technical_skills', 'Certifications', 'Languages']:
+        if key in candidate and candidate[key]:
+            try:
+                candidate[key] = json.loads(candidate[key])
+            except:
+                pass
+    return JSONResponse(content=candidate)
 
 if __name__ == "__main__":
     import uvicorn

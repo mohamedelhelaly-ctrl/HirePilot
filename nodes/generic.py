@@ -30,11 +30,7 @@ def generic_node(state: ApplicationState) -> ApplicationState:
     # Get response
     response = llm_generic.generate(prompt)
     response_text = response['results'][0]['generated_text'].strip()
-    
-    # Convert to HTML
-    html_response = format_response_as_html(response_text)
-    
-    state["response_message"] = html_response
+    state["response_json"] = {"response": response_text}
+    state["response_message"] = response_text  # Set for frontend
     print("✅ Generic response generated")
-    
     return state
