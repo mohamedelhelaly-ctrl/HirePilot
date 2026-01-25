@@ -17,6 +17,7 @@ class ApplicationState(TypedDict):
     screening_complete: bool
     
     # Data storage
+    job_object: Optional[Dict[str, Any]]
     job_description: Optional[str]
     num_cvs: int
     retrieved_n_cvs: int

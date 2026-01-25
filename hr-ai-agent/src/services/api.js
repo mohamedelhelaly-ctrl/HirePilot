@@ -98,3 +98,27 @@ export const fetchConversationHistory = async (threadId) => {
     throw error;
   }
 };
+
+/**
+ * Create a new job
+ */
+export const createJob = async (jobData) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/jobs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(jobData)
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to create job');
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error creating job:', error);
+    throw error;
+  }
+};

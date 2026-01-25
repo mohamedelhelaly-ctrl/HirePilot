@@ -59,6 +59,7 @@ def rag_explainer_node(state: ApplicationState) -> ApplicationState:
     
     user_input = state.get("user_input", "")
     thread_id = state.get("thread_id")
+    job_object = state.get("job_object", {})
     job_description = state.get("job_description", "")
     
     # Extract candidate IDs
@@ -88,7 +89,7 @@ def rag_explainer_node(state: ApplicationState) -> ApplicationState:
             context_parts.append("")
         context = "\n".join(context_parts)
         # Generate explanation
-        prompt = get_rag_prompt(user_input, context, job_description)
+        prompt = get_rag_prompt(user_input, context, job_object)
         response = llm_rag.generate(prompt)
         explanation = response['results'][0]['generated_text'].strip()
         # Extract conclusion

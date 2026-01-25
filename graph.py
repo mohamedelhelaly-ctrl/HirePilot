@@ -48,7 +48,7 @@ def create_workflow():
     print("✅ Workflow compiled successfully")
     return app
 
-def run_workflow(user_input: str, thread_id: str, job_description: str = None) -> dict:
+def run_workflow(user_input: str, thread_id: str, job_object: dict = None) -> dict:
     """Run the workflow"""
     
     print(f"\n{'='*60}")
@@ -75,10 +75,11 @@ def run_workflow(user_input: str, thread_id: str, job_description: str = None) -
         thread_id=thread_id,
         conversation_summary="",
         recent_messages=[],
-        jd_available=job_description is not None,
+        jd_available=job_object is not None,
         cvs_available=cvs_available,
         screening_complete=screening_complete,
-        job_description=job_description,
+        job_object=job_object,
+        job_description=job_object.get("details", job_object.get("description", "")) if job_object else None,
         num_cvs=0,
         retrieved_n_cvs=20,
         screening_results=None,

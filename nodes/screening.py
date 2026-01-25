@@ -20,22 +20,26 @@ def screening_node(state: ApplicationState) -> ApplicationState:
     print("🔍 Screening node - processing CVs...")
     
     thread_id = state.get("thread_id")
+    job_object = state.get("job_object")
     job_description = state.get("job_description")
-    # If job_description is not provided, load from jobs.json using thread_id
-    if not job_description:
-        thread_id = state.get("thread_id")
+    
+    # If job_object is not provided, load from jobs.json
+    if not job_object:
         jobs_path = os.path.join(os.path.dirname(__file__), "..", "data", "jobs.json")
         try:
             with open(jobs_path, "r", encoding="utf-8") as f:
                 jobs = json.load(f)
-            job = next((j for j in jobs if j["id"] == thread_id), None)
-            if job:
-                job_description = job.get("details") or job.get("description")
+            job_object = next((j for j in jobs if j["id"] == thread_id), None)
+            if job_object:
+                state["job_object"] = job_object
+                job_description = job_object.get("details") or job_object.get("description")
                 state["job_description"] = job_description
         except Exception as e:
-            print(f"Error loading job description from jobs.json: {e}")
-            state["response_json"] = {"error": "Job description not available and could not be loaded from jobs.json."}
+            print(f"Error loading job from jobs.json: {e}")
+            state["response_json"] = {"error": "Job information not available."}
+            state["response_message"] = "Job information not available."
             return state
+    
     num_cvs = state.get("retrieved_n_cvs", 20)
     
     # Validation

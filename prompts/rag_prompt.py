@@ -1,5 +1,27 @@
-def get_rag_prompt(user_query: str, context: str, job_description: str) -> str:
+def get_rag_prompt(user_query: str, context: str, job_object: dict) -> str:
     """RAG explanation prompt"""
+    
+    # Format job information
+    job_info = "Not provided"
+    if job_object:
+        parts = []
+        if job_object.get("title"):
+            parts.append(f"Position: {job_object['title']}")
+        if job_object.get("location"):
+            parts.append(f"Location: {job_object['location']}")
+        if job_object.get("level"):
+            parts.append(f"Employment Level: {job_object['level']}")
+        if job_object.get("description"):
+            parts.append(f"\nDescription:\n{job_object['description']}")
+        if job_object.get("requirements"):
+            reqs = job_object['requirements']
+            if isinstance(reqs, list):
+                parts.append(f"\nKey Requirements:\n" + "\n".join([f"- {req}" for req in reqs]))
+            else:
+                parts.append(f"\nRequirements: {reqs}")
+        if job_object.get("details"):
+            parts.append(f"\nFull Details:\n{job_object['details']}")
+        job_info = "\n".join(parts)
     
     prompt = f"""You are an expert recruitment analyst. Analyze the candidate information and answer the recruiter's question.
 
@@ -13,8 +35,8 @@ Guidelines:
 7. End with a brief conclusion (2-3 sentences)
 8. ONLY discuss candidates whose information is provided below
 
-Job Requirements:
-{job_description if job_description else "Not provided"}
+Job Information:
+{job_info}
 
 Candidate Information:
 {context}

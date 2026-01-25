@@ -1,31 +1,55 @@
 [
   {
-    "id": "senior_ai_ml",
-    "title": "Senior AI/ML Engineer",
-    "description": "Lead the creation of cutting-edge generative AI solutions leveraging RAG and LLMs. Develop agentic solutions that empower customers by enhancing decision-making processes.",
-    "details": "Senior AI/ML Engineer\nCairo / COGS - Professional Services / Full-time\n\nIncorta is a next-generation data analytics and business intelligence platform that excels at rapidly delivering business value from transactional data. We provide an integrated end-to-end data experience, from data acquisition and enrichment to visualizing and sharing results.\n\nAs a Senior GenAI Developer at Incorta, you'll lead the creation of cutting-edge generative AI solutions leveraging Retrieval-Augmented Generation (RAG) and Large Language Models (LLMs). You will play a key role in developing agentic solutions that empower our customers by enhancing decision-making processes and optimizing their analytics workflows.\n\nYOU WILL:\n- Data Analysis & Modeling: Collect, clean, and analyze large datasets to identify trends, patterns, and insights.\n- Machine Learning & AI: Develop and deploy predictive models, recommendation systems, and AI-driven solutions.\n- Architected, developed, and deployed GenAI solutions integrated with RAG and LLM frameworks.\n- Design and engineer sophisticated prompts and fine-tune LLMs to achieve optimal performance.\n- Business Impact: Work closely with product, marketing, and engineering teams to provide data-driven solutions.\n- Data Visualization: Communicate findings effectively using dashboards and visual tools.\n- Optimization & Automation: Enhance existing models and automate data workflows for efficiency.\n- Collaboration: Partner with data engineers and business stakeholders to improve data quality and strategy.\n\nYOU HAVE:\n- Bachelor's or Master's degree in Computer Science, Data Science, Statistics, or a related field.\n- 5+ years of experience in data science, machine learning, or a related field.\n- Strong programming skills in Python, R, or SQL.\n- Experience with machine learning frameworks such as TensorFlow, Scikit-learn, or PyTorch.\n- Proven ability to build and deploy AI/ML solutions at scale.\n- Strong communication skills and ability to clearly articulate complex technical concepts.\n\nAdditional Requirements:\n- This position requires up to 90% travel throughout the year, both domestically and potentially internationally.\n- Flexibility in schedule and location is essential.\n- Must be comfortable working in dynamic environments and adapting quickly to changing business needs.",
-    "location": "Cairo, Egypt",
-    "level": "Full-time",
+    "id": "junior_ai_engineer",
+    "title": "Junior AI Engineer",
+    "description": "Start your career in artificial intelligence! Work alongside experienced engineers to build, test, and deploy AI solutions in a fast-paced, innovative environment.",
+    "details": "Incorta is a next-generation data analytics and business intelligence platform that excels at rapidly delivering business value from transactional data. We are looking for motivated individuals who are passionate about artificial intelligence and eager to grow their technical skills.\n\nAs a Junior AI Engineer, you will collaborate with senior engineers and cross-functional teams to develop AI-driven solutions that create real business impact. This role provides hands-on experience, mentorship, and clear growth opportunities.\n\nYOU WILL:\n\nAssist in building, training, and evaluating machine learning and deep learning models\n\nPrepare, clean, and preprocess datasets for AI pipelines\n\nRun experiments, analyze results, and improve model performance\n\nSupport the deployment and monitoring of AI models in production\n\nCollaborate with data engineers, product managers, and software developers\n\nAssist with prompt engineering and experimentation with LLMs\n\nDocument models, experiments, and technical processes\n\nStay up to date with AI tools, frameworks, and best practices",
+    "location": "Cairo,  Egypt",
+    "level": "Full-Time",
     "requirements": [
-      "5+ years in AI/ML development",
-      "Python, TensorFlow, PyTorch",
-      "Experience with RAG and LLM frameworks",
-      "Strong communication skills"
+      "Bachelor’s degree in Computer Science, Artificial Intelligence, Data Science, or a related field",
+      "0–2 years of experience in AI/ML or related roles (internships included)",
+      "Solid understanding of machine learning fundamentals and basic statistics",
+      "Hands-on experience with Python and common ML libraries (Scikit-learn, PyTorch, TensorFlow)",
+      "Basic knowledge of data manipulation libraries (NumPy, Pandas)",
+      "Familiarity with cloud platforms or MLOps tools is a plus",
+      "Strong problem-solving and analytical skills",
+      "Willingness to learn and work in a team-oriented environment"
     ]
   },
   {
-    "id": "junior_ai",
-    "title": "Junior AI Engineer",
-    "description": "Start your career in AI! Work alongside senior engineers to build and deploy AI solutions. Perfect opportunity to learn and grow in a fast-paced, innovative environment.",
-    "details": "Junior AI Engineer\nCairo / COGS - Professional Services / Full-time\n\nIncorta is a next-generation data analytics and business intelligence platform that excels at rapidly delivering business value from transactional data. We're looking for passionate individuals eager to start their career in artificial intelligence.\n\nAs a Junior AI Engineer at Incorta, you'll work alongside senior engineers to build and deploy AI solutions that drive real impact. This is an excellent opportunity to learn and grow in a fast-paced, innovative environment.\n\nYOU WILL:\n- Support the design, training, and optimization of ML and deep learning models.\n- Prepare and transform datasets for AI/ML pipelines.\n- Run experiments, analyze results, and improve model performance.\n- Collaborate with senior engineers and cross-functional teams to bring AI solutions into production.\n- Stay curious and keep up with the latest AI tools and frameworks.\n- Assist in data analysis and visualization tasks.\n- Document technical processes and findings.\n\nYOU HAVE:\n- Bachelor's degree in Computer Science, AI, Data Science, or related field (Master's a plus).\n- 0-2 years of experience in AI/ML or related field.\n- Knowledge of machine learning, deep learning, and statistical modeling.\n- Hands-on experience with Python and ML libraries (TensorFlow, PyTorch, Scikit-learn).\n- Exposure to cloud platforms (AWS, Azure, GCP) is a bonus.\n- Strong problem-solving, analytical, and teamwork skills.\n- Eagerness to learn and adapt to new technologies.\n\nWHAT WE OFFER:\n- Competitive salary & performance-based bonuses.\n- Health and life insurance coverage.\n- Learning opportunities, certifications, and clear career growth paths.\n- A collaborative, innovative culture where your ideas matter.\n- Mentorship from experienced AI professionals.\n\nLocation: Cairo (Hybrid options available)\nReporting to: AI Lead / Senior AI Engineer\n\nAt Incorta, we believe in empowering people to innovate, grow, and make a sustainable impact. We welcome applicants from all backgrounds and are proud to be an equal opportunity employer."
-    ,
-    "location": "Cairo, Egypt",
-    "level": "Full-time",
+    "id": "senior_ai_engineer",
+    "title": "Senior AI Engineer",
+    "description": "Lead the design, development, and deployment of advanced AI solutions that drive real business impact. Work on cutting-edge machine learning, deep learning, and generative AI systems in a collaborative, high-impact environment.",
+    "details": "Incorta is a next-generation data analytics and business intelligence platform that excels at rapidly delivering business value from transactional data. We are seeking experienced AI engineers who can take ownership of complex AI initiatives and mentor junior team members.\n\nAs a Senior AI Engineer, you will play a key role in architecting scalable AI systems, developing production-ready models, and collaborating closely with product, data, and engineering teams to deliver intelligent solutions.\n\nYOU WILL:\n\nDesign, build, and deploy machine learning and deep learning models at scale\n\nLead end-to-end AI projects from problem definition to production deployment\n\nArchitect AI solutions including predictive models, recommendation systems, and GenAI use cases\n\nDevelop and optimize models using frameworks such as PyTorch, TensorFlow, and Scikit-learn\n\nWork on LLM-based solutions, prompt engineering, and Retrieval-Augmented Generation (RAG) pipelines\n\nEnsure model performance, reliability, and scalability in production environments\n\nCollaborate with data engineers on data pipelines and feature engineering\n\nMentor junior AI engineers and review technical work\n\nCommunicate technical concepts and results to non-technical stakeholders",
+    "location": "Alexandria,  Egypt",
+    "level": "Full-Time",
     "requirements": [
-      "0-2 years experience in AI/ML",
-      "Bachelor's in Computer Science or related",
-      "Python and ML libraries (TensorFlow, Scikit-learn)",
-      "Eagerness to learn and grow"
+      "Bachelor’s or Master’s degree in Computer Science, Artificial Intelligence, Data Science, or a related field",
+      "5+ years of experience in AI, machine learning, or data science roles",
+      "Strong proficiency in Python and experience with ML/DL frameworks",
+      "Proven experience deploying and maintaining AI models in production",
+      "Solid understanding of statistics, optimization, and model evaluation techniques",
+      "Experience with cloud platforms (AWS, Azure, or GCP) and MLOps practices",
+      "Familiarity with data processing tools and large-scale datasets",
+      "Strong leadership, communication, and problem-solving skills"
+    ]
+  },
+  {
+    "id": "junior_frontend_developer",
+    "title": "Junior Frontend Developer",
+    "description": "Kick-start your career in front-end development! Work with experienced developers to build user-friendly, responsive web applications while learning modern web technologies and best practices.\n",
+    "details": "Incorta is a next-generation data analytics and business intelligence platform that excels at rapidly delivering business value from transactional data. We are looking for motivated and creative individuals eager to grow their skills in web development and contribute to building exceptional user experiences.\n\nAs a Junior Front-End Developer, you will collaborate with designers, product managers, and senior engineers to implement web interfaces, optimize user interactions, and ensure consistent branding across platforms.\n\nYOU WILL:\n\nDevelop responsive and interactive web pages using HTML, CSS, and JavaScript\n\nWork with frameworks and libraries such as React, Vue, or Angular\n\nCollaborate with designers to translate UI/UX designs into functional web components\n\nParticipate in code reviews and contribute to best practices\n\nTest and debug web applications to ensure functionality and performance\n\nSupport the maintenance and enhancement of existing web applications\n\nAssist in optimizing web pages for speed, accessibility, and responsiveness\n\nStay updated with the latest front-end technologies and trends\n",
+    "location": "Cairo,  Egypt",
+    "level": "Part-Time",
+    "requirements": [
+      "Bachelor’s degree in Computer Science, Software Engineering, or a related field",
+      "0–2 years of experience in front-end development (internships included)",
+      "Basic knowledge of HTML, CSS, JavaScript, and at least one modern front-end framework",
+      "Familiarity with version control systems such as Git",
+      "Good problem-solving skills and attention to detail",
+      "Eagerness to learn, adapt, and work in a team-oriented environment",
+      "Understanding of responsive design principles and web accessibility is a plus"
     ]
   }
 ]
