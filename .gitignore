@@ -208,3 +208,8 @@ __marimo__/
 
 
 /node_modules
+backend/app/db/cvs/
+backend/app/db/encoder_model/
+*.pdf
+database/
+chroma.sqlite3

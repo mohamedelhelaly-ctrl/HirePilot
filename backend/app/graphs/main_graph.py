@@ -11,7 +11,7 @@ Architecture:
 """
 
 # LangGraph core imports
-from langgraph.graph import StateGraph, END  # StateGraph = graph builder, END = terminal node
+from langgraph.graph import StateGraph, START, END  # StateGraph = graph builder, END = terminal node
 from .state import OrchestratorState  # Our state schema
 # Import all node functions
 from .nodes import (
@@ -75,12 +75,10 @@ def create_main_graph():
     workflow = StateGraph(OrchestratorState)
     
     # ==================== ADD NODES ====================
-    # Nodes are functions that process state and optionally modify it
-    # Each node is registered with a string name (used for routing)
-    
-    # Router node - reads intent and decides where to route next
-    # This is called first for every workflow
-    workflow.add_node("router", router_node)
+    # router_node is NOT registered as a graph node — it is a pure routing
+    # function (returns a string, not a state update) used as the conditional
+    # edge function from START.  Registering it as a node would cause
+    # LangGraph to raise "Expected dict, got <route_string>".
     
     # Batch screening node - scores and ranks all candidates for a requisition
     # Invoked when intent="batch_screening" or intent="background_job"
@@ -110,32 +108,22 @@ def create_main_graph():
     # Invoked when intent="view_candidates"
     workflow.add_node("view_candidates", view_candidates_node)
     
-    # ==================== SET ENTRY POINT ====================
-    # The first node to execute when graph.invoke() is called
-    # Every workflow starts here, regardless of intent
-    workflow.set_entry_point("router")
-    
-    # ==================== ADD EDGES ====================
-    # Edges define how state flows between nodes
-    
-    # CONDITIONAL EDGE from router to all possible next nodes
-    # The lambda calls router_node again to get the routing decision
-    # (LangGraph doesn't cache the first call, so we call it twice)
-    # The dict maps return values to node names
+    # ==================== ROUTING FROM START ====================
+    # router_node is a plain function that reads state.intent and returns a
+    # string key.  It acts as the conditional edge from the graph entry point.
     workflow.add_conditional_edges(
-        "router",  # Source node
-        lambda state: router_node(state),  # Function that returns next node name
+        START,
+        router_node,
         {
-            # Map router return values to actual nodes
-            "batch_screening": "batch_screening",  # Batch scoring workflow
-            "webhook_handler": "webhook_handler",  # Lever webhook processing
-            "live_interview": "live_interview",    # Real-time interview copilot
-            "schedule_interview": "schedule_interview",  # Calendar scheduling
-            "send_assessment": "send_assessment",  # HackerRank dispatch
-            "rag_query": "rag_query",              # Semantic search + Q&A
-            "view_candidates": "view_candidates",  # Simple DB read
-            "end": END,  # If router returns "end", terminate the workflow
-        }
+            "batch_screening":   "batch_screening",
+            "webhook_handler":   "webhook_handler",
+            "live_interview":    "live_interview",
+            "schedule_interview":"schedule_interview",
+            "send_assessment":   "send_assessment",
+            "rag_query":         "rag_query",
+            "view_candidates":   "view_candidates",
+            "end": END,
+        },
     )
     
     # STATIC EDGES from all nodes to END

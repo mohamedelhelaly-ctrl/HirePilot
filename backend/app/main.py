@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).parent))
 
 from db.database import engine
-from api.routers import requisitions
+from api.routers import requisitions, cv_upload, screening
 
 load_dotenv()
 
@@ -34,6 +34,8 @@ app = FastAPI(
 
 # Include routers
 app.include_router(requisitions.router, prefix="/api/requisitions", tags=["Requisitions"])
+app.include_router(cv_upload.router, prefix="/api/cvs", tags=["CV Upload"])
+app.include_router(screening.router, prefix="/api/screening", tags=["Screening"])
 
 
 @app.get("/")
