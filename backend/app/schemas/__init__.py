@@ -72,13 +72,32 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
-class TokenRefresh(BaseModel):
-    refresh_token: str
-
-
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+# ============================================================================
+# Request/Response Schemas
+# ============================================================================
+
+class GoogleLoginRequest(BaseModel):
+    """Google OAuth ID token login request."""
+    id_token: str
+
+
+class TokenRefreshRequest(BaseModel):
+    """Refresh token request."""
+    refresh_token: str
+
+class LogoutRequest(BaseModel):
+    """Request model for logout endpoint."""
+    refresh_token: str | None = None
+
+
+class LogoutResponse(BaseModel):
+    """Response model for logout endpoint."""
+    message: str
+
 
 
 # Requisition schemas

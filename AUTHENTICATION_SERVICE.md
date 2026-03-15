@@ -96,6 +96,30 @@ Steps:
 
 Load current user from database.
 
+#### `logout(db, user_id, refresh_token) -> Dict[str, str]`
+
+Revoke refresh token(s) to logout user.
+
+```
+Parameters:
+- db: Database session
+- user_id: ID of user logging out
+- refresh_token: Optional refresh token to revoke
+                If None, revokes ALL tokens for user
+
+Returns:
+- Dict with success message
+
+Steps:
+1. Verify user exists and retrieve from database
+2. If refresh_token provided:
+   - Hash the refresh token
+   - Delete specific token from database
+3. If no refresh_token:
+   - Delete ALL refresh tokens for the user
+4. Return success message
+```
+
 ### 3. `app/dependencies/auth_dependencies.py`
 
 FastAPI dependency injection for authentication and authorization.
@@ -235,6 +259,49 @@ Errors:
 - 401: Missing or invalid access token
 - 403: User is inactive
 ```
+
+#### `POST /api/auth/logout`
+
+Logout user and revoke refresh token(s).
+
+```
+Headers:
+Authorization: Bearer <access_token>
+
+Request (Option 1 - Logout from all devices):
+{}
+
+Response:
+{
+  "message": "Logged out successfully. Revoked 2 token(s)."
+}
+
+Request (Option 2 - Logout from specific device):
+{
+  "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+}
+
+Response:
+{
+  "message": "Logged out successfully"
+}
+
+Errors:
+- 401: Missing or invalid access token
+- 403: User is inactive
+```
+
+**Logout Flow:**
+
+1. **Full Logout (Revoke All Tokens)** - No refresh_token in request body:
+   - Revokes ALL refresh tokens for the user
+   - User cannot refresh access token from any device
+   - Requires full re-authentication
+
+2. **Partial Logout (Revoke Specific Token)** - With refresh_token in request body:
+   - Revokes only the specified refresh token
+   - User can still use other tokens from other devices
+   - Only that specific device is logged out
 
 ## Environment Variables
 
@@ -376,6 +443,26 @@ Return Token {access_token, refresh_token, token_type}
 Client updates stored access token
 ```
 
+### Logout (Token Revocation)
+
+```
+Client includes access token
+    ↓
+POST /api/auth/logout {refresh_token?}
+    ↓
+Verify access token (required)
+    ↓
+If refresh_token provided:
+  Delete specific refresh token from database
+Else:
+  Delete ALL refresh tokens for user from database
+    ↓
+Return success message
+    ↓
+Revoked tokens cannot be used anymore
+Client should discard stored tokens
+```
+
 ## Security Considerations
 
 1. **Password Hashing:** All passwords are hashed with bcrypt before storage
@@ -413,6 +500,29 @@ curl -X POST http://localhost:8000/api/auth/refresh \
   -d '{"refresh_token": "YOUR_REFRESH_TOKEN"}'
 ```
 
+### Test Logout (Revoke All Tokens)
+
+```bash
+curl -X POST http://localhost:8000/api/auth/logout \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### Test Logout (Revoke Specific Token)
+
+```bash
+curl -X POST http://localhost:8000/api/auth/logout \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "YOUR_REFRESH_TOKEN"}'
+```
+
+After logout:
+- Revoked refresh tokens cannot be used to obtain new access tokens
+- If logged out from all devices, user must login again
+- If logged out from specific device, other devices can still use their tokens
+
 ## Troubleshooting
 
 ### "Invalid or expired access token" (401)
@@ -447,5 +557,5 @@ curl -X POST http://localhost:8000/api/auth/refresh \
 4. Test authentication endpoints
 5. Update API documentation if needed
 6. Add more detailed error handling if required
-7. Consider adding logout endpoint with token revocation
+7. ~~Consider adding logout endpoint with token revocation~~ ✅ **IMPLEMENTED**
 8. Add rate limiting to login endpoints

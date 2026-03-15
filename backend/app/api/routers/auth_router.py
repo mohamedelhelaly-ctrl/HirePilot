@@ -1,6 +1,6 @@
 """
 Authentication API router.
-Handles email/password login, google oauth, token refresh, and current user endpoints.
+Handles email/password login, google oauth, token refresh, current user endpoints, and logout.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,11 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
 from app.db.models import User
-from app.schemas import LoginRequest, Token, User as UserSchema, GoogleLoginRequest, TokenRefreshRequest
+from app.schemas import LoginRequest, Token, User as UserSchema, GoogleLoginRequest, TokenRefreshRequest, LogoutRequest, LogoutResponse
 from app.services.auth_service import (
     email_login,
     google_login,
-    refresh_access_token
+    refresh_access_token,
+    logout
 )
 from app.dependencies import get_current_user
 
@@ -190,3 +191,57 @@ async def get_current_user_profile(
         HTTPException(500): Database error
     """
     return current_user
+
+
+@router.post(
+    "/logout",
+    response_model=LogoutResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Logout User",
+    description="Logout and revoke refresh token(s)"
+)
+async def logout_user(
+    request: LogoutRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> LogoutResponse:
+    """
+    Logout user by revoking refresh token(s).
+    
+    This endpoint revokes refresh tokens to invalidate them:
+    
+    1. If specific refresh_token is provided:
+       - Revokes only that refresh token
+       - User can still use other refresh tokens
+    
+    2. If refresh_token is not provided:
+       - Revokes ALL refresh tokens for the user
+       - Requires full re-authentication to obtain new tokens
+    
+    Authentication:
+        Required - Include access token in Authorization header:
+        Authorization: Bearer <access_token>
+    
+    Request body (optional):
+    - refresh_token: Optional refresh token to revoke
+                    If omitted, all tokens for the user are revoked
+    
+    Response:
+    - message: Status message indicating logout success
+    
+    After logout:
+    - Access tokens can no longer be refreshed
+    - Refresh tokens are invalid
+    - User must login again to obtain new tokens
+    
+    Raises:
+        HTTPException(401): Missing or invalid access token
+        HTTPException(403): User is inactive
+        HTTPException(500): Database error
+    """
+    result = await logout(
+        db=db,
+        user_id=current_user.id,
+        refresh_token=request.refresh_token
+    )
+    return LogoutResponse(message=result["message"])

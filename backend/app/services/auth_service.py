@@ -27,6 +27,8 @@ from app.security import (
     hash_token,
     GOOGLE_CLIENT_ID,
 )
+from app.db.crud import delete_refresh_token, delete_user_refresh_tokens
+
 
 # --- Constants ---
 REFRESH_TOKEN_EXPIRE_DAYS = 7
@@ -183,3 +185,35 @@ async def get_current_user(db: AsyncSession, user_id: int) -> User:
     user = ensure_user_exists(await get_user_by_id(db, user_id))
     ensure_user_active(user)
     return user
+
+
+async def logout(db: AsyncSession, user_id: int, refresh_token: Optional[str] = None) -> Dict[str, str]:
+    """
+    Logout user by revoking refresh token(s).
+    
+    Args:
+        db: Database session
+        user_id: ID of user logging out
+        refresh_token: Optional specific refresh token to revoke. 
+                      If None, revokes all refresh tokens for the user.
+    
+    Returns:
+        Dict with success message
+        
+    Raises:
+        HTTPException: If user not found or token revocation fails
+    """
+    
+    user = ensure_user_exists(await get_user_by_id(db, user_id))
+    
+    if refresh_token:
+        # Revoke specific refresh token
+        token_hash = hash_token(refresh_token)
+        await delete_refresh_token(db, token_hash)
+        return {"message": "Logged out successfully"}
+    else:
+        # Revoke all refresh tokens for the user
+        revoked_count = await delete_user_refresh_tokens(db, user_id)
+        return {
+            "message": f"Logged out successfully. Revoked {revoked_count} token(s)."
+        }
