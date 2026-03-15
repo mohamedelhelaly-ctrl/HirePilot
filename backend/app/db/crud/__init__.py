@@ -21,7 +21,6 @@ from .user_crud import (
     get_user_by_email,
     get_users,
     update_user,
-    verify_password,
 )
 
 # Requisition CRUD
@@ -124,7 +123,6 @@ __all__ = [
     "get_user_by_email",
     "get_users",
     "update_user",
-    "verify_password",
     "create_requisition",
     "get_requisition_by_id",
     "get_requisition_by_lever_id",
