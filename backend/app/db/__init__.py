@@ -6,6 +6,7 @@ from .models import (
     WebhookEvent, RefreshToken, UserRole, ApplicationStatus,
     InterviewType, InterviewStatus
 )
+from . import crud
 
 __all__ = [
     "Base",
@@ -27,4 +28,5 @@ __all__ = [
     "ApplicationStatus",
     "InterviewType",
     "InterviewStatus",
+    "crud",
 ]
