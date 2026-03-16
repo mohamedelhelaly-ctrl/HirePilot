@@ -3,8 +3,8 @@ from sqlalchemy import select
 from typing import Optional, List
 from datetime import datetime
 
-from ..models import WebhookEvent
-from ...schemas import WebhookEventCreate, WebhookEventUpdate
+from db.models import WebhookEvent
+from schemas import WebhookEventCreate, WebhookEventUpdate
 
 
 async def create_webhook_event(

@@ -2,8 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
 
-from ..models import ScreeningResult
-from ...schemas import ScreeningResultCreate, ScreeningResultUpdate
+from db.models import ScreeningResult
+from schemas import ScreeningResultCreate, ScreeningResultUpdate
 
 
 async def create_screening_result(

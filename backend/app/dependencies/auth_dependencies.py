@@ -8,10 +8,10 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Callable
 
-from app.db.database import get_db
-from app.db.models import UserRole, User
-from app.security import decode_access_token
-from app.services.auth_service import get_current_user as service_get_current_user
+from db.database import get_db
+from db.models import UserRole, User
+from security import decode_access_token
+from services.auth_service import get_current_user as service_get_current_user
 
 
 # ============================================================================

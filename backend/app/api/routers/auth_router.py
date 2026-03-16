@@ -7,16 +7,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import get_db
-from app.db.models import User
-from app.schemas import LoginRequest, Token, User as UserSchema, GoogleLoginRequest, TokenRefreshRequest, LogoutRequest, LogoutResponse
-from app.services.auth_service import (
+from db.database import get_db
+from db.models import User
+from schemas import LoginRequest, Token, User as UserSchema, GoogleLoginRequest, TokenRefreshRequest, LogoutRequest, LogoutResponse
+from services.auth_service import (
     email_login,
     google_login,
     refresh_access_token,
     logout
 )
-from app.dependencies import get_current_user
+from dependencies import get_current_user
 
 
 # ============================================================================

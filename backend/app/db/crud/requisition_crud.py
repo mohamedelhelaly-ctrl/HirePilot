@@ -2,8 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from typing import Optional, List
 
-from ..models import Requisition
-from ...schemas import RequisitionCreate, RequisitionUpdate
+from db.models import Requisition
+from schemas import RequisitionCreate, RequisitionUpdate
 
 
 async def create_requisition(db: AsyncSession, requisition: RequisitionCreate) -> Requisition:

@@ -2,8 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
 
-from ..models import Candidate
-from ...schemas import CandidateCreate, CandidateUpdate
+from db.models import Candidate
+from schemas import CandidateCreate, CandidateUpdate
 
 
 async def create_candidate(db: AsyncSession, candidate: CandidateCreate) -> Candidate:

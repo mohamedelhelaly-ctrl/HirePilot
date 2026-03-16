@@ -3,8 +3,8 @@ from sqlalchemy import select
 from typing import Optional, List
 import bcrypt
 
-from ..models import User
-from ...schemas import UserCreate, UserUpdate
+from db.models import User
+from schemas import UserCreate, UserUpdate
 
 
 async def create_user(db: AsyncSession, user: UserCreate) -> User:

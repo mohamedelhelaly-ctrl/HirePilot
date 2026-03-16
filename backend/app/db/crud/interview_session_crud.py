@@ -2,8 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional, List
 
-from ..models import InterviewSession
-from ...schemas import InterviewSessionCreate, InterviewSessionUpdate
+from db.models import InterviewSession
+from schemas import InterviewSessionCreate, InterviewSessionUpdate
 
 
 async def create_interview_session(

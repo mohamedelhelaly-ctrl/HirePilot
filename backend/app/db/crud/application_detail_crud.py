@@ -2,8 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
 
-from ..models import ApplicationDetail
-from ...schemas import ApplicationDetailCreate
+from db.models import ApplicationDetail
+from schemas import ApplicationDetailCreate
 
 
 async def create_application_detail(

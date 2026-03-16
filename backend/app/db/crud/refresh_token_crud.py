@@ -3,7 +3,7 @@ from sqlalchemy import select, delete
 from typing import Optional
 from datetime import datetime
 
-from ..models import RefreshToken
+from db.models import RefreshToken
 
 
 async def create_refresh_token(

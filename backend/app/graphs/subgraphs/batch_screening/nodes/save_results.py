@@ -48,7 +48,7 @@ from schemas import (
     ScreeningResultUpdate,
     ApplicationDetailCreate,
 )
-from ..state import BatchScreeningState, ExtractedCV  # noqa: E402
+from graphs.subgraphs.batch_screening.state import BatchScreeningState, ExtractedCV  # noqa: E402
 
 logger = logging.getLogger(__name__)
 

@@ -2,8 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from typing import List
 
-from ..models import StatusHistory
-from ...schemas import StatusHistoryCreate
+from db.models import StatusHistory
+from schemas import StatusHistoryCreate
 
 
 async def create_status_history(

@@ -4,8 +4,8 @@ from sqlalchemy.orm import selectinload, joinedload
 from typing import Optional, List
 from datetime import datetime
 
-from ..models import Application, ApplicationStatus
-from ...schemas import ApplicationCreate, ApplicationUpdate
+from db.models import Application, ApplicationStatus
+from schemas import ApplicationCreate, ApplicationUpdate
 
 
 async def create_application(db: AsyncSession, application: ApplicationCreate) -> Application:
@@ -115,7 +115,7 @@ async def update_application_status(
     db_application.last_activity_at = datetime.utcnow()
     
     # Create status history entry
-    from ...schemas import StatusHistoryCreate
+    from schemas import StatusHistoryCreate
     history_entry = StatusHistoryCreate(
         application_id=application_id,
         from_status=old_status,

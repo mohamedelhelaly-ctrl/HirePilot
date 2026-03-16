@@ -26,7 +26,6 @@ pymupdf                 # provides fitz — PDF text extraction
 
 # LangChain + ChromaDB
 langchain==1.2.10
-langchain-core==0.3.63
 langchain-community==0.4.1
 chromadb==1.5.1
 
@@ -38,3 +37,5 @@ groq
 
 google-auth==2.49.0
 google-auth-oauthlib==1.3.0
+
+jwt

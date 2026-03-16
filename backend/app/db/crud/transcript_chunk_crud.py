@@ -2,8 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
 
-from ..models import TranscriptChunk
-from ...schemas import TranscriptChunkCreate
+from db.models import TranscriptChunk
+from schemas import TranscriptChunkCreate
 
 
 async def create_transcript_chunk(

@@ -11,15 +11,15 @@ from google.auth.transport import requests
 from google.oauth2 import id_token
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.crud import (
+from db.crud import (
     get_user_by_email,
     get_user_by_id,
     create_refresh_token as crud_create_refresh_token,
     get_refresh_token_by_hash,
 )
-from app.db.models import User
-from app.schemas import LoginRequest, Token
-from app.security import (
+from db.models import User
+from schemas import LoginRequest, Token
+from security import (
     verify_password,
     create_access_token,
     create_refresh_token,
@@ -27,7 +27,7 @@ from app.security import (
     hash_token,
     GOOGLE_CLIENT_ID,
 )
-from app.db.crud import delete_refresh_token, delete_user_refresh_tokens
+from db.crud import delete_refresh_token, delete_user_refresh_tokens
 
 
 # --- Constants ---
