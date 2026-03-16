@@ -1,0 +1,219 @@
+"""
+Authentication Service module.
+Handles login, token generation, and credential verification.
+"""
+
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any
+
+from fastapi import HTTPException, status
+from google.auth.transport import requests
+from google.oauth2 import id_token
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.crud import (
+    get_user_by_email,
+    get_user_by_id,
+    create_refresh_token as crud_create_refresh_token,
+    get_refresh_token_by_hash,
+)
+from app.db.models import User
+from app.schemas import LoginRequest, Token
+from app.security import (
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
+    hash_token,
+    GOOGLE_CLIENT_ID,
+)
+from app.db.crud import delete_refresh_token, delete_user_refresh_tokens
+
+
+# --- Constants ---
+REFRESH_TOKEN_EXPIRE_DAYS = 7
+
+
+# --- Helper Functions ---
+
+def build_user_claims(user: User) -> Dict[str, Any]:
+    """Build JWT claims from user object."""
+    return {
+        "user_id": user.id,
+        "email": user.email,
+        "role": user.role.value,
+    }
+
+
+def ensure_user_exists(user: Optional[User]) -> User:
+    """Ensure the user exists."""
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+
+def ensure_user_active(user: User) -> None:
+    """Ensure user account is active."""
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is inactive",
+        )
+
+
+def verify_google_token(id_token_str: str) -> Dict[str, Any]:
+    """Verify Google OAuth ID token and return payload."""
+    try:
+        payload = id_token.verify_oauth2_token(
+            id_token_str,
+            requests.Request(),
+            GOOGLE_CLIENT_ID
+        )
+        return payload
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid ID token: {str(e)}"
+        )
+
+
+async def generate_auth_tokens(db: AsyncSession, user: User) -> Token:
+    """
+    Generate access and refresh tokens for a user and store
+    hashed refresh token in database.
+    """
+    access_token = create_access_token(data=build_user_claims(user))
+    refresh_token = create_refresh_token(user_id=user.id)
+    token_hash = hash_token(refresh_token)
+
+    expires_at = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+
+    await crud_create_refresh_token(
+        db=db,
+        user_id=user.id,
+        token_hash=token_hash,
+        expires_at=expires_at
+    )
+
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer"
+    )
+
+
+# --- Authentication Logic ---
+
+async def email_login(db: AsyncSession, login_request: LoginRequest) -> Token:
+    """Authenticate user with email and password."""
+    user = await get_user_by_email(db, login_request.email)
+
+    if not user or not verify_password(login_request.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    ensure_user_active(user)
+    return await generate_auth_tokens(db, user)
+
+
+async def google_login(db: AsyncSession, id_token_str: str) -> Token:
+    """Authenticate user using Google OAuth ID token."""
+    payload = verify_google_token(id_token_str)
+    email = payload.get("email")
+
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email not found in ID token"
+        )
+
+    user = await get_user_by_email(db, email)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User not found. Please register before logging in."
+        )
+
+    ensure_user_active(user)
+    return await generate_auth_tokens(db, user)
+
+
+async def refresh_access_token(db: AsyncSession, refresh_token: str) -> Token:
+    """Generate new access token using a valid refresh token."""
+    payload = decode_refresh_token(refresh_token)
+
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user_id = payload.get("user_id")
+    token_hash = hash_token(refresh_token)
+    stored_token = await get_refresh_token_by_hash(db, token_hash)
+
+    if not stored_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not found or revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user = ensure_user_exists(await get_user_by_id(db, user_id))
+    ensure_user_active(user)
+
+    new_access_token = create_access_token(data=build_user_claims(user))
+
+    return Token(
+        access_token=new_access_token,
+        refresh_token=refresh_token,
+        token_type="bearer"
+    )
+
+
+async def get_current_user(db: AsyncSession, user_id: int) -> User:
+    """Retrieve current user from database."""
+    user = ensure_user_exists(await get_user_by_id(db, user_id))
+    ensure_user_active(user)
+    return user
+
+
+async def logout(db: AsyncSession, user_id: int, refresh_token: Optional[str] = None) -> Dict[str, str]:
+    """
+    Logout user by revoking refresh token(s).
+    
+    Args:
+        db: Database session
+        user_id: ID of user logging out
+        refresh_token: Optional specific refresh token to revoke. 
+                      If None, revokes all refresh tokens for the user.
+    
+    Returns:
+        Dict with success message
+        
+    Raises:
+        HTTPException: If user not found or token revocation fails
+    """
+    
+    user = ensure_user_exists(await get_user_by_id(db, user_id))
+    
+    if refresh_token:
+        # Revoke specific refresh token
+        token_hash = hash_token(refresh_token)
+        await delete_refresh_token(db, token_hash)
+        return {"message": "Logged out successfully"}
+    else:
+        # Revoke all refresh tokens for the user
+        revoked_count = await delete_user_refresh_tokens(db, user_id)
+        return {
+            "message": f"Logged out successfully. Revoked {revoked_count} token(s)."
+        }
