@@ -207,9 +207,6 @@ marimo/_lsp/
 __marimo__/
 
 
-/node_modules
-backend/app/db/cvs/
 backend/app/db/encoder_model/
-*.pdf
+backend/app/db/cvs/
 database/
-chroma.sqlite3
