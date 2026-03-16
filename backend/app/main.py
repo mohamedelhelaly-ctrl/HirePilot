@@ -2,8 +2,11 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import os
 import sys
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
+
+load_dotenv()
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
@@ -11,14 +14,23 @@ sys.path.insert(0, str(Path(__file__).parent))
 from db.database import engine
 from api.routers import requisitions, cv_upload, screening, auth_router
 
-load_dotenv()
+# ── Logging configuration ─────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+# Silence noisy third-party loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
     yield
-    
+
     # Shutdown: Close database connections
     await engine.dispose()
 

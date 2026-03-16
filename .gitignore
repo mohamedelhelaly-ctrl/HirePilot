@@ -209,5 +209,6 @@ __marimo__/
 
 backend/app/db/cvs/
 backend/app/db/encoder_model/
+backend/app/db/vector_index/
 database/
 alembic/

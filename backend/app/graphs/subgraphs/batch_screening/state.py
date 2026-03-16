@@ -8,7 +8,7 @@ Each node reads fields from previous nodes and writes its own output fields.
 The state is the single source of truth for the entire subgraph run.
 """
 
-from typing import Optional, List
+from typing import Optional, List, Dict, Set
 from pydantic import BaseModel, Field
 
 
@@ -28,21 +28,27 @@ class CandidateDoc(BaseModel):
     ChromaDB metadata) throughout Nodes 1–3.  The real application_id is
     only available after Node 4 inserts the Application row.
     """
-    source: str                 # original CV filename (ChromaDB metadata key)
-    cv_text: str                # Raw extracted text of the CV
-    cosine_score: float         # Raw distance from ChromaDB similarity_search_with_score
+    source: str          # original CV filename (ChromaDB metadata key)
+    cv_text: str         # Raw extracted text of the CV
+    cosine_score: float  # Raw distance from ChromaDB similarity_search_with_score
 
 
 class ExtractedCV(BaseModel):
     """
-    Structured CV data extracted by the LLM (Node 2 output).
+    Structured CV data extracted by the LLM (Node 2 output) OR reconstructed
+    from existing ApplicationDetail rows for already-screened candidates.
 
     Identity fields (full_name, email, phone, linkedin_url) are extracted
     directly from the CV text and used in Node 4 to create the Candidate row.
     Professional fields are used by the scoring LLM and ApplicationDetail rows.
     raw_llm_output is kept for debugging/auditing and never written to the DB.
+
+    is_existing_candidate: True  → Bucket A (already has application on this
+                                   requisition; data reconstructed from DB).
+                           False → Bucket B (new to this requisition; data
+                                   extracted fresh by the LLM).
     """
-    source: str                 # original CV filename — pipeline key until Node 4
+    source: str          # original CV filename — pipeline key until Node 4
 
     # ── Candidate identity (used to create the Candidate DB row) ─────────────
     full_name: str = ""
@@ -63,6 +69,13 @@ class ExtractedCV(BaseModel):
     certifications: List[str] = Field(default_factory=list)
     summary: str = ""
 
+    # ── Routing flag set by Node 2 ────────────────────────────────────────────
+    # True  → Bucket A: candidate already has an application on this requisition.
+    #         Node 4 will UPDATE scores/justifications only — no insert.
+    # False → Bucket B: new candidate for this requisition.
+    #         Node 4 will run full insert flow.
+    is_existing_candidate: bool = False
+
     # Debug field — NOT persisted to DB
     raw_llm_output: Optional[str] = None
 
@@ -79,20 +92,19 @@ class ScoredCandidate(BaseModel):
         "reject"       → SCREENING_REJECTED
         "needs_review" → status unchanged (manual review required)
 
-    application_id is None until Node 4 creates the Application row and
-    backfills it.  source is the stable CV filename key used throughout the
-    pipeline.
+    application_id is None until Node 4 creates/looks up the Application row
+    and backfills it.  source is the stable CV filename key used throughout.
     """
-    source: str                  # original CV filename — matches CandidateDoc / ExtractedCV
-    application_id: Optional[int] = None  # set by Node 4 after DB insertion
+    source: str                           # original CV filename
+    application_id: Optional[int] = None  # set by Node 4
 
     # LLM-generated scores (0–10 scale)
     technical_score: float
     behavioral_score: float
 
     # Derived scores written to Application table
-    combined_score: float            # weighted blend (0–1 scale)
-    cosine_similarity_score: float   # normalised from ChromaDB distance (0–1 scale)
+    combined_score: float           # weighted blend (0–1 scale)
+    cosine_similarity_score: float  # normalised from ChromaDB distance (0–1 scale)
 
     # Narrative justifications written to ScreeningResult table
     technical_justification: str = ""
@@ -115,35 +127,50 @@ class BatchScreeningState(BaseModel):
     """
     Shared state for the batch screening subgraph.
 
-    ┌───────────────────────────────────────────────────────────────────┐
-    │  INPUT           │ requisition_id                                 │
-    ├──────────────────┼────────────────────────────────────────────────┤
-    │  Node 1 output   │ job_description, top_candidates                │
-    │  Node 2 output   │ extracted_cv_data                              │
-    │  Node 3 output   │ comparative_scores                             │
-    │  Node 4 output   │ saved_count                                    │
-    ├──────────────────┼────────────────────────────────────────────────┤
-    │  Error tracking  │ error (any node sets this to fail-fast)        │
-    └───────────────────────────────────────────────────────────────────┘
+    ┌────────────────────┬──────────────────────────────────────────────────┐
+    │  INPUT             │ requisition_id                                   │
+    ├────────────────────┼──────────────────────────────────────────────────┤
+    │  Node 1 output     │ job_description, top_candidates                  │
+    │  Node 2 output     │ extracted_cv_data,                               │
+    │                    │ existing_candidate_sources,                      │
+    │                    │ email_to_candidate_id                            │
+    │  Node 3 output     │ comparative_scores                               │
+    │  Node 4 output     │ saved_count, updated_count                       │
+    ├────────────────────┼──────────────────────────────────────────────────┤
+    │  Error tracking    │ error (any node sets this to fail-fast)          │
+    └────────────────────┴──────────────────────────────────────────────────┘
     """
 
-    # ── INPUT (required, set by orchestrator before invoking subgraph) ───────
+    # ── INPUT (required, set by orchestrator before invoking subgraph) ────────
     requisition_id: int
 
-    # ── NODE 1 OUTPUT ─────────────────────────────────────────────────────────
+    # ── NODE 1 OUTPUT ──────────────────────────────────────────────────────────
     job_description: Optional[str] = None
     top_candidates: List[CandidateDoc] = Field(default_factory=list)
 
-    # ── NODE 2 OUTPUT ─────────────────────────────────────────────────────────
+    # ── NODE 2 OUTPUT ──────────────────────────────────────────────────────────
+    # Full pool (Bucket A + Bucket B) — fed into Node 3 comparative scoring.
     extracted_cv_data: List[ExtractedCV] = Field(default_factory=list)
 
-    # ── NODE 3 OUTPUT ─────────────────────────────────────────────────────────
+    # Source filenames that already have an application on this requisition.
+    # Node 4 uses this to decide update-only vs full insert.
+    existing_candidate_sources: Set[str] = Field(default_factory=set)
+
+    # Bucket B only: maps extracted email → existing global candidate.id.
+    # Populated when a freshly extracted email matches a candidate already in
+    # the candidates table (from a different requisition).
+    # Node 4 uses this to link the new application to the existing candidate
+    # instead of creating a duplicate candidate row.
+    email_to_candidate_id: Dict[str, int] = Field(default_factory=dict)
+
+    # ── NODE 3 OUTPUT ──────────────────────────────────────────────────────────
     comparative_scores: List[ScoredCandidate] = Field(default_factory=list)
 
-    # ── NODE 4 OUTPUT ─────────────────────────────────────────────────────────
-    saved_count: int = 0
+    # ── NODE 4 OUTPUT ──────────────────────────────────────────────────────────
+    saved_count: int = 0    # new applications inserted
+    updated_count: int = 0  # existing applications refreshed
 
-    # ── ERROR TRACKING ────────────────────────────────────────────────────────
+    # ── ERROR TRACKING ─────────────────────────────────────────────────────────
     # Any node that encounters an unrecoverable error sets this field.
     # Subsequent nodes check this at entry and return immediately (fail-fast).
     error: Optional[str] = None

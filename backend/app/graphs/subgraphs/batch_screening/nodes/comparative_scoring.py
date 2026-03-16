@@ -7,6 +7,12 @@ UnifiedLLM defined in app.utils.llm_config) in ONE call so the model can score
 candidates *relative to each other* (not in isolation), producing calibrated,
 comparative rankings.
 
+This node is unaware of the Bucket A / Bucket B split — it receives the full
+merged pool from Node 2 (existing + new candidates) and scores everyone
+comparatively in a single LLM call.  This is the key re-screening behaviour:
+when new CVs enter the pool, ALL candidates are re-ranked together so scores
+reflect the current competition, not stale individual assessments.
+
 Scoring formula for combined_score (all components normalised to [0, 1]):
     combined = W_COSINE * cosine_sim
              + W_TECHNICAL * (technical_score / 10)
@@ -18,8 +24,10 @@ Scoring formula for combined_score (all components normalised to [0, 1]):
 
 Cosine distance from ChromaDB is converted to similarity:
     cosine_sim = max(0, 1 - distance / 2)
-    (LangChain Chroma returns L2 or cosine distance; this normalisation works
-     for both — giving 1.0 for identical vectors, 0.0 for fully opposite ones.)
+
+For existing candidates (Bucket A) whose source does not appear in the current
+ChromaDB top-K results, the cosine score stored on their Application row is
+used as a fallback so they are not unfairly penalised.
 
 Environment variables:
     GROQ_API_KEY    — required (read by UnifiedLLM / llm_config)
@@ -33,11 +41,11 @@ from pathlib import Path
 
 import json_repair
 
-# Ensure 'backend/app' is on sys.path so absolute imports work regardless of
-# how deep this file sits inside the package hierarchy.
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
-from utils.llm_config import llm_generic  # noqa: E402
+from utils.llm_config import llm_generic          # noqa: E402
+from db.database import AsyncSessionLocal         # noqa: E402
+from db import crud                               # noqa: E402
 from ..state import BatchScreeningState, ScoredCandidate
 
 logger = logging.getLogger(__name__)
@@ -106,29 +114,30 @@ def _parse_json_robust(raw: str) -> list[dict]:
         pass
     result = json_repair.loads(clean)
     if isinstance(result, dict):
-        # Wrap bare object — model returned {} instead of [{}]
         result = [result]
     return result
 
 
 async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreeningState:
     """
-    Node 3: Score all candidates comparatively via a single GROQ call.
+    Node 3: Score ALL candidates (existing + new) comparatively via a single
+    GROQ call.
 
     Reads:
-        state.job_description    — from Node 1
-        state.extracted_cv_data  — from Node 2
-        state.top_candidates     — for cosine_score lookup (from Node 1)
+        state.job_description            — from Node 1
+        state.extracted_cv_data          — full pool from Node 2 (Bucket A + B)
+        state.top_candidates             — for fresh cosine_score lookup
+        state.existing_candidate_sources — Bucket A sources (for cosine fallback)
 
     Writes:
-        state.comparative_scores — list of ScoredCandidate
+        state.comparative_scores — list of ScoredCandidate (full pool, sorted
+                                   by combined_score descending)
 
     Sets state.error on:
         - Missing inputs
         - GROQ API failure
         - JSON parse failure
     """
-    # ── Fail-fast: propagate upstream errors ──────────────────────────────────
     if state.error:
         return state
 
@@ -142,10 +151,31 @@ async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreening
         logger.error(state.error)
         return state
 
-    # ── Build cosine score lookup: source → raw distance ───────────────────────
-    cosine_lookup: dict[str, float] = {
+    # ── Build cosine score lookup from Node 1 results ─────────────────────────
+    # source → raw ChromaDB distance for candidates returned in current top-K
+    fresh_cosine_lookup: dict[str, float] = {
         c.source: c.cosine_score for c in state.top_candidates
     }
+
+    # ── Build fallback cosine lookup for Bucket A from DB ────────────────────
+    # Existing candidates may not always rank in the exact top-K if the pool
+    # has grown. Use their stored cosine_similarity_score (already a similarity,
+    # not a distance) as a fallback rather than defaulting to 0.
+    db_cosine_fallback: dict[str, float] = {}
+    if state.existing_candidate_sources:
+        try:
+            async with AsyncSessionLocal() as db:
+                prefix = f"screening_{state.requisition_id}_"
+                apps = await crud.get_applications_by_requisition(db, state.requisition_id)
+                for app in apps:
+                    if not app.lever_opportunity_id:
+                        continue
+                    src = app.lever_opportunity_id[len(prefix):] \
+                        if app.lever_opportunity_id.startswith(prefix) else None
+                    if src and app.cosine_similarity_score is not None:
+                        db_cosine_fallback[src] = float(app.cosine_similarity_score)
+        except Exception as exc:
+            logger.warning(f"[Node 3] Could not load DB cosine fallbacks: {exc}")
 
     # ── Serialise extracted CV data for the prompt ────────────────────────────
     candidates_payload = json.dumps(
@@ -172,10 +202,12 @@ async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreening
 
     logger.info(
         f"[Node 3: comparative_scoring] Scoring {len(state.extracted_cv_data)} candidates "
+        f"({len(state.existing_candidate_sources)} existing + "
+        f"{len(state.extracted_cv_data) - len(state.existing_candidate_sources)} new) "
         f"via UnifiedLLM (model={llm_generic.model_name})"
     )
 
-    # ── Single LLM call for comparative scoring ───────────────────────────────────────────
+    # ── Single LLM call for comparative scoring ───────────────────────────────
     try:
         full_prompt = f"SYSTEM:\n{_SYSTEM_PROMPT}\n\nUSER:\n{prompt}"
         result = await asyncio.to_thread(llm_generic.generate, full_prompt)
@@ -191,25 +223,18 @@ async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreening
         logger.error(state.error)
         return state
 
-    # ── Reconcile LLM output to canonical source list ────────────────────────
-    # extracted_cv_data is the CANONICAL ordered list — always trust it, never
-    # the LLM's returned source strings.  The LLM may garble filenames (strip
-    # extension, change case, truncate) or silently reorder candidates.
-    #
+    # ── Reconcile LLM output to canonical source list ─────────────────────────
     # Two-pass matching:
-    #   1. Exact string match:  LLM item's "source" == canonical cv.source
-    #   2. Positional fallback: LLM item at index i  → canonical cv at index i
-
+    #   1. Exact string match  — LLM item's "source" == canonical cv.source
+    #   2. Positional fallback — LLM item at index i → canonical cv at index i
     canonical_sources = [cv.source for cv in state.extracted_cv_data]
 
-    # Index 1: source-string → LLM item (for exact match)
     llm_by_source: dict[str, dict] = {}
     for item in scores_data:
         llm_source = item.get("source", "")
         if llm_source:
             llm_by_source[llm_source] = item
 
-    # Index 2: position → LLM item (for positional fallback)
     llm_by_position: list[dict] = list(scores_data)
 
     if len(scores_data) != len(canonical_sources):
@@ -219,14 +244,12 @@ async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreening
         )
 
     # ── Compute combined_score and build ScoredCandidate list ─────────────────
-    # Iterate over canonical_sources so the resulting list order is deterministic
-    # and independent of whatever order the LLM chose to return results in.
     scored: list[ScoredCandidate] = []
     for i, cv in enumerate(state.extracted_cv_data):
         # Pass 1 — exact source match
         item = llm_by_source.get(cv.source)
 
-        # Pass 2 — positional fallback when LLM garbled the source string
+        # Pass 2 — positional fallback
         if item is None and i < len(llm_by_position):
             fallback = llm_by_position[i]
             logger.warning(
@@ -245,10 +268,23 @@ async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreening
         tech  = float(item.get("technical_score",  0.0))
         behav = float(item.get("behavioral_score", 0.0))
 
-        # Convert ChromaDB cosine *distance* → similarity in [0, 1]
-        # Always look up by cv.source (canonical), never the LLM's source string
-        raw_distance = cosine_lookup.get(cv.source, 1.0)
-        cosine_sim   = max(0.0, 1.0 - (raw_distance / 2.0))
+        # Cosine score resolution:
+        #   1. Fresh from ChromaDB top-K (convert distance → similarity)
+        #   2. Stored similarity from DB (Bucket A fallback — already [0,1])
+        #   3. 0.0 as last resort
+        if cv.source in fresh_cosine_lookup:
+            raw_distance = fresh_cosine_lookup[cv.source]
+            cosine_sim = max(0.0, 1.0 - (raw_distance / 2.0))
+        elif cv.source in db_cosine_fallback:
+            cosine_sim = db_cosine_fallback[cv.source]
+            logger.debug(
+                f"[Node 3] Using DB cosine fallback for '{cv.source}': {cosine_sim:.4f}"
+            )
+        else:
+            cosine_sim = 0.0
+            logger.warning(
+                f"[Node 3] No cosine score available for '{cv.source}' — defaulting to 0.0"
+            )
 
         combined = (
             W_COSINE     * cosine_sim
@@ -258,8 +294,7 @@ async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreening
 
         scored.append(
             ScoredCandidate(
-                source=cv.source,   # CANONICAL — never use the LLM's source string
-                # application_id left as None — Node 4 fills it after DB insertion
+                source=cv.source,
                 technical_score=tech,
                 behavioral_score=behav,
                 combined_score=round(combined, 4),
@@ -273,7 +308,6 @@ async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreening
             )
         )
 
-    # Sort by combined_score descending for cleaner DB write and logging
     scored.sort(key=lambda s: s.combined_score, reverse=True)
     state.comparative_scores = scored
 

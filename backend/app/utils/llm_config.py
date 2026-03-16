@@ -1,12 +1,8 @@
 import os
 import requests
-import google.generativeai as genai
 from dotenv import load_dotenv
 
 load_dotenv()
-
-# Configure Gemini API (optional, as fallback)
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -24,12 +20,6 @@ class UnifiedLLM:
         self.max_retries = 3
         self.retry_delay = 2  # seconds
 
-        if provider == "gemini":
-            try:
-                self.model = genai.GenerativeModel(model_name)
-            except Exception as e:
-                print(f"⚠️ Gemini init error: {e}")
-
     def generate(self, prompt: str):
         """Generate with retries and fallback logic"""
         
@@ -40,8 +30,6 @@ class UnifiedLLM:
                     return self._generate_groq(prompt)
                 elif self.provider == "openrouter":
                     return self._generate_openrouter(prompt)
-                elif self.provider == "gemini":
-                    return self._generate_gemini(prompt)
             except Exception as e:
                 if "429" in str(e):  # Rate limit
                     wait_time = self.retry_delay * (attempt + 1)
@@ -56,7 +44,7 @@ class UnifiedLLM:
                         continue
                     break
         
-        # Fallback chain: Groq → OpenRouter → Gemini
+        # Fallback chain: Groq -> OpenRouter
         print(f"⚠️ {self.provider} failed after retries. Trying fallbacks...")
         
         if self.provider == "groq":
@@ -67,29 +55,9 @@ class UnifiedLLM:
                     return result
             except Exception as e:
                 print(f"⚠️ OpenRouter fallback failed: {e}")
-        
-        # Final fallback to Gemini
-        try:
-            print("🔄 Final fallback to Gemini...")
-            return self._generate_gemini(prompt)
-        except Exception as e:
-            print(f"❌ All providers failed: {e}")
-            return {"results": [{"generated_text": ""}]}
 
-    def _generate_gemini(self, prompt: str):
-        """Generate using Gemini"""
-        if not self.model:
-            raise ValueError("Gemini model not initialized")
-        
-        response = self.model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=self.temperature,
-                max_output_tokens=self.max_tokens,
-            )
-        )
-        text = getattr(response, "text", "")
-        return {"results": [{"generated_text": text}]}
+        print("❌ All providers failed")
+        return {"results": [{"generated_text": ""}]}
 
     def _generate_groq(self, prompt: str):
         """Generate using Groq API"""
