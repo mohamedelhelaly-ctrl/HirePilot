@@ -64,6 +64,11 @@ Return ONLY a valid JSON object with EXACTLY these keys — no extra keys, no co
   "certifications": ["cert1"],
   "summary": "One concise sentence describing the candidate's profile."
 }
+Output constraints:
+- Keep skills and certifications as arrays of short strings.
+- Keep education and previous_roles as arrays of JSON objects in the exact shape shown.
+- Use numeric values (not strings) for total_years_experience and previous_roles[].years.
+- Do not return markdown or code fences.
 If a field cannot be determined, use null for strings and an empty list or 0.0 for floats."""
 
 

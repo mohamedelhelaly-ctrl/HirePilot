@@ -53,13 +53,10 @@ class CandidateOut(BaseModel):
 
 class ApplicationDetailOut(BaseModel):
     id: int
-    skill_name: Optional[str] = None
-    years_of_experience: Optional[float] = None
-    education_degree: Optional[str] = None
-    education_institution: Optional[str] = None
-    previous_company: Optional[str] = None
-    previous_role: Optional[str] = None
-    certification: Optional[str] = None
+    key: str
+    value: Any
+    relevance: Optional[str] = None
+    extracted_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 

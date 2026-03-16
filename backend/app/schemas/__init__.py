@@ -223,13 +223,9 @@ class Application(ApplicationBase):
 
 # ApplicationDetail schemas
 class ApplicationDetailBase(BaseModel):
-    skill_name: Optional[str] = None
-    years_of_experience: Optional[float] = None
-    education_degree: Optional[str] = None
-    education_institution: Optional[str] = None
-    previous_company: Optional[str] = None
-    previous_role: Optional[str] = None
-    certification: Optional[str] = None
+    key: str
+    value: Any
+    relevance: Optional[str] = None
 
 
 class ApplicationDetailCreate(ApplicationDetailBase):
@@ -239,7 +235,7 @@ class ApplicationDetailCreate(ApplicationDetailBase):
 class ApplicationDetail(ApplicationDetailBase):
     id: int
     application_id: int
-    created_at: datetime
+    extracted_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
 

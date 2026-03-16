@@ -20,7 +20,7 @@ four tables:
    - scores, justifications, key_strengths, key_concerns, recommended_action
 
 4. ApplicationDetail table (replace)
-   - DELETE then INSERT one row per extracted skill
+    - DELETE then INSERT key/value rows (JSON values)
 
 Environment variables:
     DATABASE_URL (via database.py environment variables) — required
@@ -51,6 +51,88 @@ from schemas import (
 from ..state import BatchScreeningState, ExtractedCV  # noqa: E402
 
 logger = logging.getLogger(__name__)
+
+
+def _build_application_detail_entries(app_id: int, extracted: ExtractedCV) -> list[ApplicationDetailCreate]:
+    """Build flexible key/value detail rows from extracted CV data."""
+    detail_entries: list[ApplicationDetailCreate] = []
+
+    if extracted.skills:
+        detail_entries.append(
+            ApplicationDetailCreate(
+                application_id=app_id,
+                key="technical_skills",
+                value=extracted.skills,
+                relevance="high",
+            )
+        )
+
+    if extracted.total_years_experience:
+        detail_entries.append(
+            ApplicationDetailCreate(
+                application_id=app_id,
+                key="total_years_experience",
+                value=extracted.total_years_experience,
+                relevance="high",
+            )
+        )
+
+    if extracted.education:
+        detail_entries.append(
+            ApplicationDetailCreate(
+                application_id=app_id,
+                key="education",
+                value=extracted.education,
+                relevance="medium",
+            )
+        )
+
+    if extracted.previous_roles:
+        detail_entries.append(
+            ApplicationDetailCreate(
+                application_id=app_id,
+                key="previous_roles",
+                value=extracted.previous_roles,
+                relevance="medium",
+            )
+        )
+
+    if extracted.certifications:
+        detail_entries.append(
+            ApplicationDetailCreate(
+                application_id=app_id,
+                key="certifications",
+                value=extracted.certifications,
+                relevance="medium",
+            )
+        )
+
+    if extracted.summary:
+        detail_entries.append(
+            ApplicationDetailCreate(
+                application_id=app_id,
+                key="profile_summary",
+                value=extracted.summary,
+                relevance="low",
+            )
+        )
+
+    contact_info = {
+        "phone": extracted.phone,
+        "linkedin_url": extracted.linkedin_url,
+        "email": extracted.email,
+    }
+    if any(contact_info.values()):
+        detail_entries.append(
+            ApplicationDetailCreate(
+                application_id=app_id,
+                key="contact_info",
+                value=contact_info,
+                relevance="low",
+            )
+        )
+
+    return detail_entries
 
 
 async def save_results_node(state: BatchScreeningState) -> BatchScreeningState:
@@ -199,9 +281,8 @@ async def save_results_node(state: BatchScreeningState) -> BatchScreeningState:
                         db, ScreeningResultCreate(application_id=app_id, **sr_payload)
                     )
 
-                # ── 6. Replace ApplicationDetail skill rows ────────────────────
-                # (extracted already resolved above in step 1)
-                if extracted and extracted.skills:
+                # ── 6. Replace ApplicationDetail key/value rows ───────────────
+                if extracted:
                     await db.execute(
                         delete(ApplicationDetail).where(
                             ApplicationDetail.application_id == app_id
@@ -209,24 +290,9 @@ async def save_results_node(state: BatchScreeningState) -> BatchScreeningState:
                     )
                     await db.commit()
 
-                    primary_edu  = extracted.education[0]      if extracted.education      else {}
-                    primary_role = extracted.previous_roles[0] if extracted.previous_roles else {}
-
-                    await crud.create_application_details_bulk(
-                        db,
-                        [
-                            ApplicationDetailCreate(
-                                application_id=app_id,
-                                skill_name=skill,
-                                years_of_experience=extracted.total_years_experience,
-                                education_degree=primary_edu.get("degree"),
-                                education_institution=primary_edu.get("institution"),
-                                previous_company=primary_role.get("company"),
-                                previous_role=primary_role.get("title"),
-                            )
-                            for skill in extracted.skills
-                        ],
-                    )
+                    detail_entries = _build_application_detail_entries(app_id, extracted)
+                    if detail_entries:
+                        await crud.create_application_details_bulk(db, detail_entries)
 
                 saved += 1
                 logger.info(f"[Node 4] Saved: source={source}, application_id={app_id}")
