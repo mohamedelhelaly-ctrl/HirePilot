@@ -4,7 +4,6 @@ from typing import Optional
 from datetime import datetime
 
 from ..models import RefreshToken
-from ...schemas import RefreshTokenCreate
 
 
 async def create_refresh_token(

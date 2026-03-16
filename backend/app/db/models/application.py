@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, JSON, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..database import Base
@@ -14,7 +14,7 @@ class Application(Base):
     lever_opportunity_id = Column(String(255), unique=True, nullable=False, index=True)
     
     # Current status
-    status = Column(ApplicationStatus, default=ApplicationStatus.NEW, nullable=False, index=True)
+    status = Column(SQLEnum(ApplicationStatus), default=ApplicationStatus.NEW, nullable=False, index=True)
     
     # CV data
     cv_url = Column(String(1000))

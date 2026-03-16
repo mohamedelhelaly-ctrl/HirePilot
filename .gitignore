@@ -210,3 +210,4 @@ __marimo__/
 backend/app/db/cvs/
 backend/app/db/encoder_model/
 database/
+alembic/
