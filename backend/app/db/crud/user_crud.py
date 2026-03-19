@@ -1,4 +1,4 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+﻿from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional, List
 import bcrypt
@@ -53,3 +53,5 @@ async def update_user(db: AsyncSession, user_id: int, user_update: UserUpdate) -
     await db.commit()
     await db.refresh(db_user)
     return db_user
+
+

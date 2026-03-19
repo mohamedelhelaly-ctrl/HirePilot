@@ -1,4 +1,4 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+﻿from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional, List
 from datetime import datetime
@@ -64,3 +64,5 @@ async def update_webhook_event(
     await db.commit()
     await db.refresh(db_event)
     return db_event
+
+

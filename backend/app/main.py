@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from db.database import engine
 from api.routers import requisitions, cv_upload, screening, auth_router
+from scheduler import scheduler
 
 # ── Logging configuration ─────────────────────────────────────────────────────
 logging.basicConfig(
@@ -26,12 +27,23 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
 
+logging.getLogger("apscheduler").setLevel(logging.INFO)
+
+logger = logging.getLogger(__name__)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
+    # ── Startup ───────────────────────────────────────────────────────────────
+    scheduler.start()
+    logger.info("Screening scheduler started")
+
     yield
 
-    # Shutdown: Close database connections
+    # ── Shutdown ──────────────────────────────────────────────────────────────
+    scheduler.shutdown(wait=False)
+    logger.info("Screening scheduler stopped")
     await engine.dispose()
 
 

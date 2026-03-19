@@ -32,6 +32,8 @@ from .requisition_crud import (
     update_requisition,
     increment_requisition_counter,
     reset_requisition_counter,
+    get_requisitions_ready_for_screening,
+    set_screening_in_progress,
 )
 
 # Candidate CRUD
@@ -130,6 +132,8 @@ __all__ = [
     "update_requisition",
     "increment_requisition_counter",
     "reset_requisition_counter",
+    "get_requisitions_ready_for_screening",
+    "set_screening_in_progress",
     "create_candidate",
     "get_candidate_by_id",
     "get_candidate_by_lever_id",

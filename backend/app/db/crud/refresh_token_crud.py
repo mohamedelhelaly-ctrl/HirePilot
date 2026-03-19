@@ -1,4 +1,4 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+﻿from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from typing import Optional
 from datetime import datetime
@@ -60,3 +60,5 @@ async def delete_user_refresh_tokens(db: AsyncSession, user_id: int) -> int:
     )
     await db.commit()
     return result.rowcount
+
+

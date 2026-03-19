@@ -23,7 +23,13 @@ class Requisition(Base):
     new_assessment_threshold = Column(Integer, default=5, nullable=False)
     new_interview_counter = Column(Integer, default=0, nullable=False)
     new_interview_threshold = Column(Integer, default=3, nullable=False)
-    
+
+    # Screening state — prevents concurrent runs on the same requisition.
+    # Set to True before invoking the graph, back to False after completion
+    # (whether success or failure). Both the scheduler and the manual trigger
+    # endpoint check this flag before firing.
+    screening_in_progress = Column(Boolean, default=False, nullable=False)
+
     last_screening_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

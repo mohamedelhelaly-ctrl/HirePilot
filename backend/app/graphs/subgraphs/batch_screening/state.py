@@ -20,28 +20,19 @@ class CandidateDoc(BaseModel):
     """
     A CV document retrieved from ChromaDB similarity search (Node 1 output).
 
-    Carries the raw CV text and its cosine distance score from ChromaDB.
-    The cosine_score is a *distance* (lower = more similar) for LangChain's
-    default Chroma backend, normalised to a similarity in Node 3.
-
-    Candidates are identified by *source* (the original filename stored as
-    ChromaDB metadata) throughout Nodes 1–3.  The real application_id is
-    only available after Node 4 inserts the Application row.
+    cosine_score is a raw distance from ChromaDB (lower = more similar).
+    It is used ONLY as a top-K filter in Node 1 — it is never stored in the
+    DB or shown to the HR manager. All final scoring is done by the LLM.
     """
     source: str          # original CV filename (ChromaDB metadata key)
-    cv_text: str         # Raw extracted text of the CV
-    cosine_score: float  # Raw distance from ChromaDB similarity_search_with_score
+    cv_text: str         # raw extracted text of the CV
+    cosine_score: float  # raw distance from ChromaDB — internal filter only
 
 
 class ExtractedCV(BaseModel):
     """
     Structured CV data extracted by the LLM (Node 2 output) OR reconstructed
     from existing ApplicationDetail rows for already-screened candidates.
-
-    Identity fields (full_name, email, phone, linkedin_url) are extracted
-    directly from the CV text and used in Node 4 to create the Candidate row.
-    Professional fields are used by the scoring LLM and ApplicationDetail rows.
-    raw_llm_output is kept for debugging/auditing and never written to the DB.
 
     is_existing_candidate: True  → Bucket A (already has application on this
                                    requisition; data reconstructed from DB).
@@ -70,10 +61,8 @@ class ExtractedCV(BaseModel):
     summary: str = ""
 
     # ── Routing flag set by Node 2 ────────────────────────────────────────────
-    # True  → Bucket A: candidate already has an application on this requisition.
-    #         Node 4 will UPDATE scores/justifications only — no insert.
-    # False → Bucket B: new candidate for this requisition.
-    #         Node 4 will run full insert flow.
+    # True  → Bucket A: update scores only, no re-extraction.
+    # False → Bucket B: full insert flow.
     is_existing_candidate: bool = False
 
     # Debug field — NOT persisted to DB
@@ -82,36 +71,31 @@ class ExtractedCV(BaseModel):
 
 class ScoredCandidate(BaseModel):
     """
-    Comparative scoring result for a single candidate (Node 3 output).
+    Scoring result for a single candidate (Node 3 output).
 
-    combined_score is the weighted blend used for final ranking:
-        combined = 0.40 * cosine_sim + 0.35 * (technical/10) + 0.25 * (behavioral/10)
+    The LLM produces a single overall_score (0–10) for each candidate,
+    evaluated comparatively against the full pool. This is normalised
+    to combined_score (0–1) for DB storage and display.
+
+    Cosine similarity is NOT part of the final score — it is only used
+    as a retrieval filter in Node 1 (top-K selection from ChromaDB).
 
     recommended_action drives the Application.status update in Node 4:
         "advance"      → SCREENING_PASSED
         "reject"       → SCREENING_REJECTED
-        "needs_review" → status unchanged (manual review required)
-
-    application_id is None until Node 4 creates/looks up the Application row
-    and backfills it.  source is the stable CV filename key used throughout.
+        "needs_review" → status unchanged
     """
     source: str                           # original CV filename
-    application_id: Optional[int] = None  # set by Node 4
+    application_id: Optional[int] = None  # set by Node 4 after DB insert
 
-    # LLM-generated scores (0–10 scale)
-    technical_score: float
-    behavioral_score: float
+    # LLM-generated overall score (0–10 scale), normalised to 0–1
+    llm_score: float
+    combined_score: float  # = llm_score / 10.0
 
-    # Derived scores written to Application table
-    combined_score: float           # weighted blend (0–1 scale)
-    cosine_similarity_score: float  # normalised from ChromaDB distance (0–1 scale)
+    # Single justification covering the overall assessment
+    justification: str = ""
 
-    # Narrative justifications written to ScreeningResult table
-    technical_justification: str = ""
-    behavioral_justification: str = ""
-    overall_justification: str = ""
-
-    # JSON arrays written to ScreeningResult table
+    # Supporting detail
     key_strengths: List[str] = Field(default_factory=list)
     key_concerns: List[str] = Field(default_factory=list)
 
@@ -141,7 +125,7 @@ class BatchScreeningState(BaseModel):
     └────────────────────┴──────────────────────────────────────────────────┘
     """
 
-    # ── INPUT (required, set by orchestrator before invoking subgraph) ────────
+    # ── INPUT ──────────────────────────────────────────────────────────────────
     requisition_id: int
 
     # ── NODE 1 OUTPUT ──────────────────────────────────────────────────────────
@@ -149,30 +133,18 @@ class BatchScreeningState(BaseModel):
     top_candidates: List[CandidateDoc] = Field(default_factory=list)
 
     # ── NODE 2 OUTPUT ──────────────────────────────────────────────────────────
-    # Full pool (Bucket A + Bucket B) — fed into Node 3 comparative scoring.
     extracted_cv_data: List[ExtractedCV] = Field(default_factory=list)
-
-    # Source filenames that already have an application on this requisition.
-    # Node 4 uses this to decide update-only vs full insert.
     existing_candidate_sources: Set[str] = Field(default_factory=set)
-
-    # Bucket B only: maps extracted email → existing global candidate.id.
-    # Populated when a freshly extracted email matches a candidate already in
-    # the candidates table (from a different requisition).
-    # Node 4 uses this to link the new application to the existing candidate
-    # instead of creating a duplicate candidate row.
     email_to_candidate_id: Dict[str, int] = Field(default_factory=dict)
 
     # ── NODE 3 OUTPUT ──────────────────────────────────────────────────────────
     comparative_scores: List[ScoredCandidate] = Field(default_factory=list)
 
     # ── NODE 4 OUTPUT ──────────────────────────────────────────────────────────
-    saved_count: int = 0    # new applications inserted
-    updated_count: int = 0  # existing applications refreshed
+    saved_count: int = 0
+    updated_count: int = 0
 
     # ── ERROR TRACKING ─────────────────────────────────────────────────────────
-    # Any node that encounters an unrecoverable error sets this field.
-    # Subsequent nodes check this at entry and return immediately (fail-fast).
     error: Optional[str] = None
 
     class Config:

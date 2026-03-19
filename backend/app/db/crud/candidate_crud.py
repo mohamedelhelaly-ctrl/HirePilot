@@ -1,4 +1,4 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+﻿from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
 
@@ -39,3 +39,5 @@ async def get_or_create_candidate(db: AsyncSession, candidate: CandidateCreate) 
     if db_candidate:
         return db_candidate
     return await create_candidate(db, candidate)
+
+

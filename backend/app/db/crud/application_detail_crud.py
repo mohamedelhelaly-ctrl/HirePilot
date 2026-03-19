@@ -1,4 +1,4 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+﻿from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
 
@@ -38,3 +38,5 @@ async def get_application_details(
         select(ApplicationDetail).where(ApplicationDetail.application_id == application_id)
     )
     return list(result.scalars().all())
+
+

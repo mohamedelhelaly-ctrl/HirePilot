@@ -1,4 +1,4 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+﻿from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional, List
 
@@ -56,3 +56,5 @@ async def update_interview_session(
     await db.commit()
     await db.refresh(db_session)
     return db_session
+
+

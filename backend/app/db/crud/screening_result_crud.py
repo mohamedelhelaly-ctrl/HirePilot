@@ -1,4 +1,4 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+﻿from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
 
@@ -46,3 +46,5 @@ async def update_screening_result(
     await db.commit()
     await db.refresh(db_result)
     return db_result
+
+

@@ -1,4 +1,4 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+﻿from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload, joinedload
 from typing import Optional, List
@@ -128,3 +128,5 @@ async def update_application_status(
     await db.commit()
     await db.refresh(db_application)
     return db_application
+
+

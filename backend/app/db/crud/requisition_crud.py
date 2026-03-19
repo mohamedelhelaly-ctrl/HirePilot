@@ -1,6 +1,7 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+﻿from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from typing import Optional, List
+from datetime import datetime, timezone
 
 from db.models import Requisition
 from schemas import RequisitionCreate, RequisitionUpdate
@@ -93,9 +94,7 @@ async def reset_requisition_counter(
     requisition_id: int,
     counter_type: str
 ) -> Optional[Requisition]:
-    """Reset a specific counter to zero."""
-    from datetime import datetime
-    
+    """Reset a specific counter to zero and update last_screening_at."""
     db_requisition = await get_requisition_by_id(db, requisition_id)
     if not db_requisition:
         return None
@@ -107,7 +106,63 @@ async def reset_requisition_counter(
     elif counter_type == "interview":
         db_requisition.new_interview_counter = 0
     
-    db_requisition.last_screening_at = datetime.utcnow()
+    db_requisition.last_screening_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(db_requisition)
     return db_requisition
+
+
+async def get_requisitions_ready_for_screening(
+    db: AsyncSession,
+) -> List[Requisition]:
+    """
+    Return all active requisitions that are ready for automated screening.
+
+    A requisition qualifies when ALL of the following are true:
+      - is_active = True
+      - screening_in_progress = False   (no concurrent run already running)
+      - new_candidate_counter >= new_candidate_threshold
+
+    Called by the scheduler every N minutes to find work to do.
+    """
+    result = await db.execute(
+        select(Requisition).where(
+            Requisition.is_active == True,
+            Requisition.screening_in_progress == False,
+            Requisition.new_candidate_counter >= Requisition.new_candidate_threshold,
+        )
+    )
+    return list(result.scalars().all())
+
+
+async def set_screening_in_progress(
+    db: AsyncSession,
+    requisition_id: int,
+    value: bool,
+    reset_counter: bool = False,
+) -> Optional[Requisition]:
+    """
+    Set the screening_in_progress flag on a requisition.
+
+    Args:
+        value:         True  â€” mark as running (call before graph invocation)
+                       False â€” mark as idle   (call after graph completes/fails)
+        reset_counter: When setting value=False, also reset new_candidate_counter
+                       to 0 and update last_screening_at. Pass True on successful
+                       completion, False if you want to preserve the counter
+                       (e.g. on error so the next poll picks it up again).
+    """
+    db_requisition = await get_requisition_by_id(db, requisition_id)
+    if not db_requisition:
+        return None
+
+    db_requisition.screening_in_progress = value
+
+    if not value and reset_counter:
+        db_requisition.new_candidate_counter = 0
+        db_requisition.last_screening_at = datetime.now(timezone.utc)
+
+    await db.commit()
+    await db.refresh(db_requisition)
+    return db_requisition
+
