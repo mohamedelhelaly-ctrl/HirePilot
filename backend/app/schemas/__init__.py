@@ -133,10 +133,11 @@ class Requisition(RequisitionBase):
     new_assessment_threshold: int
     new_interview_counter: int
     new_interview_threshold: int
+    screening_in_progress: bool
     last_screening_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -183,9 +184,6 @@ class ApplicationCreate(ApplicationBase):
 class ApplicationUpdate(BaseModel):
     status: Optional[ApplicationStatus] = None
     cv_text: Optional[str] = None
-    cosine_similarity_score: Optional[float] = None
-    technical_score: Optional[float] = None
-    behavioral_score: Optional[float] = None
     combined_score: Optional[float] = None
     assessment_score: Optional[float] = None
     overall_interview_score: Optional[float] = None
@@ -201,9 +199,6 @@ class Application(ApplicationBase):
     cv_url: Optional[str]
     cv_text: Optional[str]
     cv_embedding_stored: bool
-    cosine_similarity_score: Optional[float]
-    technical_score: Optional[float]
-    behavioral_score: Optional[float]
     combined_score: Optional[float]
     assessment_sent_at: Optional[datetime]
     assessment_completed_at: Optional[datetime]
@@ -217,7 +212,7 @@ class Application(ApplicationBase):
     last_activity_at: datetime
     created_at: datetime
     updated_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -242,11 +237,8 @@ class ApplicationDetail(ApplicationDetailBase):
 
 # ScreeningResult schemas
 class ScreeningResultBase(BaseModel):
-    technical_score: float
-    behavioral_score: float
-    technical_justification: Optional[str] = None
-    behavioral_justification: Optional[str] = None
-    overall_justification: Optional[str] = None
+    score: float
+    justification: Optional[str] = None
     recommended_action: Optional[str] = None
     key_strengths: Optional[List[str]] = None
     key_concerns: Optional[List[str]] = None
@@ -256,9 +248,12 @@ class ScreeningResultCreate(ScreeningResultBase):
     application_id: int
 
 
-class ScreeningResultUpdate(ScreeningResultBase):
-    technical_score: Optional[float] = None
-    behavioral_score: Optional[float] = None
+class ScreeningResultUpdate(BaseModel):
+    score: Optional[float] = None
+    justification: Optional[str] = None
+    recommended_action: Optional[str] = None
+    key_strengths: Optional[List[str]] = None
+    key_concerns: Optional[List[str]] = None
 
 
 class ScreeningResult(ScreeningResultBase):
@@ -266,7 +261,7 @@ class ScreeningResult(ScreeningResultBase):
     application_id: int
     created_at: datetime
     updated_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 

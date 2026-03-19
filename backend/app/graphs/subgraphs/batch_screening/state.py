@@ -55,7 +55,11 @@ class ExtractedCV(BaseModel):
     )
     previous_roles: List[dict] = Field(
         default_factory=list,
-        description="List of {title: str, company: str, years: float}"
+        description=(
+            "List of {title, company, start_date, end_date, type} — "
+            "start_date/end_date in MM/YYYY or 'Present', "
+            "type: full_time | part_time | internship | freelance | volunteer | trainer | instructor"
+        )
     )
     certifications: List[str] = Field(default_factory=list)
     summary: str = ""
