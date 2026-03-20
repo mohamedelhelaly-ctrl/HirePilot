@@ -13,7 +13,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from db.database import engine
 from api.routers import requisitions, cv_upload, screening, auth_router
+from api.routers.interview import router as interview_router
 from scheduler import scheduler
+from services.whisper_service import load_whisper, unload_whisper
 
 # ── Logging configuration ─────────────────────────────────────────────────────
 logging.basicConfig(
@@ -36,6 +38,11 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
     # ── Startup ───────────────────────────────────────────────────────────────
+    import asyncio
+    # Load Whisper in a thread so it doesn't block the event loop
+    await asyncio.to_thread(load_whisper)
+    logger.info("Whisper model loaded")
+
     scheduler.start()
     logger.info("Screening scheduler started")
 
@@ -44,6 +51,7 @@ async def lifespan(app: FastAPI):
     # ── Shutdown ──────────────────────────────────────────────────────────────
     scheduler.shutdown(wait=False)
     logger.info("Screening scheduler stopped")
+    unload_whisper()
     await engine.dispose()
 
 
@@ -61,6 +69,7 @@ app.include_router(auth_router.router, prefix="/api", tags=["Authentication"])
 app.include_router(requisitions.router, prefix="/api/requisitions", tags=["Requisitions"])
 app.include_router(cv_upload.router, prefix="/api/cvs", tags=["CV Upload"])
 app.include_router(screening.router, prefix="/api/screening", tags=["Screening"])
+app.include_router(interview_router, prefix="/api/interview", tags=["Interview"])
 
 
 @app.get("/")

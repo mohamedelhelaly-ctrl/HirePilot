@@ -274,7 +274,7 @@ class InterviewSessionBase(BaseModel):
 
 class InterviewSessionCreate(InterviewSessionBase):
     application_id: int
-    interviewer_id: int
+    interviewer_id: Optional[int] = None
     google_calendar_event_id: Optional[str] = None
     google_meet_link: Optional[str] = None
     questions: Optional[List[str]] = None
@@ -297,7 +297,7 @@ class InterviewSessionUpdate(BaseModel):
 class InterviewSession(InterviewSessionBase):
     id: int
     application_id: int
-    interviewer_id: int
+    interviewer_id: Optional[int]
     status: InterviewStatus
     actual_start_time: Optional[datetime]
     actual_end_time: Optional[datetime]

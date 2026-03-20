@@ -40,3 +40,9 @@ google-auth-oauthlib==1.3.0
 
 jwt
 apscheduler>=3.10
+
+# Live interview — audio transcription
+numpy                   # audio array processing (already pulled by torch, pinned explicitly)
+sounddevice             # microphone capture in test script
+soundfile               # WAV encode/decode in test script
+websockets              # test script WebSocket client
