@@ -48,7 +48,7 @@ Your tasks:
 2. Write a concise holistic summary of the candidate (3-4 sentences).
 3. Write an overall assessment sentence.
 4. List up to 5 key strengths and up to 5 key concerns.
-5. Assign a recommendation_score from 0–10 reflecting overall interview performance.
+5. Assign a recommendation_score from 0-10 reflecting overall interview performance.
 
 Return ONLY valid JSON (no markdown, no commentary):
 {

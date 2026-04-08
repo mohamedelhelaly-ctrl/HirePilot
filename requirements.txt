@@ -28,6 +28,7 @@ pymupdf                 # provides fitz — PDF text extraction
 langchain==1.2.10
 langchain-community==0.4.1
 chromadb==1.5.1
+langchain-groq
 
 # LangGraph (orchestration)
 langgraph==1.0.9
