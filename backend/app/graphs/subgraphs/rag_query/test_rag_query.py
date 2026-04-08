@@ -8,7 +8,12 @@ It verifies that the subgraph can be created, invoked, and returns expected resu
 import asyncio
 import json
 import logging
+import os
+import sys
 from typing import Optional
+
+# Add the project root to Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
 
 from langchain_core.messages import HumanMessage
 
