@@ -12,13 +12,14 @@ import os
 import sys
 from typing import Optional
 
-# Add the project root to Python path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+# Add backend/app to Python path — matches how the server runs
+_app_root = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'backend', 'app')
+sys.path.insert(0, os.path.normpath(_app_root))
 
 from langchain_core.messages import HumanMessage
 
-from .graph import create_rag_query_subgraph
-from .state import RAGQueryState
+from graphs.subgraphs.rag_query.graph import create_rag_query_subgraph
+from graphs.subgraphs.rag_query.state import RAGQueryState
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -62,16 +63,16 @@ async def test_rag_query_subgraph():
         logger.error(f"✗ Failed to invoke subgraph: {e}")
         return False
 
-    # Validate the result
-    if result_state.response:
+    # Validate the result (LangGraph returns a dict)
+    response = result_state.get("response", "")
+    if response:
         logger.info("✓ Subgraph returned a response")
-        logger.info(f"Response length: {len(result_state.response)} characters")
+        logger.info(f"Response length: {len(response)} characters")
 
         # Try to parse if it's JSON (from tools)
         try:
-            # Check if response looks like JSON
-            if result_state.response.strip().startswith('{') or result_state.response.strip().startswith('['):
-                parsed = json.loads(result_state.response)
+            if response.strip().startswith('{') or response.strip().startswith('['):
+                parsed = json.loads(response)
                 logger.info("✓ Response is valid JSON")
                 logger.info(f"Response type: {type(parsed)}")
                 if isinstance(parsed, list):
@@ -80,19 +81,20 @@ async def test_rag_query_subgraph():
                     logger.info(f"Response keys: {list(parsed.keys())}")
             else:
                 logger.info("✓ Response is plain text")
-                logger.info(f"Response preview: {result_state.response[:200]}...")
+                logger.info(f"Response preview: {response[:200]}...")
         except json.JSONDecodeError:
             logger.info("✓ Response is plain text (not JSON)")
-            logger.info(f"Response preview: {result_state.response[:200]}...")
+            logger.info(f"Response preview: {response[:200]}...")
 
     else:
         logger.warning("⚠ Subgraph returned empty response")
         logger.info("This might be expected if no data exists in the database")
 
     # Check that messages were updated
-    if len(result_state.messages) > 1:
+    messages = result_state.get("messages", [])
+    if len(messages) > 1:
         logger.info("✓ Conversation messages were updated")
-        logger.info(f"Total messages: {len(result_state.messages)}")
+        logger.info(f"Total messages: {len(messages)}")
     else:
         logger.warning("⚠ No additional messages were added")
 
@@ -106,7 +108,7 @@ async def test_tools_directly():
     """
     logger.info("Testing tools directly...")
 
-    from .tools import build_rag_tools
+    from graphs.subgraphs.rag_query.tools import build_rag_tools
 
     # Build tools with test context
     test_user_id = 1
@@ -154,11 +156,11 @@ async def main():
     logger.info("RAG Query Subgraph Test Suite")
     logger.info("=" * 50)
 
-    # Test 1: Subgraph creation and invocation
-    success1 = await test_rag_query_subgraph()
-
-    # Test 2: Direct tool testing
+    # Test 1: Direct tool testing (no LLM calls, avoids rate limit)
     success2 = await test_tools_directly()
+
+    # Test 2: Full subgraph flow (makes LLM calls)
+    success1 = await test_rag_query_subgraph()
 
     logger.info("=" * 50)
     if success1 and success2:
