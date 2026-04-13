@@ -16,8 +16,9 @@ from db.crud import (
     get_user_by_id,
     create_refresh_token as crud_create_refresh_token,
     get_refresh_token_by_hash,
+    check_admin_exists,
 )
-from db.models import User
+from db.models import User, UserRole
 from schemas import LoginRequest, Token
 from security import (
     verify_password,
@@ -217,3 +218,152 @@ async def logout(db: AsyncSession, user_id: int, refresh_token: Optional[str] = 
         return {
             "message": f"Logged out successfully. Revoked {revoked_count} token(s)."
         }
+
+
+# --- Admin User Management ---
+
+async def create_admin_user(
+    db: AsyncSession,
+    email: str,
+    full_name: str,
+    role: UserRole
+) -> User:
+    """
+    Create a new user for pre-registration (admin endpoint).
+    
+    Used to pre-register employees before they login with Google OAuth.
+    The user will authenticate via email matching with Google OAuth.
+    
+    Steps:
+    1. Check if user with email already exists
+    2. If exists, raise 400 BadRequest
+    3. Create user with no password (Google OAuth only)
+    4. Save to database
+    5. Return created user
+    
+    Args:
+        db: Database session
+        email: User email address (unique)
+        full_name: User's full name
+        role: User role (HR_MANAGER or HIRING_MANAGER)
+    
+    Returns:
+        Created User object
+        
+    Raises:
+        HTTPException(400): If user with email already exists
+        HTTPException(500): Database error
+    """
+    
+    # Step 1: Check if user with email already exists
+    existing_user = await get_user_by_email(db, email)
+    
+    # Step 2: If exists, raise 400 BadRequest
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User with email '{email}' already exists"
+        )
+    
+    # Step 3: Create user with no password (Google OAuth only)
+    # hashed_password is set to empty string since it's nullable=False in DB
+    # but will not be used for OAuth-only users
+    new_user = User(
+        email=email,
+        full_name=full_name,
+        role=role,
+        hashed_password="",  # No password for OAuth-only users
+        is_active=True
+    )
+    
+    # Step 4: Save to database
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    
+    # Step 5: Return created user
+    return new_user
+
+
+# --- Initial Setup (One-time endpoint) ---
+
+async def setup_initial_admin(
+    db: AsyncSession,
+    email: str,
+    full_name: str,
+    role: UserRole
+) -> User:
+    """
+    One-time endpoint to create the first admin user (HR_MANAGER).
+    
+    This is a bootstrap function for initial system setup.
+    Can only be used when NO HR_MANAGER users exist in the database.
+    
+    Steps:
+    1. Check if any HR_MANAGER already exists
+    2. If exists, raise 403 Forbidden (setup already complete)
+    3. Check if email already exists
+    4. If exists, raise 400 BadRequest
+    5. Enforce role must be HR_MANAGER (safety)
+    6. Create user with no password (Google OAuth only)
+    7. Save to database
+    8. Return created user
+    
+    Args:
+        db: Database session
+        email: Admin email address
+        full_name: Admin full name
+        role: User role (must be HR_MANAGER)
+    
+    Returns:
+        Created User object
+        
+    Raises:
+        HTTPException(400): If email already exists
+        HTTPException(403): If admin already exists (setup already complete)
+        HTTPException(422): If role is not HR_MANAGER
+        HTTPException(500): Database error
+    """
+    
+    # Step 1: Check if any HR_MANAGER already exists
+    admin_exists = await check_admin_exists(db)
+    
+    # Step 2: If exists, raise 403 Forbidden (setup already complete)
+    if admin_exists:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="System is already initialized. An HR_MANAGER user already exists. "
+                   "Use /api/auth/admin/users to create additional users."
+        )
+    
+    # Step 3: Enforce role must be HR_MANAGER (safety check)
+    if role != UserRole.HR_MANAGER:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Initial admin user must have role: hr_manager"
+        )
+    
+    # Step 4: Check if email already exists
+    existing_user = await get_user_by_email(db, email)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User with email '{email}' already exists"
+        )
+    
+    # Step 5: Create user with no password (Google OAuth only)
+    new_admin = User(
+        email=email,
+        full_name=full_name,
+        role=UserRole.HR_MANAGER,
+        hashed_password="",  # No password for OAuth-only users
+        is_active=True
+    )
+    
+    # Step 6: Save to database
+    db.add(new_admin)
+    await db.commit()
+    await db.refresh(new_admin)
+    
+    # Step 7: Return created user
+    return new_admin
