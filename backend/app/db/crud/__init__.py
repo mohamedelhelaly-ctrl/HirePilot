@@ -22,6 +22,8 @@ from .user_crud import (
     get_users,
     update_user,
     check_admin_exists,
+    get_admin_count,
+    create_user_oauth_only,
 )
 
 # Requisition CRUD
@@ -127,6 +129,8 @@ __all__ = [
     "get_users",
     "update_user",
     "check_admin_exists",
+    "get_admin_count",
+    "create_user_oauth_only",
     "create_requisition",
     "get_requisition_by_id",
     "get_requisition_by_lever_id",

@@ -17,6 +17,7 @@ from db.crud import (
     create_refresh_token as crud_create_refresh_token,
     get_refresh_token_by_hash,
     check_admin_exists,
+    create_user_oauth_only,
 )
 from db.models import User, UserRole
 from schemas import LoginRequest, Token
@@ -238,8 +239,7 @@ async def create_admin_user(
     1. Check if user with email already exists
     2. If exists, raise 400 BadRequest
     3. Create user with no password (Google OAuth only)
-    4. Save to database
-    5. Return created user
+    4. Return created user
     
     Args:
         db: Database session
@@ -265,23 +265,10 @@ async def create_admin_user(
             detail=f"User with email '{email}' already exists"
         )
     
-    # Step 3: Create user with no password (Google OAuth only)
-    # hashed_password is set to empty string since it's nullable=False in DB
-    # but will not be used for OAuth-only users
-    new_user = User(
-        email=email,
-        full_name=full_name,
-        role=role,
-        hashed_password="",  # No password for OAuth-only users
-        is_active=True
-    )
+    # Step 3: Create user with no password (Google OAuth only) using CRUD
+    new_user = await create_user_oauth_only(db, email, full_name, role)
     
-    # Step 4: Save to database
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
-    
-    # Step 5: Return created user
+    # Step 4: Return created user
     return new_user
 
 
@@ -302,12 +289,11 @@ async def setup_initial_admin(
     Steps:
     1. Check if any HR_MANAGER already exists
     2. If exists, raise 403 Forbidden (setup already complete)
-    3. Check if email already exists
-    4. If exists, raise 400 BadRequest
-    5. Enforce role must be HR_MANAGER (safety)
+    3. Enforce role must be HR_MANAGER (safety)
+    4. Check if email already exists
+    5. If exists, raise 400 BadRequest
     6. Create user with no password (Google OAuth only)
-    7. Save to database
-    8. Return created user
+    7. Return created user
     
     Args:
         db: Database session
@@ -351,19 +337,8 @@ async def setup_initial_admin(
             detail=f"User with email '{email}' already exists"
         )
     
-    # Step 5: Create user with no password (Google OAuth only)
-    new_admin = User(
-        email=email,
-        full_name=full_name,
-        role=UserRole.HR_MANAGER,
-        hashed_password="",  # No password for OAuth-only users
-        is_active=True
-    )
+    # Step 5: Create user with no password (Google OAuth only) using CRUD
+    new_admin = await create_user_oauth_only(db, email, full_name, UserRole.HR_MANAGER)
     
-    # Step 6: Save to database
-    db.add(new_admin)
-    await db.commit()
-    await db.refresh(new_admin)
-    
-    # Step 7: Return created user
+    # Step 6: Return created user
     return new_admin
