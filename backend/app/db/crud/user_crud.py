@@ -1,9 +1,9 @@
 ﻿from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from typing import Optional, List
 import bcrypt
 
-from db.models import User
+from db.models import User, UserRole
 from schemas import UserCreate, UserUpdate
 
 
@@ -54,4 +54,40 @@ async def update_user(db: AsyncSession, user_id: int, user_update: UserUpdate) -
     await db.refresh(db_user)
     return db_user
 
+
+async def check_admin_exists(db: AsyncSession) -> bool:
+    """
+    Check if any HR_MANAGER user exists in the database.
+    
+    Used for bootstrap checks during initial setup.
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        True if at least one HR_MANAGER exists, False otherwise
+    """
+    result = await db.execute(
+        select(func.count(User.id)).where(User.role == UserRole.HR_MANAGER)
+    )
+    count = result.scalar() or 0
+    return count > 0
+
+
+async def get_admin_count(db: AsyncSession) -> int:
+    """
+    Get total count of HR_MANAGER users in the database.
+    
+    Used for monitoring and setup verification.
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        Count of HR_MANAGER users
+    """
+    result = await db.execute(
+        select(func.count(User.id)).where(User.role == UserRole.HR_MANAGER)
+    )
+    return result.scalar() or 0
 
