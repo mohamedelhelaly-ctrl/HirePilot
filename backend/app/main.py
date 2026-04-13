@@ -15,6 +15,7 @@ from db.database import engine
 from api.routers import requisitions, cv_upload, screening, auth_router
 from api.routers.interview import router as interview_router
 from api.routers.rag_router import router as rag_router
+from api.routers.graph_executor import router as graph_executor_router
 from scheduler import scheduler
 from services.whisper_service import load_whisper, unload_whisper
 
@@ -72,6 +73,7 @@ app.include_router(cv_upload.router, prefix="/api/cvs", tags=["CV Upload"])
 app.include_router(screening.router, prefix="/api/screening", tags=["Screening"])
 app.include_router(interview_router, prefix="/api/interview", tags=["Interview"])
 app.include_router(rag_router, prefix="/api/rag", tags=["RAG Query"])
+app.include_router(graph_executor_router, prefix="/api/graph", tags=["Graph Executor"])
 
 
 @app.get("/")
