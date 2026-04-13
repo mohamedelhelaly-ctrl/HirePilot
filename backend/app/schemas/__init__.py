@@ -50,6 +50,13 @@ class UserCreate(UserBase):
     password: str
 
 
+class AdminUserCreate(BaseModel):
+    """Admin-only request model for creating a new user (employee pre-registration)."""
+    email: EmailStr
+    full_name: str
+    role: UserRole
+
+
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
