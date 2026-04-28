@@ -39,7 +39,6 @@ groq
 google-auth==2.49.0
 google-auth-oauthlib==1.3.0
 
-jwt
 apscheduler>=3.10
 
 # Live interview — audio transcription
