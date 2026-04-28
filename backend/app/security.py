@@ -3,11 +3,11 @@ Security module for JWT token generation, validation, and password hashing.
 Handles encryption/decryption of authentication tokens.
 """
 
-import jwt
+from jose import jwt, JWTError
 import bcrypt
+import hashlib
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
-from jose import JWTError
 import os
 
 
@@ -179,13 +179,20 @@ def decode_refresh_token(token: str) -> Optional[Dict[str, Any]]:
 def hash_token(token: str) -> str:
     """
     Hash a token before storing in database.
-    Uses bcrypt to securely hash the refresh token.
+    Uses SHA256 to create a fixed-size hash of the refresh token.
+    
+    JWT tokens are typically 200+ characters, which exceeds bcrypt's 72-byte limit.
+    SHA256 is used instead to produce a fixed-size hash suitable for database storage.
     
     Args:
-        token: The token to hash
+        token: The JWT token to hash
         
     Returns:
-        The hashed token (str)
+        The SHA256 hashed token as hex string (64 characters)
+        
+    Example:
+        original_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        token_hash = hash_token(original_token)
+        # token_hash = "a1b2c3d4e5f6..."
     """
-    hashed = bcrypt.hashpw(token.encode('utf-8'), bcrypt.gensalt())
-    return hashed.decode('utf-8')
+    return hashlib.sha256(token.encode('utf-8')).hexdigest()
