@@ -67,7 +67,7 @@ app = FastAPI(
 
 
 # Include routers
-app.include_router(auth_router.router, prefix="/api", tags=["Authentication"])
+app.include_router(auth_router.router, prefix="/api", tags=["authentication"])
 app.include_router(requisitions.router, prefix="/api/requisitions", tags=["Requisitions"])
 app.include_router(cv_upload.router, prefix="/api/cvs", tags=["CV Upload"])
 app.include_router(screening.router, prefix="/api/screening", tags=["Screening"])
