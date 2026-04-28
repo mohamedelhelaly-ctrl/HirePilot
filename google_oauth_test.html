@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google OAuth Login Test</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .section p {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        #googleSignInButton {
+            margin: 15px 0;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 5px 5px 5px 0;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.danger {
+            background: #e74c3c;
+        }
+
+        button.danger:hover {
+            background: #c0392b;
+        }
+
+        button.secondary {
+            background: #95a5a6;
+        }
+
+        button.secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .token-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            word-break: break-all;
+            max-height: 150px;
+            overflow-y: auto;
+            color: #333;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .config-input {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
+        .full-width {
+            display: grid;
+            grid-column: 1 / -1;
+        }
+
+        .user-info {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .user-info h3 {
+            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .user-info p {
+            margin: 4px 0;
+            color: #555;
+            font-size: 13px;
+        }
+
+        .copy-btn {
+            background: #27ae60;
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+
+        .copy-btn:hover {
+            background: #229954;
+        }
+
+        .api-base-section {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔐 Google OAuth Login Test Suite</h1>
+            <p>Test Google authentication with access tokens, refresh tokens, and API integration</p>
+        </div>
+
+        <!-- Configuration Section -->
+        <div class="section full-width api-base-section">
+            <h2>⚙️ Configuration</h2>
+            <label class="label">API Base URL</label>
+            <input 
+                type="text" 
+                id="apiBaseUrl" 
+                class="config-input" 
+                placeholder="http://localhost:8000"
+                value="http://localhost:8000"
+            >
+            <label class="label">Google Client ID</label>
+            <input 
+                type="text" 
+                id="googleClientId" 
+                class="config-input" 
+                placeholder="your-google-client-id.apps.googleusercontent.com"
+            >
+            <p style="margin-top: 10px; color: #e74c3c; font-size: 12px;">
+                ⚠️ Get your Google Client ID from <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a>
+            </p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Login Section -->
+            <div class="section">
+                <h2>1️⃣ Login</h2>
+                <p>Authenticate using your Google account via Google Sign-In.</p>
+                <div id="googleSignInButton" class="g_id_signin" data-type="standard"></div>
+                <button onclick="manualGoogleLogin()" style="width: 100%; margin-top: 10px;">
+                    📱 Manual Google Login
+                </button>
+                <div id="loginStatus"></div>
+            </div>
+
+            <!-- Token Status Section -->
+            <div class="section">
+                <h2>🎫 Token Status</h2>
+                <div id="tokenStatus"></div>
+                <div class="row">
+                    <button onclick="displayTokens()" class="secondary">👁️ Show Tokens</button>
+                    <button onclick="decodeTokens()" class="secondary">🔍 Decode Tokens</button>
+                    <button onclick="clearTokens()" class="danger">🗑️ Clear Tokens</button>
+                </div>
+            </div>
+
+            <!-- ID Token Section -->
+            <div class="section">
+                <h2>🆔 ID Token</h2>
+                <div id="idTokenDisplay"></div>
+                <button onclick="copyToClipboard('idTokenContent')" class="copy-btn">📋 Copy</button>
+            </div>
+
+            <!-- Access Token Section -->
+            <div class="section">
+                <h2>🔑 Access Token</h2>
+                <div id="accessTokenDisplay"></div>
+                <button onclick="copyToClipboard('accessTokenContent')" class="copy-btn">📋 Copy</button>
+            </div>
+
+            <!-- Refresh Token Section -->
+            <div class="section">
+                <h2>🔄 Refresh Token</h2>
+                <div id="refreshTokenDisplay"></div>
+                <button onclick="copyToClipboard('refreshTokenContent')" class="copy-btn">📋 Copy</button>
+            </div>
+
+            <!-- User Profile Section -->
+            <div class="section">
+                <h2>👤 User Profile</h2>
+                <div id="userProfileDisplay"></div>
+                <div class="row">
+                    <button onclick="testGetCurrentUser()" style="flex: 1;">
+                        ➡️ GET /api/auth/me
+                    </button>
+                </div>
+            </div>
+
+            <!-- Refresh Access Token Section -->
+            <div class="section">
+                <h2>🔄 Refresh Access Token</h2>
+                <p>Generate a new access token using the refresh token.</p>
+                <button onclick="testRefreshToken()" style="width: 100%;">
+                    🔄 POST /api/auth/refresh
+                </button>
+                <div id="refreshStatus"></div>
+            </div>
+
+            <!-- Logout Section -->
+            <div class="section">
+                <h2>🚪 Logout</h2>
+                <p>Revoke tokens and logout from the system.</p>
+                <button onclick="testLogoutAll()" class="danger" style="width: 100%; margin-bottom: 10px;">
+                    🚪 Logout All Devices
+                </button>
+                <button onclick="testLogoutCurrent()" class="danger" style="width: 100%;">
+                    🚪 Logout This Device
+                </button>
+                <div id="logoutStatus"></div>
+            </div>
+        </div>
+
+        <!-- Logs Section -->
+        <div class="section full-width">
+            <h2>📋 API Response Logs</h2>
+            <div style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 12px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 12px;">
+                <pre id="responseLogs" style="color: #333; margin: 0; white-space: pre-wrap; word-wrap: break-word;"></pre>
+            </div>
+            <button onclick="clearLogs()" class="secondary" style="margin-top: 10px;">
+                🗑️ Clear Logs
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        const state = {
+            idToken: localStorage.getItem('idToken') || null,
+            accessToken: localStorage.getItem('accessToken') || null,
+            refreshToken: localStorage.getItem('refreshToken') || null,
+            user: JSON.parse(localStorage.getItem('user')) || null,
+            logs: []
+        };
+
+        // Utility: Log API Responses
+        function addLog(message, data = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = data 
+                ? `[${timestamp}] ${message}\n${JSON.stringify(data, null, 2)}`
+                : `[${timestamp}] ${message}`;
+            
+            state.logs.push(logEntry);
+            updateLogs();
+        }
+
+        function updateLogs() {
+            document.getElementById('responseLogs').textContent = state.logs.join('\n\n---\n\n');
+        }
+
+        function clearLogs() {
+            state.logs = [];
+            updateLogs();
+        }
+
+        // Initialize Google Sign-In
+        function initializeGoogleSignIn() {
+            const clientId = document.getElementById('googleClientId').value;
+            
+            if (!clientId) {
+                showStatus('loginStatus', 'Google Client ID is not configured!', 'error');
+                return;
+            }
+
+            window.google?.accounts?.id?.initialize({
+                client_id: clientId,
+                callback: handleCredentialResponse,
+            });
+
+            window.google?.accounts?.id?.renderButton(
+                document.getElementById('googleSignInButton'),
+                {
+                    theme: 'outline',
+                    size: 'large',
+                    width: '100%'
+                }
+            );
+        }
+
+        // Handle Google Response
+        async function handleCredentialResponse(response) {
+            const idToken = response.credential;
+            state.idToken = idToken;
+            localStorage.setItem('idToken', idToken);
+
+            addLog('Google Sign-In successful', { idToken: idToken.substring(0, 50) + '...' });
+            showStatus('loginStatus', 'Got ID Token from Google ✅', 'success');
+
+            // Now send it to backend
+            await sendIdTokenToBackend(idToken);
+        }
+
+        // Send ID Token to Backend
+        async function sendIdTokenToBackend(idToken) {
+            const apiUrl = document.getElementById('apiBaseUrl').value;
+            
+            try {
+                showStatus('loginStatus', 'Sending ID Token to backend...', 'info');
+                
+                const response = await fetch(`${apiUrl}/api/auth/google`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id_token: idToken }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to authenticate');
+                }
+
+                // Store tokens
+                state.accessToken = data.access_token;
+                state.refreshToken = data.refresh_token;
+                localStorage.setItem('accessToken', data.access_token);
+                localStorage.setItem('refreshToken', data.refresh_token);
+
+                addLog('POST /api/auth/google - Success', data);
+                showStatus('loginStatus', '✅ Login successful! Tokens received.', 'success');
+                updateTokenStatus();
+                
+                // Fetch user profile
+                await testGetCurrentUser();
+            } catch (error) {
+                addLog('POST /api/auth/google - Error', error.message);
+                showStatus('loginStatus', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Manual Google Login (for testing without full page setup)
+        async function manualGoogleLogin() {
+            const idToken = prompt('Enter your Google ID Token:');
+            if (idToken) {
+                state.idToken = idToken;
+                localStorage.setItem('idToken', idToken);
+                await sendIdTokenToBackend(idToken);
+            }
+        }
+
+        // Update Token Status Display
+        function updateTokenStatus() {
+            let statusHtml = '<div class="status info">';
+            
+            if (state.accessToken) {
+                const expiryTime = getTokenExpiry(state.accessToken);
+                statusHtml += `<p>✅ Access Token: ${expiryTime}</p>`;
+            } else {
+                statusHtml += `<p>❌ Access Token: Not available</p>`;
+            }
+
+            if (state.refreshToken) {
+                statusHtml += `<p>✅ Refresh Token: Available</p>`;
+            } else {
+                statusHtml += `<p>❌ Refresh Token: Not available</p>`;
+            }
+
+            if (state.user) {
+                statusHtml += `<p>✅ User: ${state.user.email}</p>`;
+            }
+
+            statusHtml += '</div>';
+            
+            document.getElementById('tokenStatus').innerHTML = statusHtml;
+        }
+
+        // Get Token Expiry
+        function getTokenExpiry(token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const expiryTime = new Date(payload.exp * 1000);
+                const now = new Date();
+                const minutesLeft = Math.round((expiryTime - now) / 60000);
+                
+                if (minutesLeft > 0) {
+                    return `Expires in ${minutesLeft} minutes`;
+                } else {
+                    return 'Expired';
+                }
+            } catch {
+                return 'Invalid token';
+            }
+        }
+
+        // Display Raw Tokens
+        function displayTokens() {
+            if (!state.idToken && !state.accessToken && !state.refreshToken) {
+                showStatus('tokenStatus', 'No tokens available. Please login first.', 'warning');
+                return;
+            }
+
+            // Display ID Token
+            if (state.idToken) {
+                document.getElementById('idTokenDisplay').innerHTML = `<div class="token-display" id="idTokenContent">${state.idToken}</div>`;
+            } else {
+                document.getElementById('idTokenDisplay').innerHTML = '<div class="status warning">ID Token not available</div>';
+            }
+
+            // Display Access Token
+            if (state.accessToken) {
+                document.getElementById('accessTokenDisplay').innerHTML = `<div class="token-display" id="accessTokenContent">${state.accessToken}</div>`;
+            } else {
+                document.getElementById('accessTokenDisplay').innerHTML = '<div class="status warning">Access Token not available</div>';
+            }
+
+            // Display Refresh Token
+            if (state.refreshToken) {
+                document.getElementById('refreshTokenDisplay').innerHTML = `<div class="token-display" id="refreshTokenContent">${state.refreshToken}</div>`;
+            } else {
+                document.getElementById('refreshTokenDisplay').innerHTML = '<div class="status warning">Refresh Token not available</div>';
+            }
+
+            showStatus('tokenStatus', '✅ Tokens displayed in their sections below:', 'success');
+        }
+
+        // Decode JWT Tokens
+        function decodeTokens() {
+            let html = '<div class="user-info"><h3>📊 Decoded Tokens:</h3>';
+
+            if (state.accessToken) {
+                try {
+                    const payload = JSON.parse(atob(state.accessToken.split('.')[1]));
+                    html += '<p><strong>Access Token Claims:</strong></p>';
+                    html += `<pre style="background: white; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 11px;">${JSON.stringify(payload, null, 2)}</pre>`;
+                } catch (e) {
+                    html += '<p style="color: red;">❌ Failed to decode access token</p>';
+                }
+            }
+
+            if (state.refreshToken) {
+                try {
+                    const payload = JSON.parse(atob(state.refreshToken.split('.')[1]));
+                    html += '<p><strong>Refresh Token Claims:</strong></p>';
+                    html += `<pre style="background: white; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 11px;">${JSON.stringify(payload, null, 2)}</pre>`;
+                } catch (e) {
+                    html += '<p style="color: red;">❌ Failed to decode refresh token</p>';
+                }
+            }
+
+            html += '</div>';
+            document.getElementById('accessTokenDisplay').innerHTML = html;
+        }
+
+        // Test GET /api/auth/me
+        async function testGetCurrentUser() {
+            const apiUrl = document.getElementById('apiBaseUrl').value;
+
+            if (!state.accessToken) {
+                showStatus('userProfileDisplay', 'Access token not available. Please login first.', 'error');
+                return;
+            }
+
+            try {
+                showStatus('userProfileDisplay', 'Fetching user profile...', 'info');
+
+                const response = await fetch(`${apiUrl}/api/auth/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${state.accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to fetch user');
+                }
+
+                state.user = data;
+                localStorage.setItem('user', JSON.stringify(data));
+
+                addLog('GET /api/auth/me - Success', data);
+
+                let html = '<div class="user-info">';
+                html += `<h3>✅ User Authenticated</h3>`;
+                html += `<p><strong>ID:</strong> ${data.id}</p>`;
+                html += `<p><strong>Email:</strong> ${data.email}</p>`;
+                html += `<p><strong>Full Name:</strong> ${data.full_name}</p>`;
+                html += `<p><strong>Role:</strong> ${data.role}</p>`;
+                html += `<p><strong>Active:</strong> ${data.is_active ? '✅ Yes' : '❌ No'}</p>`;
+                html += `</div>`;
+
+                document.getElementById('userProfileDisplay').innerHTML = html;
+            } catch (error) {
+                addLog('GET /api/auth/me - Error', error.message);
+                showStatus('userProfileDisplay', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test POST /api/auth/refresh
+        async function testRefreshToken() {
+            const apiUrl = document.getElementById('apiBaseUrl').value;
+
+            if (!state.refreshToken) {
+                showStatus('refreshStatus', 'Refresh token not available. Please login first.', 'error');
+                return;
+            }
+
+            try {
+                showStatus('refreshStatus', 'Refreshing access token...', 'info');
+
+                const response = await fetch(`${apiUrl}/api/auth/refresh`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ refresh_token: state.refreshToken }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to refresh token');
+                }
+
+                // Update access token
+                state.accessToken = data.access_token;
+                localStorage.setItem('accessToken', data.access_token);
+
+                addLog('POST /api/auth/refresh - Success', data);
+                showStatus('refreshStatus', '✅ Access token refreshed successfully!', 'success');
+                updateTokenStatus();
+            } catch (error) {
+                addLog('POST /api/auth/refresh - Error', error.message);
+                showStatus('refreshStatus', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test POST /api/auth/logout (revoke all)
+        async function testLogoutAll() {
+            const apiUrl = document.getElementById('apiBaseUrl').value;
+
+            if (!state.accessToken) {
+                showStatus('logoutStatus', 'Access token not available. Already logged out?', 'warning');
+                return;
+            }
+
+            try {
+                showStatus('logoutStatus', 'Logging out from all devices...', 'info');
+
+                const response = await fetch(`${apiUrl}/api/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${state.accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({}),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to logout');
+                }
+
+                // Clear all tokens
+                clearTokens();
+                addLog('POST /api/auth/logout (all devices) - Success', data);
+                showStatus('logoutStatus', '✅ ' + data.message, 'success');
+            } catch (error) {
+                addLog('POST /api/auth/logout - Error', error.message);
+                showStatus('logoutStatus', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test POST /api/auth/logout (revoke specific)
+        async function testLogoutCurrent() {
+            const apiUrl = document.getElementById('apiBaseUrl').value;
+
+            if (!state.accessToken || !state.refreshToken) {
+                showStatus('logoutStatus', 'Tokens not available. Please login first.', 'error');
+                return;
+            }
+
+            try {
+                showStatus('logoutStatus', 'Logging out this device...', 'info');
+
+                const response = await fetch(`${apiUrl}/api/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${state.accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ refresh_token: state.refreshToken }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to logout');
+                }
+
+                // Clear tokens
+                clearTokens();
+                addLog('POST /api/auth/logout (current device) - Success', data);
+                showStatus('logoutStatus', '✅ ' + data.message, 'success');
+            } catch (error) {
+                addLog('POST /api/auth/logout - Error', error.message);
+                showStatus('logoutStatus', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Clear Tokens
+        function clearTokens() {
+            state.idToken = null;
+            state.accessToken = null;
+            state.refreshToken = null;
+            state.user = null;
+            localStorage.removeItem('idToken');
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            
+            document.getElementById('tokenStatus').innerHTML = '<div class="status warning">No tokens stored</div>';
+            document.getElementById('userProfileDisplay').innerHTML = '';
+            document.getElementById('idTokenDisplay').innerHTML = '';
+            document.getElementById('accessTokenDisplay').innerHTML = '';
+            document.getElementById('refreshTokenDisplay').innerHTML = '';
+            
+            showStatus('loginStatus', 'Tokens cleared', 'info');
+        }
+
+        // Copy to Clipboard
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                const text = element.textContent;
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Copied to clipboard!');
+                }).catch(() => {
+                    alert('Failed to copy');
+                });
+            }
+        }
+
+        // Show Status Message
+        function showStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // Initialize on Load
+        window.addEventListener('load', () => {
+            updateTokenStatus();
+            
+            // Setup Google Sign-In when config is ready
+            const clientId = document.getElementById('googleClientId').value;
+            if (clientId) {
+                setTimeout(() => initializeGoogleSignIn(), 1000);
+            }
+        });
+
+        // Re-initialize Google Sign-In when Client ID changes
+        document.getElementById('googleClientId').addEventListener('change', () => {
+            initializeGoogleSignIn();
+        });
+    </script>
+</body>
+</html>
