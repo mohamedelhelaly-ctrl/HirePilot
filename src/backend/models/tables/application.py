@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, JSON, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from sqlachemy_base import SQLAlchemyBase as Base
-from enums import ApplicationStatus
+from .sqlachemy_base import SQLAlchemyBase as Base
+from src.backend.models.tables_enums import ApplicationStatus
 
 
 class Application(Base):
