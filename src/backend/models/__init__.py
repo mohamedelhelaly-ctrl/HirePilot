@@ -1,0 +1,1 @@
+from tables_enums import UserRole, ApplicationStatus, InterviewType, InterviewStatus
