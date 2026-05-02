@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from sqlachemy_base import SQLAlchemyBase as Base
+from .sqlachemy_base import SQLAlchemyBase as Base
 
 class Candidate(Base):
     __tablename__ = "candidates"
