@@ -8,7 +8,8 @@ from datetime import datetime
 # from schemas import ApplicationCreate, ApplicationUpdate
 # from schemas import StatusHistoryCreate
 
-from models.tables.application import Application, ApplicationStatus
+from models.tables.application import Application
+from models.tables_enums import ApplicationStatus
 from models.schemas.application_schemas import ApplicationCreate, ApplicationUpdate
 from models.schemas.statusHistory_schemas import StatusHistoryCreate
 
