@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, 
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .sqlachemy_base import SQLAlchemyBase as Base
-from models.tables_enums import ApplicationStatus
+from ..tables_enums import ApplicationStatus
 
 
 class Application(Base):

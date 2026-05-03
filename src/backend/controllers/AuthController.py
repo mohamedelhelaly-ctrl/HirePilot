@@ -63,6 +63,7 @@ from models.schemas import (
     User
 )
 
+# Should be removed
 from .services.auth_service import (
     email_login,
     google_login,
@@ -72,6 +73,7 @@ from .services.auth_service import (
     setup_initial_admin
 )
 
+# Should be removed
 from .services.auth_dependencies import get_current_user, require_hr_manager
 
 #####################################################################################

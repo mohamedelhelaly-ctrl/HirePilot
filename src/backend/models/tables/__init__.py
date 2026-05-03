@@ -1,3 +1,4 @@
+from .sqlachemy_base import SQLAlchemyBase as Base
 from .application_detail import ApplicationDetail
 from .application import Application
 from .candidate import Candidate
