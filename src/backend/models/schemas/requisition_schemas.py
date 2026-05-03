@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
-from src.backend.models.schemas.application_schemas import ApplicationWithCandidate
+from .application_schemas import ApplicationWithCandidate
 
 
 class RequisitionBase(BaseModel):
