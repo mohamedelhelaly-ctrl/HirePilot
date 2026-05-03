@@ -1,0 +1,93 @@
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+import os
+import sys
+import logging
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
+from models.database import engine
+from routers import auth_router
+# from api.routers import requisitions, cv_upload, screening, auth_router
+# from api.routers.interview import router as interview_router
+# from api.routers.rag_router import router as rag_router
+# from scheduler import scheduler
+# from services.whisper_service import load_whisper, unload_whisper
+
+# ── Logging configuration ─────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+# Silence noisy third-party loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+
+
+logging.getLogger("apscheduler").setLevel(logging.INFO)
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown events."""
+    
+    # ── Startup ───────────────────────────────────────────────────────────────
+    import asyncio
+
+    # # Load Whisper in a thread so it doesn't block the event loop
+    # await asyncio.to_thread(load_whisper)
+    # logger.info("Whisper model loaded")
+
+    # scheduler.start()
+    # logger.info("Screening scheduler started")
+
+    yield
+
+    # # ── Shutdown ──────────────────────────────────────────────────────────────
+    # scheduler.shutdown(wait=False)
+    # logger.info("Screening scheduler stopped")
+    # unload_whisper()
+    # await engine.dispose()
+
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="Incorta-HR API",
+    description="AI-powered recruitment assistant for Incorta's internal HR team",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+
+# Include routers
+app.include_router(auth_router, prefix="/api", tags=["authentication"])
+
+
+
+@app.get("/")
+async def root():
+    """Health check endpoint."""
+    return {
+        "status": "healthy",
+        "service": "Incorta-HR API",
+        "version": "1.0.0"
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """Detailed health check endpoint."""
+    return {
+        "status": "healthy",
+        "database": "connected",
+        "service": "running"
+    }

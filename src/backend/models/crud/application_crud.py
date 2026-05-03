@@ -134,5 +134,3 @@ async def update_application_status(
     await db.commit()
     await db.refresh(db_application)
     return db_application
-
-

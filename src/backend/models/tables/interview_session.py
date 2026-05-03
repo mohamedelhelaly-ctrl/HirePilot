@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKe
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .sqlachemy_base import SQLAlchemyBase as Base
-from src.backend.models.tables_enums import InterviewType, InterviewStatus
+from models.tables_enums import InterviewType, InterviewStatus
 
 
 class InterviewSession(Base):

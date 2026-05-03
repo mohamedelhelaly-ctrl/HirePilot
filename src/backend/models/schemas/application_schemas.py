@@ -2,9 +2,9 @@ from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Any
 from datetime import datetime
 from models import ApplicationStatus
-from src.backend.models.schemas.candidate_schemas import Candidate
-from src.backend.models.schemas.screeningResult_schemas import ScreeningResult
-from src.backend.models.schemas.interviewSession_schemas import InterviewSession
+from .candidate_schemas import Candidate
+from .screeningResult_schemas import ScreeningResult
+from .interviewSession_schemas import InterviewSession
 
 class ApplicationBase(BaseModel):
     stated_availability: Optional[Any] = None
