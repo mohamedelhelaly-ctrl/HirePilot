@@ -83,11 +83,6 @@ class ScoredCandidate(BaseModel):
 
     Cosine similarity is NOT part of the final score — it is only used
     as a retrieval filter in Node 1 (top-K selection from ChromaDB).
-
-    recommended_action drives the Application.status update in Node 4:
-        "advance"      → SCREENING_PASSED
-        "reject"       → SCREENING_REJECTED
-        "needs_review" → status unchanged
     """
     source: str                           # original CV filename
     application_id: Optional[int] = None  # set by Node 4 after DB insert
@@ -96,15 +91,8 @@ class ScoredCandidate(BaseModel):
     llm_score: float
     combined_score: float  # = llm_score / 10.0
 
-    # Single justification covering the overall assessment
+    # Comparative justification covering the overall assessment
     justification: str = ""
-
-    # Supporting detail
-    key_strengths: List[str] = Field(default_factory=list)
-    key_concerns: List[str] = Field(default_factory=list)
-
-    # Drives Application.status transition
-    recommended_action: str = "needs_review"  # "advance" | "reject" | "needs_review"
 
 
 # ============================================================================

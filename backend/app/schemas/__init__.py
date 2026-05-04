@@ -186,15 +186,15 @@ class ApplicationCreate(ApplicationBase):
     requisition_id: int
     lever_opportunity_id: str
     cv_url: Optional[str] = None
+    years_of_experience: Optional[float] = None
 
 
 class ApplicationUpdate(BaseModel):
     status: Optional[ApplicationStatus] = None
-    cv_text: Optional[str] = None
     combined_score: Optional[float] = None
-    assessment_score: Optional[float] = None
     overall_interview_score: Optional[float] = None
     stated_availability: Optional[Any] = None
+    years_of_experience: Optional[float] = None
 
 
 class Application(ApplicationBase):
@@ -204,14 +204,8 @@ class Application(ApplicationBase):
     lever_opportunity_id: str
     status: ApplicationStatus
     cv_url: Optional[str]
-    cv_text: Optional[str]
-    cv_embedding_stored: bool
     combined_score: Optional[float]
-    assessment_sent_at: Optional[datetime]
-    assessment_completed_at: Optional[datetime]
-    assessment_score: Optional[float]
-    assessment_test_url: Optional[str]
-    hackerrank_test_id: Optional[str]
+    years_of_experience: Optional[float]
     interview_scheduled_at: Optional[datetime]
     last_interview_completed_at: Optional[datetime]
     overall_interview_score: Optional[float]
@@ -227,7 +221,6 @@ class Application(ApplicationBase):
 class ApplicationDetailBase(BaseModel):
     key: str
     value: Any
-    relevance: Optional[str] = None
 
 
 class ApplicationDetailCreate(ApplicationDetailBase):
@@ -246,9 +239,6 @@ class ApplicationDetail(ApplicationDetailBase):
 class ScreeningResultBase(BaseModel):
     score: float
     justification: Optional[str] = None
-    recommended_action: Optional[str] = None
-    key_strengths: Optional[List[str]] = None
-    key_concerns: Optional[List[str]] = None
 
 
 class ScreeningResultCreate(ScreeningResultBase):
@@ -258,9 +248,6 @@ class ScreeningResultCreate(ScreeningResultBase):
 class ScreeningResultUpdate(BaseModel):
     score: Optional[float] = None
     justification: Optional[str] = None
-    recommended_action: Optional[str] = None
-    key_strengths: Optional[List[str]] = None
-    key_concerns: Optional[List[str]] = None
 
 
 class ScreeningResult(ScreeningResultBase):

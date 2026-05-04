@@ -57,7 +57,6 @@ class ApplicationDetailOut(BaseModel):
     id: int
     key: str
     value: Any
-    relevance: Optional[str] = None
     extracted_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -69,6 +68,7 @@ class ApplicationOut(BaseModel):
     status: ApplicationStatus
     cv_url: Optional[str] = None
     combined_score: Optional[float] = None
+    years_of_experience: Optional[float] = None
     applied_at: datetime
     last_activity_at: datetime
 
@@ -79,9 +79,6 @@ class ScreeningResultOut(BaseModel):
     id: int
     score: float
     justification: Optional[str] = None
-    recommended_action: Optional[str] = None
-    key_strengths: Optional[List[str]] = None
-    key_concerns: Optional[List[str]] = None
     created_at: datetime
     updated_at: datetime
 
@@ -102,7 +99,6 @@ class ScreeningRunSummary(BaseModel):
     top_candidate_source: Optional[str] = None
     top_candidate_application_id: Optional[int] = None
     top_candidate_combined_score: Optional[float] = None
-    top_candidate_recommended_action: Optional[str] = None
 
 
 class TriggerScreeningResponse(BaseModel):
@@ -211,7 +207,6 @@ async def trigger_screening(
             top_candidate_source=top.get("source"),
             top_candidate_application_id=top.get("application_id"),
             top_candidate_combined_score=top.get("combined_score"),
-            top_candidate_recommended_action=top.get("recommended_action"),
         )
 
         # ── 5. Fetch ALL screened candidates for this requisition ──────────────

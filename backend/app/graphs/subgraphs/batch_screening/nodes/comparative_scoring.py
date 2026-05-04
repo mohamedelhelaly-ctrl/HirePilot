@@ -34,38 +34,54 @@ logger = logging.getLogger(__name__)
 _SYSTEM_PROMPT = """\
 You are a senior technical recruiter performing comparative candidate evaluation.
 
-Given a job description and a candidate pool (structured CV data), score ALL candidates
-COMPARATIVELY — not in isolation — so scores reflect relative standing within this pool.
+Given a job description and a pool of candidate profiles (structured CV data), your task
+is to score ALL candidates COMPARATIVELY — meaning scores must reflect each candidate's
+standing RELATIVE TO THE REST OF THE POOL and the job requirements.
 
-Scoring scale:
-  8–10 = exceptional match
-  5–7  = good match, minor gaps
-  3–4  = partial match, notable gaps
-  0–2  = poor match
-
-Return ONLY a valid JSON array (no markdown, no commentary) where each element
-matches a candidate in the SAME ORDER they were provided:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Return ONLY a valid JSON array (no markdown, no commentary) in the SAME ORDER
+candidates were provided:
 [
   {
     "source": "<original CV filename>",
     "overall_score": <float 0-10>,
-    "justification": "<2-3 sentences covering overall fit, key strengths, and any concerns>",
-    "key_strengths": ["strength1", "strength2", "strength3"],
-    "key_concerns": ["concern1", "concern2"],
-    "recommended_action": "advance" | "reject" | "needs_review"
+    "justification": "<see requirements below>"
   }
 ]
 
-Decision thresholds (your comparative judgment overrides these):
-  overall_score >= 6.5 → "advance"
-  overall_score 4.5–6.4 → "needs_review"
-  overall_score < 4.5 → "reject"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SCORING SCALE (comparative, not absolute)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  8–10  Strongest candidates in the pool — clear match to the role's must-haves,
+        demonstrably ahead of peers on key dimensions
+  5–7   Competitive but with meaningful gaps versus higher-ranked candidates;
+        meets most requirements
+  3–4   Partial match; noticeable gaps on core requirements compared to the pool
+  0–2   Poor fit relative to the pool; missing critical requirements
 
-Scoring guidelines:
-- Consider the full candidate profile: skills, experience, education, roles, certifications
-- Score relative to the pool — the best candidate in a strong pool may score 8-9,
-  while the same candidate in a weaker pool might score 9-10
-- Be concise but specific in the justification"""
+Calibration rule: scores must spread across the pool — avoid clustering
+everyone at the same band. If the pool is uniformly strong, use the top
+of each band; if uniformly weak, use the bottom.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+JUSTIFICATION REQUIREMENTS (3–5 sentences per candidate)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Each justification MUST:
+  1. State where this candidate ranks relative to the pool
+     (e.g. "Among the top third of this pool…", "Weakest in the pool on…")
+  2. Cite 1–2 specific strengths from their profile that support the score
+     (e.g. "7 years in data engineering with direct Spark and dbt experience…")
+  3. Cite 1–2 specific gaps or concerns relative to what the role needs
+     (e.g. "No demonstrated leadership experience, unlike the top candidates…")
+  4. Conclude with a concise fit statement that references the job description
+     (e.g. "Overall a solid fit for the IC track but behind peers for the
+      senior-level scope described in the JD.")
+
+Be specific — reference actual data from the CV (years, tools, titles, companies).
+Do NOT use vague phrases like "shows potential" or "decent background".
+Do NOT repeat the same justification across candidates."""
 
 
 def _clean_json_response(raw: str) -> str:
@@ -219,9 +235,6 @@ async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreening
                 llm_score=llm_score,
                 combined_score=combined,
                 justification=item.get("justification", ""),
-                key_strengths=item.get("key_strengths", []),
-                key_concerns=item.get("key_concerns", []),
-                recommended_action=item.get("recommended_action", "needs_review"),
             )
         )
 

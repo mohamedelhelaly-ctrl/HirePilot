@@ -86,10 +86,9 @@ async def batch_screening_node(state: OrchestratorState) -> OrchestratorState:
         "candidates_saved":  final.saved_count,
         "top_candidate": (
             {
-                "source":             final.comparative_scores[0].source,
-                "application_id":     final.comparative_scores[0].application_id,
-                "combined_score":     final.comparative_scores[0].combined_score,
-                "recommended_action": final.comparative_scores[0].recommended_action,
+                "source":         final.comparative_scores[0].source,
+                "application_id": final.comparative_scores[0].application_id,
+                "combined_score": final.comparative_scores[0].combined_score,
             }
             if final.comparative_scores else None
         ),

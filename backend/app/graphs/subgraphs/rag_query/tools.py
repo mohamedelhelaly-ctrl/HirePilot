@@ -48,9 +48,6 @@ async def get_candidate_full_profile(db: AsyncSession, candidate_id: int, requis
         screening_dict = {
             "score": screening.score,
             "justification": screening.justification,
-            "recommended_action": screening.recommended_action,
-            "key_strengths": screening.key_strengths,
-            "key_concerns": screening.key_concerns,
         }
     
     # Build full profile - only include details that are actually saved/used in screening

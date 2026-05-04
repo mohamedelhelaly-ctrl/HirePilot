@@ -3,7 +3,6 @@ Node 4 — Save Results to PostgreSQL (with re-screening support)
 
 BUCKET A — existing candidates:
   - Refresh combined_score on Application row
-  - Update status based on recommended_action
   - Upsert ScreeningResult (score + justification)
   - ApplicationDetail rows are NOT touched
 
@@ -12,7 +11,8 @@ BUCKET B — new candidates:
   2. Create Application row
   3. Insert ApplicationDetail rows
   4. Create ScreeningResult row
-  5. Transition Application status
+
+Application status is left unchanged after screening — HR sets it manually.
 """
 
 import sys
@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 from sqlalchemy import delete
 
 from db.database import AsyncSessionLocal
-from db.models import ApplicationDetail, ApplicationStatus
+from db.models import ApplicationDetail
 from db import crud
 from schemas import (
     CandidateCreate,
@@ -63,7 +63,6 @@ def _build_application_detail_entries(
             application_id=app_id,
             key="technical_skills",
             value=extracted.skills,
-            relevance="high",
         ))
 
     if extracted.total_years_experience:
@@ -71,7 +70,6 @@ def _build_application_detail_entries(
             application_id=app_id,
             key="total_years_experience",
             value=extracted.total_years_experience,
-            relevance="high",
         ))
 
     if extracted.education:
@@ -79,7 +77,6 @@ def _build_application_detail_entries(
             application_id=app_id,
             key="education",
             value=extracted.education,
-            relevance="medium",
         ))
 
     if extracted.previous_roles:
@@ -87,7 +84,6 @@ def _build_application_detail_entries(
             application_id=app_id,
             key="previous_roles",
             value=extracted.previous_roles,
-            relevance="medium",
         ))
 
     if extracted.certifications:
@@ -95,7 +91,6 @@ def _build_application_detail_entries(
             application_id=app_id,
             key="certifications",
             value=extracted.certifications,
-            relevance="medium",
         ))
 
     if extracted.summary:
@@ -103,7 +98,6 @@ def _build_application_detail_entries(
             application_id=app_id,
             key="profile_summary",
             value=extracted.summary,
-            relevance="low",
         ))
 
     contact_info = {
@@ -116,7 +110,6 @@ def _build_application_detail_entries(
             application_id=app_id,
             key="contact_info",
             value=contact_info,
-            relevance="low",
         ))
 
     return entries
@@ -127,9 +120,6 @@ async def _upsert_screening_result(db, app_id: int, scored) -> None:
     sr_payload = dict(
         score=scored.combined_score,
         justification=scored.justification,
-        key_strengths=scored.key_strengths,
-        key_concerns=scored.key_concerns,
-        recommended_action=scored.recommended_action,
     )
     existing_sr = await crud.get_screening_result_by_application(db, app_id)
     if existing_sr:
@@ -138,14 +128,6 @@ async def _upsert_screening_result(db, app_id: int, scored) -> None:
         await crud.create_screening_result(
             db, ScreeningResultCreate(application_id=app_id, **sr_payload)
         )
-
-
-async def _apply_status_transition(db, app_id: int, recommended_action: str) -> None:
-    if recommended_action == "advance":
-        await crud.update_application_status(db, app_id, ApplicationStatus.SCREENING_PASSED)
-    elif recommended_action == "reject":
-        await crud.update_application_status(db, app_id, ApplicationStatus.SCREENING_REJECTED)
-    # "needs_review" → leave status unchanged
 
 
 # ── Main node ─────────────────────────────────────────────────────────────────
@@ -214,9 +196,11 @@ async def save_results_node(state: BatchScreeningState) -> BatchScreeningState:
 
                     application.combined_score   = scored.combined_score
                     application.last_activity_at = now
+                    extracted_a = cv_lookup.get(source)
+                    if extracted_a and extracted_a.total_years_experience:
+                        application.years_of_experience = extracted_a.total_years_experience
                     await db.commit()
 
-                    await _apply_status_transition(db, app_id, scored.recommended_action)
                     await _upsert_screening_result(db, app_id, scored)
 
                     updated += 1
@@ -291,6 +275,7 @@ async def save_results_node(state: BatchScreeningState) -> BatchScreeningState:
                                 candidate_id=candidate.id,
                                 requisition_id=state.requisition_id,
                                 lever_opportunity_id=lever_opp_id,
+                                years_of_experience=extracted.total_years_experience or None,
                             ),
                         )
 
@@ -302,13 +287,10 @@ async def save_results_node(state: BatchScreeningState) -> BatchScreeningState:
                     application.last_activity_at = now
                     await db.commit()
 
-                    # ── 4. Status transition ──────────────────────────────────
-                    await _apply_status_transition(db, app_id, scored.recommended_action)
-
-                    # ── 5. ScreeningResult ────────────────────────────────────
+                    # ── 4. ScreeningResult ────────────────────────────────────
                     await _upsert_screening_result(db, app_id, scored)
 
-                    # ── 6. ApplicationDetail rows ─────────────────────────────
+                    # ── 5. ApplicationDetail rows ─────────────────────────────
                     await db.execute(
                         delete(ApplicationDetail).where(
                             ApplicationDetail.application_id == app_id
