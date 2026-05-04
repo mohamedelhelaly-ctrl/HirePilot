@@ -213,3 +213,4 @@ backend/app/db/vector_index/
 database/
 alembic/
 alembic.ini
+src/backend/stores/vectordb/encoder_model/
