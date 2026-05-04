@@ -6,13 +6,18 @@ import logging
 from pathlib import Path
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from models.database import engine
+from stores.llm.whisper_service import load_whisper
+from models.database import get_db, engine
 from routers import auth_router, requisition_router
+from stores.vectordb.load_model import download_model
+from stores.vectordb.embedding_model import get_embedding_model
+from stores.llm.whisper_service import load_whisper
 # from api.routers import requisitions, cv_upload, screening, auth_router
 # from api.routers.interview import router as interview_router
 # from api.routers.rag_router import router as rag_router
@@ -43,9 +48,17 @@ async def lifespan(app: FastAPI):
     # ── Startup ───────────────────────────────────────────────────────────────
     import asyncio
 
-    # # Load Whisper in a thread so it doesn't block the event loop
-    # await asyncio.to_thread(load_whisper)
-    # logger.info("Whisper model loaded")
+    # embedding model
+    download_model()
+    app.embedding_model = get_embedding_model()
+
+    # Load Whisper
+    await asyncio.to_thread(load_whisper)
+    logger.info("Whisper model loaded")
+
+    # Initialize database
+    app.db = get_db()
+    
 
     # scheduler.start()
     # logger.info("Screening scheduler started")
@@ -64,7 +77,8 @@ app = FastAPI(
     title="Incorta-HR API",
     description="AI-powered recruitment assistant for Incorta's internal HR team",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    debug=True
 )
 
 
