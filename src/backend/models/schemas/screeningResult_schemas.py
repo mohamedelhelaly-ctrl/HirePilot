@@ -6,9 +6,6 @@ from datetime import datetime
 class ScreeningResultBase(BaseModel):
     score: float
     justification: Optional[str] = None
-    recommended_action: Optional[str] = None
-    key_strengths: Optional[List[str]] = None
-    key_concerns: Optional[List[str]] = None
 
 
 class ScreeningResultCreate(ScreeningResultBase):
@@ -18,9 +15,7 @@ class ScreeningResultCreate(ScreeningResultBase):
 class ScreeningResultUpdate(BaseModel):
     score: Optional[float] = None
     justification: Optional[str] = None
-    recommended_action: Optional[str] = None
-    key_strengths: Optional[List[str]] = None
-    key_concerns: Optional[List[str]] = None
+    
 
 
 class ScreeningResult(ScreeningResultBase):

@@ -18,10 +18,11 @@ class Application(Base):
     
     # CV data
     cv_url = Column(String(1000))
-    # cv_embedding_stored = Column(Boolean, default=False, nullable=False)
+    
     
     # Scores
     combined_score = Column(Float, index=True)  # Weighted combination
+    years_of_experience = Column(Float)
    
     
     # Interview data

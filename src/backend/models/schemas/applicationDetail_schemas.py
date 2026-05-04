@@ -6,7 +6,7 @@ from datetime import datetime
 class ApplicationDetailBase(BaseModel):
     key: str
     value: Any
-    relevance: Optional[str] = None
+    
 
 
 class ApplicationDetailCreate(ApplicationDetailBase):
