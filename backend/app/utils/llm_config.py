@@ -7,7 +7,7 @@ load_dotenv()
 import time
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = "qwen2.5:3b-instruct"
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b-instruct")
 
 class UnifiedLLM:
     def __init__(self, model_name=OLLAMA_MODEL, temperature=0.7, max_tokens=2048, provider="ollama"):
