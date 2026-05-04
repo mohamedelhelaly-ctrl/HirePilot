@@ -12,7 +12,7 @@ load_dotenv()
 sys.path.insert(0, str(Path(__file__).parent))
 
 from models.database import engine
-from routers import auth_router
+from routers import auth_router, requisition_router
 # from api.routers import requisitions, cv_upload, screening, auth_router
 # from api.routers.interview import router as interview_router
 # from api.routers.rag_router import router as rag_router
@@ -70,6 +70,7 @@ app = FastAPI(
 
 # Include routers
 app.include_router(auth_router, prefix="/api", tags=["authentication"])
+app.include_router(requisition_router, prefix="/api", tags=["requisitions"])
 
 
 

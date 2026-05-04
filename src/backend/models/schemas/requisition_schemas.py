@@ -46,3 +46,12 @@ class Requisition(RequisitionBase):
 # Extended response schemas with relationships
 class RequisitionWithApplications(Requisition):
     applications: List[ApplicationWithCandidate] = []
+
+
+class CreateRequisitionRequest(BaseModel):
+    """Request model for creating a requisition."""
+    title: str
+    description: str
+    department: str | None = None
+    location: str | None = None
+    hiring_manager_id: int | None = None
