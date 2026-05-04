@@ -1,8 +1,8 @@
 """Init commit
 
-Revision ID: 77a8deee3751
+Revision ID: 4423a5522af9
 Revises: 
-Create Date: 2026-05-03 20:21:03.427047
+Create Date: 2026-05-05 02:39:01.244194
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '77a8deee3751'
+revision: str = '4423a5522af9'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -92,6 +92,7 @@ def upgrade() -> None:
     sa.Column('status', sa.Enum('NEW', 'SCREENING_PENDING', 'SCREENING_PASSED', 'SCREENING_REJECTED', 'ASSESSMENT_SENT', 'ASSESSMENT_COMPLETED', 'INTERVIEW_SCHEDULED', 'INTERVIEW_COMPLETED', 'OFFER_EXTENDED', 'HIRED', 'REJECTED', 'WITHDRAWN', name='applicationstatus'), nullable=False),
     sa.Column('cv_url', sa.String(length=1000), nullable=True),
     sa.Column('combined_score', sa.Float(), nullable=True),
+    sa.Column('years_of_experience', sa.Float(), nullable=True),
     sa.Column('interview_scheduled_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('last_interview_completed_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('overall_interview_score', sa.Float(), nullable=True),
@@ -112,7 +113,6 @@ def upgrade() -> None:
     sa.Column('application_id', sa.Integer(), nullable=False),
     sa.Column('key', sa.String(length=255), nullable=False),
     sa.Column('value', sa.JSON(), nullable=False),
-    sa.Column('relevance', sa.String(length=50), nullable=True),
     sa.Column('extracted_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['application_id'], ['applications.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -152,9 +152,6 @@ def upgrade() -> None:
     sa.Column('application_id', sa.Integer(), nullable=False),
     sa.Column('score', sa.Float(), nullable=False),
     sa.Column('justification', sa.Text(), nullable=True),
-    sa.Column('recommended_action', sa.String(length=100), nullable=True),
-    sa.Column('key_strengths', sa.JSON(), nullable=True),
-    sa.Column('key_concerns', sa.JSON(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['application_id'], ['applications.id'], ),
