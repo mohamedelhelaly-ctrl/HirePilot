@@ -7,7 +7,8 @@ from .screeningResult_schemas import ScreeningResult
 from .interviewSession_schemas import InterviewSession
 
 class ApplicationBase(BaseModel):
-    stated_availability: Optional[Any] = None
+    # stated_availability: Optional[Any] = None
+    pass
 
 
 class ApplicationCreate(ApplicationBase):
@@ -24,7 +25,6 @@ class ApplicationUpdate(BaseModel):
     combined_score: Optional[float] = None
     assessment_score: Optional[float] = None
     overall_interview_score: Optional[float] = None
-    stated_availability: Optional[Any] = None
     years_of_experience: Optional[float] = None
 
 

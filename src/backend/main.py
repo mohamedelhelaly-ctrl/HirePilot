@@ -49,15 +49,15 @@ async def lifespan(app: FastAPI):
     import asyncio
 
     # embedding model
-    download_model()
-    app.embedding_model = get_embedding_model()
+    # download_model()
+    # app.embedding_model = get_embedding_model()
 
     # Load Whisper
-    await asyncio.to_thread(load_whisper)
-    logger.info("Whisper model loaded")
+    # await asyncio.to_thread(load_whisper)
+    # logger.info("Whisper model loaded")
 
     # Initialize database
-    app.db = get_db()
+    # app.db = get_db()
     
 
     # scheduler.start()

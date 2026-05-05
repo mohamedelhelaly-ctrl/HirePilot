@@ -10,11 +10,11 @@ from datetime import datetime
 
 from models.tables.application import Application
 from models.tables_enums import ApplicationStatus
-from models.schemas.application_schemas import ApplicationCreate, ApplicationUpdate
+from models.schemas.application_schemas import ApplicationCreate, ApplicationUpdate, Application as ApplicationSchema
 from models.schemas.statusHistory_schemas import StatusHistoryCreate
 
 
-async def create_application(db: AsyncSession, application: ApplicationCreate) -> Application:
+async def create_application(db: AsyncSession, application: ApplicationCreate) -> ApplicationSchema:
     """Create a new application."""
     db_application = Application(**application.model_dump())
     db.add(db_application)
@@ -27,7 +27,7 @@ async def get_application_by_id(
     db: AsyncSession,
     application_id: int,
     include_relations: bool = False
-) -> Optional[Application]:
+) -> Optional[ApplicationSchema]:
     """Get application by ID, optionally with related data."""
     query = select(Application).where(Application.id == application_id)
     
@@ -46,7 +46,7 @@ async def get_application_by_id(
 async def get_application_by_lever_opportunity_id(
     db: AsyncSession,
     lever_opportunity_id: str
-) -> Optional[Application]:
+) -> Optional[ApplicationSchema]:
     """Get application by Lever opportunity ID."""
     result = await db.execute(
         select(Application).where(Application.lever_opportunity_id == lever_opportunity_id)
@@ -62,7 +62,7 @@ async def get_applications_by_requisition(
     skip: int = 0,
     limit: int = 100,
     include_relations: bool = False
-) -> List[Application]:
+) -> List[ApplicationSchema]:
     """Get applications for a requisition with optional filters, ordered by combined score."""
     query = select(Application).where(Application.requisition_id == requisition_id)
     
@@ -86,7 +86,7 @@ async def update_application(
     db: AsyncSession,
     application_id: int,
     application_update: ApplicationUpdate
-) -> Optional[Application]:
+) -> Optional[ApplicationSchema]:
     """Update application information."""
     db_application = await get_application_by_id(db, application_id)
     if not db_application:
@@ -108,7 +108,7 @@ async def update_application_status(
     new_status: ApplicationStatus,
     user_id: Optional[int] = None,
     reason: Optional[str] = None
-) -> Optional[Application]:
+) -> Optional[ApplicationSchema]:
     """Update application status and create status history entry."""
     from . import status_history_crud
     
