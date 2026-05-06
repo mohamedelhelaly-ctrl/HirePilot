@@ -5,7 +5,7 @@ import sys
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
-
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -81,6 +81,25 @@ app = FastAPI(
     debug=True
 )
 
+# Allow requests from localhost for testing and development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:8000",
+        "http://localhost:8080",
+        "http://localhost:3000",
+        "http://localhost:5500",
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:8080",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5500",
+        "http://localhost",
+        "http://127.0.0.1",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Include routers
 app.include_router(auth_router, prefix="/api", tags=["authentication"])
