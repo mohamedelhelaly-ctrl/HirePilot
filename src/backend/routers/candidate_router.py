@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
@@ -8,6 +8,7 @@ from models.schemas.application_schemas import Application, ApplicationCreate, A
 from models.tables_enums import ApplicationStatus
 from controllers.CandidateController import CandidateController
 from controllers.ApplicationController import ApplicationController
+
 
 candidate_controller = CandidateController()
 application_controller = ApplicationController()
@@ -108,4 +109,20 @@ async def update_application_status(
     return await application_controller.update_application_status(
         application_id, new_status, db, user_id, reason
     )
+
+
+@router.post(
+    "/upload",
+    summary="Upload and vectorize CVs for a requisition",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+)
+async def upload_cvs(
+    requisition_id: int = Form(..., description="ID of the requisition these CVs belong to"),
+    files: List[UploadFile] = File(..., description="One or more CV files (.pdf or .docx)"),
+    db: AsyncSession = Depends(get_db),
+):
+    return await candidate_controller.upload_cvs(db, requisition_id, files)
+
+
 

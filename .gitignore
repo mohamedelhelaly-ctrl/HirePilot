@@ -212,6 +212,8 @@ backend/app/db/encoder_model/
 backend/app/db/vector_index/
 database/
 
-
+alembic/
 alembic.ini
 src/backend/stores/vectordb/encoder_model/
+assets/
+src/backend/stores/vectordb/vector_index/
