@@ -1,10 +1,11 @@
+
 """
 FastAPI dependency injection for authentication.
 Provides reusable dependencies for route protection and role authorization.
 """
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Callable
 
@@ -21,7 +22,7 @@ from .auth_service import get_current_user as service_get_current_user
 
 # OAuth2 password bearer scheme for Swagger documentation
 # Points to the login endpoint where tokens are obtained
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+security = HTTPBearer()
 
 
 # ============================================================================
@@ -29,21 +30,22 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 # ============================================================================
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db)
 ) -> User:
     """
     FastAPI dependency that validates JWT access token and loads current user.
     
     Steps:
-    1. Decode JWT access token from Authorization header
-    2. Extract user_id from token payload
-    3. Load user from database
-    4. Verify user is active
-    5. Return User object
+    1. Extract JWT access token from Authorization header credentials
+    2. Decode JWT access token
+    3. Extract user_id from token payload
+    4. Load user from database
+    5. Verify user is active
+    6. Return User object
     
     Args:
-        token: JWT access token from Authorization header (via oauth2_scheme)
+        credentials: HTTPAuthorizationCredentials from Authorization header (via security)
         db: Database session dependency
         
     Returns:
@@ -58,7 +60,10 @@ async def get_current_user(
         async def get_profile(current_user: User = Depends(get_current_user)):
             return current_user
     """
-    # Step 1: Decode JWT access token
+    # Step 1: Extract token string from HTTPAuthorizationCredentials
+    token = credentials.credentials
+    
+    # Step 2: Decode JWT access token
     payload = decode_access_token(token)
     
     if not payload:
@@ -68,7 +73,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Step 2: Extract user_id from token payload
+    # Step 3: Extract user_id from token payload
     user_id = payload.get("user_id")
     
     if not user_id:
@@ -78,7 +83,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Step 3-5: Load user from database, verify active status
+    # Step 4-5: Load user from database, verify active status
     user = await service_get_current_user(db, user_id)
     
     return user

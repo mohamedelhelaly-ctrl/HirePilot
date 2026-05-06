@@ -40,47 +40,6 @@ router = APIRouter(
 # Endpoints
 # ============================================================================
 
-################################ Login Endpoint ##############################################
-@router.post(
-    "/login",
-    response_model=Token,
-    status_code=status.HTTP_200_OK,
-    summary="Email/Password Login",
-    description="Authenticate with email and password credentials"
-)
-async def login(
-    login_request: LoginRequest,
-    db: AsyncSession = Depends(get_db)
-) -> Token:
-    """
-    Authenticate user with email and password.
-    
-    This endpoint handles traditional email/password authentication flow:
-    
-    1. Validates email and password credentials
-    2. Generates JWT access token (30 minute expiration)
-    3. Generates refresh token (7 day expiration)
-    4. Stores hashed refresh token in database
-    
-    Request body:
-    - email: User email address
-    - password: User password
-    
-    Response:
-    - access_token: JWT token for authenticating API requests
-    - refresh_token: Token for obtaining new access tokens
-    - token_type: Always "bearer"
-    
-    Raises:
-        HTTPException(401): Invalid email or password
-        HTTPException(500): Database error
-    """
-    return await auth_controller.login(
-            login_request = login_request,
-            db = db
-        )
-
-
 ################################ Google Auth Endpoint ##############################################
 @router.post(
     "/google",

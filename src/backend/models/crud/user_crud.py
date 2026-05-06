@@ -94,3 +94,36 @@ async def get_admin_count(db: AsyncSession) -> int:
     )
     return result.scalar() or 0
 
+
+async def create_user_oauth_only(
+    db: AsyncSession,
+    email: str,
+    full_name: str,
+    role: UserRole
+) -> User:
+    """
+    Create a new user for OAuth-only authentication (no password).
+    
+    Used for pre-registering employees who will authenticate via Google OAuth.
+    
+    Args:
+        db: Database session
+        email: User email address
+        full_name: User's full name
+        role: User role (HR_MANAGER or HIRING_MANAGER)
+    
+    Returns:
+        Created User object
+    """
+    db_user = User(
+        email=email,
+        full_name=full_name,
+        role=role,
+        hashed_password="",  # No password for OAuth-only users
+        is_active=True
+    )
+    db.add(db_user)
+    await db.commit()
+    await db.refresh(db_user)
+    return db_user
+

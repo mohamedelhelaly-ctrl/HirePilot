@@ -20,7 +20,6 @@ from models.schemas import (
 
 # Should be removed
 from .services.auth_service import (
-    email_login,
     google_login,
     refresh_access_token,
     logout,
@@ -38,11 +37,9 @@ class AuthController(BaseController):
     def __init__(self):
         super().__init__()
     
-    async def login(self, login_request: LoginRequest, db: AsyncSession = Depends(get_db)) -> Token:
-        return await email_login(login_request, db)
-    
+
     async def google_auth(self, request: GoogleLoginRequest, db: AsyncSession = Depends(get_db)) -> Token:
-        return await google_login(request, db)
+        return await google_login(db, request.id_token)
     
     async def refresh_token(self, request: TokenRefreshRequest, db: AsyncSession = Depends(get_db)) -> Token:
         return await refresh_access_token(db, request.refresh_token)
@@ -73,4 +70,3 @@ class AuthController(BaseController):
             full_name=request.full_name,
             role=request.role
         )
-

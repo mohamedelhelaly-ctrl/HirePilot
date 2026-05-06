@@ -20,6 +20,7 @@ from models.crud import (
     create_refresh_token as crud_create_refresh_token,
     get_refresh_token_by_hash,
     check_admin_exists,
+    create_user_oauth_only,
     delete_refresh_token,
     delete_user_refresh_tokens
 )
@@ -46,12 +47,25 @@ from .security import (
 
 # --- Constants ---
 REFRESH_TOKEN_EXPIRE_DAYS = 7
+# Allowed email domains (STRICT AUTH CONTROL)
+ALLOWED_EMAIL_DOMAINS = [
+    "@incorta.com",
+    "@gmail.com"
+]
+
+
+# --- Helper: Domain Validation ---
+
+def is_email_allowed(email: str) -> bool:
+    """
+    Check if email belongs to allowed domains.
+    """
+    return any(email.endswith(domain) for domain in ALLOWED_EMAIL_DOMAINS)
 
 
 # --- Helper Functions ---
 
 def build_user_claims(user: User) -> Dict[str, Any]:
-    """Build JWT claims from user object."""
     return {
         "user_id": user.id,
         "email": user.email,
@@ -60,7 +74,6 @@ def build_user_claims(user: User) -> Dict[str, Any]:
 
 
 def ensure_user_exists(user: Optional[User]) -> User:
-    """Ensure the user exists."""
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -71,7 +84,6 @@ def ensure_user_exists(user: Optional[User]) -> User:
 
 
 def ensure_user_active(user: User) -> None:
-    """Ensure user account is active."""
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -80,7 +92,6 @@ def ensure_user_active(user: User) -> None:
 
 
 def verify_google_token(id_token_str: str) -> Dict[str, Any]:
-    """Verify Google OAuth ID token and return payload."""
     try:
         payload = id_token.verify_oauth2_token(
             id_token_str,
@@ -96,10 +107,6 @@ def verify_google_token(id_token_str: str) -> Dict[str, Any]:
 
 
 async def generate_auth_tokens(db: AsyncSession, user: User) -> Token:
-    """
-    Generate access and refresh tokens for a user and store
-    hashed refresh token in database.
-    """
     access_token = create_access_token(data=build_user_claims(user))
     refresh_token = create_refresh_token(user_id=user.id)
     token_hash = hash_token(refresh_token)
@@ -120,25 +127,13 @@ async def generate_auth_tokens(db: AsyncSession, user: User) -> Token:
     )
 
 
-# --- Authentication Logic ---
-
-async def email_login(db: AsyncSession, login_request: LoginRequest) -> Token:
-    """Authenticate user with email and password."""
-    user = await get_user_by_email(db, login_request.email)
-
-    if not user or not verify_password(login_request.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    ensure_user_active(user)
-    return await generate_auth_tokens(db, user)
-
+# --- AUTH FLOW ---
 
 async def google_login(db: AsyncSession, id_token_str: str) -> Token:
-    """Authenticate user using Google OAuth ID token."""
+    """
+    Authenticate user using Google OAuth ID token.
+    """
+
     payload = verify_google_token(id_token_str)
     email = payload.get("email")
 
@@ -146,6 +141,13 @@ async def google_login(db: AsyncSession, id_token_str: str) -> Token:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email not found in ID token"
+        )
+
+    # DOMAIN RESTRICTION (IMPORTANT SECURITY CHECK)
+    if not is_email_allowed(email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Email domain not allowed. Allowed domains: {ALLOWED_EMAIL_DOMAINS}"
         )
 
     user = await get_user_by_email(db, email)
@@ -160,8 +162,9 @@ async def google_login(db: AsyncSession, id_token_str: str) -> Token:
     return await generate_auth_tokens(db, user)
 
 
+# --- Refresh Token ---
+
 async def refresh_access_token(db: AsyncSession, refresh_token: str) -> Token:
-    """Generate new access token using a valid refresh token."""
     payload = decode_refresh_token(refresh_token)
 
     if not payload:
@@ -173,6 +176,7 @@ async def refresh_access_token(db: AsyncSession, refresh_token: str) -> Token:
 
     user_id = payload.get("user_id")
     token_hash = hash_token(refresh_token)
+
     stored_token = await get_refresh_token_by_hash(db, token_hash)
 
     if not stored_token:
@@ -194,189 +198,63 @@ async def refresh_access_token(db: AsyncSession, refresh_token: str) -> Token:
     )
 
 
+# --- User ---
+
 async def get_current_user(db: AsyncSession, user_id: int) -> User:
-    """Retrieve current user from database."""
     user = ensure_user_exists(await get_user_by_id(db, user_id))
     ensure_user_active(user)
     return user
 
 
+# --- Logout ---
+
 async def logout(db: AsyncSession, user_id: int, refresh_token: Optional[str] = None) -> Dict[str, str]:
-    """
-    Logout user by revoking refresh token(s).
-    
-    Args:
-        db: Database session
-        user_id: ID of user logging out
-        refresh_token: Optional specific refresh token to revoke. 
-                      If None, revokes all refresh tokens for the user.
-    
-    Returns:
-        Dict with success message
-        
-    Raises:
-        HTTPException: If user not found or token revocation fails
-    """
-    
     user = ensure_user_exists(await get_user_by_id(db, user_id))
-    
+
     if refresh_token:
-        # Revoke specific refresh token
         token_hash = hash_token(refresh_token)
         await delete_refresh_token(db, token_hash)
         return {"message": "Logged out successfully"}
-    else:
-        # Revoke all refresh tokens for the user
-        revoked_count = await delete_user_refresh_tokens(db, user_id)
-        return {
-            "message": f"Logged out successfully. Revoked {revoked_count} token(s)."
-        }
+
+    revoked_count = await delete_user_refresh_tokens(db, user_id)
+    return {"message": f"Logged out successfully. Revoked {revoked_count} token(s)."}
 
 
 # --- Admin User Management ---
 
-async def create_admin_user(
-    db: AsyncSession,
-    email: str,
-    full_name: str,
-    role: UserRole
-) -> User:
-    """
-    Create a new user for pre-registration (admin endpoint).
-    
-    Used to pre-register employees before they login with Google OAuth.
-    The user will authenticate via email matching with Google OAuth.
-    
-    Steps:
-    1. Check if user with email already exists
-    2. If exists, raise 400 BadRequest
-    3. Create user with no password (Google OAuth only)
-    4. Save to database
-    5. Return created user
-    
-    Args:
-        db: Database session
-        email: User email address (unique)
-        full_name: User's full name
-        role: User role (HR_MANAGER or HIRING_MANAGER)
-    
-    Returns:
-        Created User object
-        
-    Raises:
-        HTTPException(400): If user with email already exists
-        HTTPException(500): Database error
-    """
-    
-    # Step 1: Check if user with email already exists
-    existing_user = await get_user_by_email(db, email)
-    
-    # Step 2: If exists, raise 400 BadRequest
-    if existing_user:
+async def create_admin_user(db: AsyncSession, email: str, full_name: str, role: UserRole) -> User:
+
+    if await get_user_by_email(db, email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"User with email '{email}' already exists"
         )
-    
-    # Step 3: Create user with no password (Google OAuth only)
-    # hashed_password is set to empty string since it's nullable=False in DB
-    # but will not be used for OAuth-only users
-    new_user = User(
-        email=email,
-        full_name=full_name,
-        role=role,
-        hashed_password="",  # No password for OAuth-only users
-        is_active=True
-    )
-    
-    # Step 4: Save to database
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
-    
-    # Step 5: Return created user
-    return new_user
+
+    return await create_user_oauth_only(db, email, full_name, role)
 
 
-# --- Initial Setup (One-time endpoint) ---
+# --- Initial Setup ---
 
-async def setup_initial_admin(
-    db: AsyncSession,
-    email: str,
-    full_name: str,
-    role: UserRole
-) -> User:
-    """
-    One-time endpoint to create the first admin user (HR_MANAGER).
-    
-    This is a bootstrap function for initial system setup.
-    Can only be used when NO HR_MANAGER users exist in the database.
-    
-    Steps:
-    1. Check if any HR_MANAGER already exists
-    2. If exists, raise 403 Forbidden (setup already complete)
-    3. Check if email already exists
-    4. If exists, raise 400 BadRequest
-    5. Enforce role must be HR_MANAGER (safety)
-    6. Create user with no password (Google OAuth only)
-    7. Save to database
-    8. Return created user
-    
-    Args:
-        db: Database session
-        email: Admin email address
-        full_name: Admin full name
-        role: User role (must be HR_MANAGER)
-    
-    Returns:
-        Created User object
-        
-    Raises:
-        HTTPException(400): If email already exists
-        HTTPException(403): If admin already exists (setup already complete)
-        HTTPException(422): If role is not HR_MANAGER
-        HTTPException(500): Database error
-    """
-    
-    # Step 1: Check if any HR_MANAGER already exists
+async def setup_initial_admin(db: AsyncSession, email: str, full_name: str, role: UserRole) -> User:
+
     admin_exists = await check_admin_exists(db)
-    
-    # Step 2: If exists, raise 403 Forbidden (setup already complete)
+
     if admin_exists:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="System is already initialized. An HR_MANAGER user already exists. "
-                   "Use /api/auth/admin/users to create additional users."
+            detail="System already initialized."
         )
-    
-    # Step 3: Enforce role must be HR_MANAGER (safety check)
+
     if role != UserRole.HR_MANAGER:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Initial admin user must have role: hr_manager"
+            detail="Initial admin must be HR_MANAGER"
         )
-    
-    # Step 4: Check if email already exists
-    existing_user = await get_user_by_email(db, email)
-    if existing_user:
+
+    if await get_user_by_email(db, email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"User with email '{email}' already exists"
+            detail="User already exists"
         )
-    
-    # Step 5: Create user with no password (Google OAuth only)
-    new_admin = User(
-        email=email,
-        full_name=full_name,
-        role=UserRole.HR_MANAGER,
-        hashed_password="",  # No password for OAuth-only users
-        is_active=True
-    )
-    
-    # Step 6: Save to database
-    db.add(new_admin)
-    await db.commit()
-    await db.refresh(new_admin)
-    
-    # Step 7: Return created user
-    return new_admin
+
+    return await create_user_oauth_only(db, email, full_name, UserRole.HR_MANAGER)
