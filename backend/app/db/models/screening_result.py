@@ -13,13 +13,8 @@ class ScreeningResult(Base):
     # Single overall score (0–1 scale, mirrors Application.combined_score)
     score = Column(Float, nullable=False)
 
-    # Single justification covering the candidate's overall fit
+    # Justification covering the candidate's overall comparative fit
     justification = Column(Text)
-
-    # Supporting detail
-    recommended_action = Column(String(100))  # "advance" | "reject" | "needs_review"
-    key_strengths = Column(JSON)              # List[str]
-    key_concerns = Column(JSON)               # List[str]
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

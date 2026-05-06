@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, JSON, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, JSON, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..database import Base
@@ -18,22 +18,11 @@ class Application(Base):
     
     # CV data
     cv_url = Column(String(1000))
-    cv_text = Column(Text)
-    cv_embedding_stored = Column(Boolean, default=False, nullable=False)
-    
-    # Scores
-    cosine_similarity_score = Column(Float)  # CV vs. job description similarity
-    technical_score = Column(Float)  # AI-generated technical assessment
-    behavioral_score = Column(Float)  # AI-generated cultural fit score
-    combined_score = Column(Float, index=True)  # Weighted combination
-    
-    # Assessment data
-    assessment_sent_at = Column(DateTime(timezone=True))
-    assessment_completed_at = Column(DateTime(timezone=True))
-    assessment_score = Column(Float)
-    assessment_test_url = Column(String(1000))
-    hackerrank_test_id = Column(String(255))
-    
+
+    # Score
+    combined_score = Column(Float, index=True)
+    years_of_experience = Column(Float)
+
     # Interview data
     interview_scheduled_at = Column(DateTime(timezone=True))
     last_interview_completed_at = Column(DateTime(timezone=True))

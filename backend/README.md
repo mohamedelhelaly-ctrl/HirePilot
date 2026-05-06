@@ -37,7 +37,7 @@ chmod +x run.sh
 ./run.sh
 
 # Option 2: Direct uvicorn command
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 The API will be available at `http://localhost:8000`

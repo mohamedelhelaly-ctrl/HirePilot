@@ -26,6 +26,7 @@ Overlap handling:
 """
 
 import re
+import difflib
 import logging
 from datetime import datetime
 from typing import Optional
@@ -38,16 +39,25 @@ _COUNTED_TYPES = {"full_time", "freelance"}
 # Employment types explicitly excluded
 _EXCLUDED_TYPES = {"internship", "part_time", "volunteer", "trainer", "instructor"}
 
+# Full and abbreviated month names for fuzzy typo correction
+_ALL_MONTHS = [
+    "january", "february", "march", "april", "may", "june",
+    "july", "august", "september", "october", "november", "december",
+    "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
+]
+
 
 def _parse_date(date_str: str, current_date: datetime) -> datetime:
     """
     Parse a date string from an LLM-extracted role into a datetime.
 
     Supported input formats:
-        "3/2024" or "03/2024"     → March 2024
-        "March 2024" / "Mar 2024" → March 2024
-        "2024-03" / "2024/03"     → March 2024
-        "2024"                    → January 2024 (year only — assume start of year)
+        "3/2024" or "03/2024"          → March 2024  (M/YYYY)
+        "Jul/2024" or "Sept/2025"      → Month/YYYY  (abbreviated with slash)
+        "March 2024" / "Mar 2024"      → March 2024
+        "Sept 2025" / "Sep 2025"       → September 2025 (3- or 4-letter abbrev)
+        "2024-03" / "2024/03"          → March 2024
+        "2024"                         → January 2024 (year only)
         "Present" / "Current" / "Now" / "Ongoing" → current_date
 
     Returns:
@@ -61,7 +71,7 @@ def _parse_date(date_str: str, current_date: datetime) -> datetime:
     if date_str.lower() in {"present", "current", "now", "ongoing"}:
         return current_date
 
-    # MM/YYYY or M/YYYY
+    # MM/YYYY or M/YYYY  — pure numeric month  e.g. "3/2024", "03/2024"
     m = re.match(r'^(\d{1,2})/(\d{4})$', date_str)
     if m:
         month, year = int(m.group(1)), int(m.group(2))
@@ -69,17 +79,38 @@ def _parse_date(date_str: str, current_date: datetime) -> datetime:
             raise ValueError(f"Invalid month {month} in '{date_str}'")
         return datetime(year, month, 1)
 
-    # Abbreviated month name: "Jan 2024"
-    try:
-        return datetime.strptime(date_str, "%b %Y")
-    except ValueError:
-        pass
+    # Mon/YYYY — abbreviated month name with slash  e.g. "Jul/2024", "Sept/2025"
+    m = re.match(r'^([A-Za-z]+)/(\d{4})$', date_str)
+    if m:
+        month_tok, year = m.group(1), int(m.group(2))
+        date_str = f"{month_tok} {year}"   # normalise to "Jul 2024" and fall through
 
-    # Full month name: "January 2024"
-    try:
-        return datetime.strptime(date_str, "%B %Y")
-    except ValueError:
-        pass
+    # Normalise 4-letter abbreviations the model commonly emits:
+    #   "Sept" → "Sep", "June" → "Jun", "July" → "Jul"
+    _ABBREV_MAP = {
+        "sept": "sep",
+        "june": "jun",
+        "july": "jul",
+    }
+    lower_tok = date_str[:4].lower()
+    if lower_tok in _ABBREV_MAP:
+        date_str = _ABBREV_MAP[lower_tok] + date_str[4:]
+
+    # Fuzzy correction for misspelled month names (e.g. "sepember" → "September")
+    _parts = date_str.split(None, 1)
+    if len(_parts) == 2 and _parts[1].strip().isdigit():
+        _lower_tok = _parts[0].lower()
+        if _lower_tok not in _ALL_MONTHS:
+            _matches = difflib.get_close_matches(_lower_tok, _ALL_MONTHS, n=1, cutoff=0.6)
+            if _matches:
+                date_str = _matches[0].capitalize() + " " + _parts[1].strip()
+
+    # "Jan 2024" / "January 2024"
+    for fmt in ("%b %Y", "%B %Y"):
+        try:
+            return datetime.strptime(date_str, fmt)
+        except ValueError:
+            pass
 
     # YYYY-MM or YYYY/MM
     m = re.match(r'^(\d{4})[-/](\d{1,2})$', date_str)
@@ -196,13 +227,28 @@ def calculate_experience(
                 )
             continue
 
-        start_str = role.get("start_date", "")
-        end_str   = role.get("end_date",   "")
+        start_str = (role.get("start_date") or "").strip()
+        end_str   = (role.get("end_date")   or "").strip()
 
         if not start_str or not end_str:
             logger.warning(
                 f"[ExperienceCalculator] Missing dates for '{role.get('title')}' "
                 f"at '{role.get('company')}' — skipping"
+            )
+            continue
+
+        # Guard: if either date field contains mostly letters and no digits it is
+        # almost certainly an LLM hallucination (e.g. a role title in the date slot).
+        _PRESENT_WORDS = {"present", "current", "now", "ongoing"}
+
+        def _looks_like_date(s: str) -> bool:
+            return s.lower().strip() in _PRESENT_WORDS or bool(re.search(r'\d', s))
+
+        if not _looks_like_date(start_str) or not _looks_like_date(end_str):
+            logger.warning(
+                f"[ExperienceCalculator] Non-date value in date field for "
+                f"'{role.get('title')}' at '{role.get('company')}': "
+                f"start='{start_str}' end='{end_str}' — skipping"
             )
             continue
 

@@ -1,12 +1,14 @@
 import os
 from dotenv import load_dotenv
-from langchain_groq import ChatGroq
+from langchain_ollama import ChatOllama
 
 load_dotenv()
 
-llm = ChatGroq(
-    model="openai/gpt-oss-20b",  # or "mixtral-8x7b-32768", "gemma2-9b-it", etc.
-    api_key=os.getenv("GROQ_API_KEY"),
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+
+llm = ChatOllama(
+    model="qwen2.5:3b-instruct",
+    base_url=OLLAMA_BASE_URL,
     temperature=0.2,
-    max_tokens=2048
+    num_predict=2048
 )

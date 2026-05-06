@@ -4,14 +4,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
 import time
-from typing import Optional
+
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b-instruct")
 
 class UnifiedLLM:
-    def __init__(self, model_name, temperature=0.7, max_tokens=2048, provider="groq"):
+    def __init__(self, model_name=OLLAMA_MODEL, temperature=0.7, max_tokens=2048, provider="ollama"):
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -21,54 +20,23 @@ class UnifiedLLM:
         self.retry_delay = 2  # seconds
 
     def generate(self, prompt: str):
-        """Generate with retries and fallback logic"""
-        
-        # Try primary provider with retries
+        """Generate with retries"""
         for attempt in range(self.max_retries):
             try:
-                if self.provider == "groq":
-                    return self._generate_groq(prompt)
-                elif self.provider == "openrouter":
-                    return self._generate_openrouter(prompt)
+                return self._generate_ollama(prompt)
             except Exception as e:
-                if "429" in str(e):  # Rate limit
-                    wait_time = self.retry_delay * (attempt + 1)
-                    print(f"⏳ Rate limit hit. Waiting {wait_time}s before retry {attempt + 1}/{self.max_retries}")
-                    time.sleep(wait_time)
+                if attempt < self.max_retries - 1:
+                    time.sleep(self.retry_delay)
                     continue
-                elif "400" in str(e):  # Bad request - don't retry
-                    break
-                else:
-                    if attempt < self.max_retries - 1:
-                        time.sleep(self.retry_delay)
-                        continue
-                    break
-        
-        # Fallback chain: Groq -> OpenRouter
-        print(f"⚠️ {self.provider} failed after retries. Trying fallbacks...")
-        
-        if self.provider == "groq":
-            try:
-                print("🔄 Falling back to OpenRouter...")
-                result = self._generate_openrouter(prompt)
-                if result and result["results"][0]["generated_text"]:
-                    return result
-            except Exception as e:
-                print(f"⚠️ OpenRouter fallback failed: {e}")
+                break
 
-        print("❌ All providers failed")
+        print("❌ Ollama generation failed")
         return {"results": [{"generated_text": ""}]}
 
-    def _generate_groq(self, prompt: str):
-        """Generate using Groq API"""
-        if not GROQ_API_KEY:
-            raise ValueError("GROQ_API_KEY not set")
-        
-        headers = {
-            "Authorization": f"Bearer {GROQ_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        url = "https://api.groq.com/openai/v1/chat/completions"  # Fixed URL (removed space)
+    def _generate_ollama(self, prompt: str):
+        """Generate using local Ollama (OpenAI-compatible endpoint)"""
+        url = f"{OLLAMA_BASE_URL}/v1/chat/completions"
+        headers = {"Content-Type": "application/json"}
         data = {
             "model": self.model_name,
             "messages": [{"role": "user", "content": prompt}],
@@ -76,34 +44,7 @@ class UnifiedLLM:
             "max_tokens": self.max_tokens
         }
 
-        r = requests.post(url, headers=headers, json=data, timeout=30)
-        r.raise_for_status()
-        res = r.json()
-        text = res["choices"][0]["message"]["content"]
-        return {"results": [{"generated_text": text}]}
-
-    def _generate_openrouter(self, prompt: str):
-        """Generate using OpenRouter"""
-        if not OPENROUTER_API_KEY:
-            raise ValueError("OPENROUTER_API_KEY not set")
-        
-        headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost",
-            "X-Title": "Incorta-HR Assistant"
-        }
-        url = "https://openrouter.ai/api/v1/chat/completions"  # Fixed URL
-        
-        # Use a different model that's more reliable
-        data = {
-            "model": "mistralai/mistral-7b-instruct",  # More reliable model
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": self.temperature,
-            "max_tokens": self.max_tokens
-        }
-
-        r = requests.post(url, headers=headers, json=data, timeout=30)
+        r = requests.post(url, headers=headers, json=data, timeout=120)
         r.raise_for_status()
         res = r.json()
         text = res["choices"][0]["message"]["content"]
@@ -111,27 +52,27 @@ class UnifiedLLM:
 
 
 # ==========================================================
-# 🧠 Model Instances (Prioritizing Groq for speed and limits)
+# 🧠 Model Instances (Local Ollama)
 # ==========================================================
 
 # Fast classification / routing (low temp for determinism)
-llm_routing = UnifiedLLM("llama-3.1-8b-instant", temperature=0.1, provider="groq")
+llm_routing = UnifiedLLM(OLLAMA_MODEL, temperature=0.1, provider="ollama")
 
 # General reasoning / chat
-llm_generic = UnifiedLLM("openai/gpt-oss-20b", temperature=0.7, provider="groq")
+llm_generic = UnifiedLLM(OLLAMA_MODEL, temperature=0.7, provider="ollama")
 
 # Structured extraction
-llm_extraction = UnifiedLLM("llama-3.1-8b-instant", temperature=0.3, provider="groq")
+llm_extraction = UnifiedLLM(OLLAMA_MODEL, temperature=0.3, provider="ollama")
 
 # Retrieval-Augmented Generation (larger model for context)
 llm_rag = UnifiedLLM(
-    model_name="llama-3.3-70b-versatile",
+    model_name=OLLAMA_MODEL,
     temperature=0.7,
-    provider="groq"
+    provider="ollama"
 )
 
 # SQL / deterministic (low temp for precision)
-llm_sql = UnifiedLLM("llama-3.1-8b-instant", temperature=0.1, provider="groq")
+llm_sql = UnifiedLLM(OLLAMA_MODEL, temperature=0.1, provider="ollama")
 
 
 # ==========================================================

@@ -12,7 +12,6 @@ class ApplicationDetail(Base):
     # Flexible key/value detail entry (e.g. key="technical_skills", value=[...])
     key = Column(String(255), nullable=False, index=True)
     value = Column(JSON, nullable=False)
-    relevance = Column(String(50))
     extracted_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     # Relationships

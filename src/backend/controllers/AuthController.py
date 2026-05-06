@@ -1,50 +1,5 @@
 from .BaseController import BaseController
 
-# Functions to be implemented:
-
-## 1 ##
-# async def login(
-#     login_request: LoginRequest,
-#     db: AsyncSession = Depends(get_db)
-# ) -> Token:
-
-## 2 ##
-# async def google_auth(
-#     request: GoogleLoginRequest,
-#     db: AsyncSession = Depends(get_db)
-# ) -> Token:
-
-## 3 ##
-# async def refresh_token(
-#     request: TokenRefreshRequest,
-#     db: AsyncSession = Depends(get_db)
-# ) -> Token:
-
-## 4 ##
-# async def get_current_user_profile(
-#     current_user: User = Depends(get_current_user)
-# ) -> User:
-
-## 5 ##
-# async def logout_user(
-#     request: LogoutRequest,
-#     current_user: User = Depends(get_current_user),
-#     db: AsyncSession = Depends(get_db)
-# ) -> LogoutResponse:
-
-## 6 ##
-# async def create_user_admin(
-#     request: AdminUserCreate,
-#     current_user: User = Depends(require_hr_manager()),
-#     db: AsyncSession = Depends(get_db)
-# ) -> User:
-
-### 7 ##
-# async def setup_system(
-#     request: AdminUserCreate,
-#     db: AsyncSession = Depends(get_db)
-# ) -> User:
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
 

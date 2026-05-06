@@ -83,9 +83,11 @@ def _valid_email(addr: str) -> bool:
     )
 
 
-# ── LLM extraction prompt ─────────────────────────────────────────────────────
+# ── LLM extraction prompts ────────────────────────────────────────────────────
 
-_SYSTEM_PROMPT = """\
+# Prompt 1: general CV info — no roles/dates so the model isn't juggling nested
+# date logic at the same time as identity fields.
+_SYSTEM_PROMPT_MAIN = """\
 You are an expert CV parser. Extract structured information from the CV text provided.
 Return ONLY a valid JSON object with EXACTLY these keys — no extra keys, no commentary:
 {
@@ -95,70 +97,107 @@ Return ONLY a valid JSON object with EXACTLY these keys — no extra keys, no co
   "linkedin_url": "https://linkedin.com/in/... or null",
   "skills": ["skill1", "skill2"],
   "education": [{"degree": "...", "institution": "..."}],
-  "previous_roles": [
-    {
-      "title": "Job Title",
-      "company": "Company Name",
-      "start_date": "MM/YYYY",
-      "end_date": "MM/YYYY or Present",
-      "type": "full_time"
-    }
-  ],
-  "certifications": ["cert1"],
+  "certifications": ["cert1", "cert2"],
   "summary": "One concise sentence describing the candidate's profile."
 }
 
-Rules for previous_roles:
-- start_date and end_date must be in MM/YYYY format (e.g. "3/2024", "11/2022").
-  If only a year is given (e.g. "2022"), use "1/2022" for start and "12/2022" for end.
-  If the role is current, use "Present" for end_date.
-- type must be one of: full_time, part_time, internship, freelance, volunteer,
-  trainer, instructor.
-  Default to "full_time" if not explicitly stated.
-- Extract EVERY role mentioned — do not skip internships or part-time roles.
-  Python will handle filtering; your job is complete extraction.
-- Order roles most-recent first.
-
 Output constraints:
-- skills and certifications: arrays of short strings.
+- skills and certifications: arrays of short strings — NEVER objects or dicts.
 - education: array of {degree, institution} objects.
-- Do not include a total_years_experience field — Python will calculate it.
+- Use an empty array [] if no items exist for a list field — NEVER null for arrays.
 - Do not return markdown or code fences.
-- Use null for any string field that cannot be determined."""
+- Use null only for scalar string fields that cannot be determined."""
+
+# Prompt 2: roles only — small, focused output so the model concentrates
+# entirely on extracting dates correctly.
+_SYSTEM_PROMPT_ROLES = """\
+You are a CV parser. Extract ONLY the list of previous jobs and roles from the CV text.
+Return ONLY a valid JSON array — no other text, no code fences, no explanation.
+Each element must have EXACTLY these five keys:
+[
+  {
+    "title": "Job title",
+    "company": "Company name",
+    "start_date": "MM/YYYY",
+    "end_date": "MM/YYYY or Present",
+    "type": "full_time"
+  }
+]
+
+STRICT date rules — follow exactly:
+- start_date and end_date MUST be in MM/YYYY format: "3/2024", "11/2022", "07/2019".
+- If only a year is given, use "1/YYYY" for start_date and "12/YYYY" for end_date.
+- If the role is current/ongoing, use exactly the word "Present" for end_date.
+- NEVER put a job title, company name, or any non-date text into a date field.
+- NEVER use null for dates — use "Present" if the role appears to be ongoing.
+
+STRICT type rules:
+- Use one of: full_time, part_time, internship, freelance, volunteer, trainer, instructor.
+- Default to "full_time" if the employment type is not explicitly stated.
+
+Extract ALL roles — do not skip internships or part-time work.
+Return an empty array [] if no roles are found."""
 
 
 async def _extract_single(source: str, cv_text: str) -> ExtractedCV:
     """
-    LLM extraction + Python experience calculation for one CV (Bucket B).
+    Two-prompt parallel extraction for one CV (Bucket B).
+
+    Prompt 1 (_SYSTEM_PROMPT_MAIN)  — general CV fields (identity, skills,
+        education, certifications, summary).  Simpler output = fewer hallucinations.
+    Prompt 2 (_SYSTEM_PROMPT_ROLES) — roles/dates only, with strict date rules.
+        Isolated so the model focuses entirely on MM/YYYY formatting.
+
+    Both calls run concurrently via asyncio.gather.  Python calculates
+    total_years_experience from the roles list; it is never trusted from the LLM.
 
     Returns a minimal ExtractedCV on any failure so the pipeline is never
     blocked by a single bad document.
     """
-    prompt = (
-        f"Extract structured information from this CV:\n\n"
-        f"---\n{cv_text[:CV_TEXT_CHAR_LIMIT]}\n---"
+    truncated = cv_text[:CV_TEXT_CHAR_LIMIT]
+
+    main_full  = (
+        f"SYSTEM:\n{_SYSTEM_PROMPT_MAIN}\n\nUSER:\n"
+        f"Extract structured information from this CV:\n\n---\n{truncated}\n---"
     )
+    roles_full = (
+        f"SYSTEM:\n{_SYSTEM_PROMPT_ROLES}\n\nUSER:\n"
+        f"Extract all previous jobs and roles from this CV:\n\n---\n{truncated}\n---"
+    )
+
     try:
-        full_prompt = f"SYSTEM:\n{_SYSTEM_PROMPT}\n\nUSER:\n{prompt}"
-        result = await asyncio.to_thread(llm_generic.generate, full_prompt)
-        raw = result["results"][0]["generated_text"]
-        clean = _clean_json_response(raw)
+        main_result, roles_result = await asyncio.gather(
+            asyncio.to_thread(llm_generic.generate, main_full),
+            asyncio.to_thread(llm_generic.generate, roles_full),
+        )
 
-        try:
-            data: dict = json.loads(clean)
-        except json.JSONDecodeError:
-            repaired = json_repair.loads(clean)
-            # json_repair can return a string if it can't recover a dict
-            if not isinstance(repaired, dict):
+        raw_main  = main_result["results"][0]["generated_text"]
+        raw_roles = roles_result["results"][0]["generated_text"]
+
+        def _parse(raw: str, expected: type):
+            clean = _clean_json_response(raw)
+            try:
+                parsed = json.loads(clean)
+            except json.JSONDecodeError:
+                repaired = json_repair.loads(clean)
+                if not isinstance(repaired, expected):
+                    raise ValueError(
+                        f"json_repair returned {type(repaired).__name__}, "
+                        f"expected {expected.__name__}"
+                    )
+                return repaired
+            if not isinstance(parsed, expected):
                 raise ValueError(
-                    f"json_repair returned {type(repaired).__name__} instead of dict — "
-                    f"LLM output was likely too malformed to parse"
+                    f"Parsed JSON is {type(parsed).__name__}, "
+                    f"expected {expected.__name__}"
                 )
-            data = repaired
+            return parsed
 
-        roles = data.get("previous_roles", [])
+        data: dict      = _parse(raw_main, dict)
+        roles_list: list = _parse(raw_roles, list)
 
-        # ── Calculate experience with Python, never trust the LLM float ──────
+        roles = [r for r in roles_list if isinstance(r, dict)]
+
         total_years = calculate_experience(roles)
         logger.debug(
             f"[Node 2] Experience calculated for '{source}': "
@@ -172,13 +211,18 @@ async def _extract_single(source: str, cv_text: str) -> ExtractedCV:
             email=data.get("email") or "",
             phone=data.get("phone") or None,
             linkedin_url=data.get("linkedin_url") or None,
-            skills=data.get("skills", []),
+            skills=data.get("skills") or [],
             total_years_experience=total_years,
-            education=data.get("education", []),
+            education=data.get("education") or [],
             previous_roles=roles,
-            certifications=data.get("certifications", []),
-            summary=data.get("summary", ""),
-            raw_llm_output=raw,
+            certifications=[
+                str(c.get("name") or c.get("title") or next(iter(c.values()), ""))
+                if isinstance(c, dict) else str(c)
+                for c in (data.get("certifications") or [])
+                if c
+            ],
+            summary=data.get("summary") or "",
+            raw_llm_output=f"[main]\n{raw_main}\n\n[roles]\n{raw_roles}",
         )
 
     except Exception as exc:
