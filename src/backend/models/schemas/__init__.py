@@ -1,7 +1,7 @@
 from .application_schemas import ApplicationBase, ApplicationCreate, ApplicationUpdate, Application, ApplicationWithCandidate, ApplicationWithDetails
 from .applicationDetail_schemas import ApplicationDetailBase, ApplicationDetailCreate, ApplicationDetail
 from .auth_schemas import LoginRequest, Token
-from .candidate_schemas import CandidateBase, CandidateCreate, CandidateUpdate, Candidate
+from .candidate_schemas import CandidateBase, CandidateCreate, CandidateUpdate, Candidate, CandidateDoc, ExtractedCV, ScoredCandidate
 from .interviewSession_schemas import InterviewSessionBase, InterviewSessionCreate, InterviewSessionUpdate, InterviewSession, TimeSlot, AvailabilityResponse, AvailabilityRequest, ScheduleInterviewRequest, ScheduleInterviewResponse, StartInterviewRequest, EndInterviewRequest, InterviewSummaryResponse
 from .rag_schemas import RAGQuery, RAGCitation, RAGResponse
 from .request_schemas import GoogleLoginRequest, TokenRefreshRequest, LogoutRequest, LogoutResponse, TriggerScreeningRequest, WSMessage
@@ -10,4 +10,5 @@ from .screeningResult_schemas import ScreeningResultBase, ScreeningResultCreate,
 from .statusHistory_schemas import StatusHistoryBase, StatusHistoryCreate, StatusHistory
 from .transcriptChunk_schemas import TranscriptChunkBase, TranscriptChunkCreate, TranscriptChunk
 from .user_schemas import UserBase, UserCreate, AdminUserCreate, UserUpdate, User
+from .graph_schemas import GraphExecuteRequest, GraphExecuteResponse
 

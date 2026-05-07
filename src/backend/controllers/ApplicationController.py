@@ -14,8 +14,34 @@ from models.crud.application_crud import (
     get_applications_by_requisition,
     update_application,
     update_application_status,
+    get_application_by_lever_opportunity_id
+)
+
+
+
+from models.schemas.applicationDetail_schemas import (
+    ApplicationDetail,
+    ApplicationDetailCreate
+)
+from models.crud.application_detail_crud import(
+    get_application_details,
+    create_application_detail,
+    create_application_details_bulk
 )
 from models.tables_enums import ApplicationStatus
+
+
+
+from models.crud.screening_result_crud import(
+    get_screening_result_by_application,
+    create_screening_result,
+    update_screening_result
+)
+from models.schemas.screeningResult_schemas import(
+    ScreeningResult,
+    ScreeningResultUpdate,
+    ScreeningResultCreate
+)
 
 
 class ApplicationController(BaseController):
@@ -93,3 +119,59 @@ class ApplicationController(BaseController):
                 detail=f"Application with ID {application_id} not found"
             )
         return application
+    
+    async def get_application_by_lever_opportunity_id(
+        self,
+        db: AsyncSession,
+        lever_opportunity_id: str
+    ) -> Optional[Application]:
+        return await get_application_by_lever_opportunity_id(db, lever_opportunity_id)
+    
+
+    ########## Application Details Methods ##########
+    async def get_application_details(
+            self,
+            db: AsyncSession,
+            application_id: int
+        ) -> List[ApplicationDetail]:
+        return await get_application_details(db, application_id)
+    
+    async def create_application_detail(
+            self,
+            db: AsyncSession,
+            detail: ApplicationDetailCreate
+    ) -> ApplicationDetail:
+        return await create_application_detail(db, detail)
+    
+    async def create_many_application_details(
+            self,
+            db: AsyncSession,
+            details: List[ApplicationDetailCreate]
+    ) -> List[ApplicationDetail]:
+        return await create_application_details_bulk(db, details)
+    
+
+    ########### Screening Result Methods ###########
+
+    async def get_screening_result_by_applicationId(
+        self,
+        db: AsyncSession,
+        application_id: int
+    ) -> Optional[ScreeningResult]:
+        return await get_screening_result_by_application(db, application_id)
+    
+    async def update_screening_result(
+        self,
+        db: AsyncSession,
+        application_id: int,
+        result_update: ScreeningResultUpdate
+    ) -> Optional[ScreeningResult]:
+        return await update_screening_result(db, application_id, result_update)
+    
+    async def create_screening_result(
+            self,
+            db: AsyncSession,
+            screening_result: ScreeningResultCreate
+    ) -> Optional[ScreeningResult]:
+        return await create_screening_result(db, screening_result)
+    

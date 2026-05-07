@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from .BaseController import BaseController
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException, UploadFile, status, File, Form
@@ -29,7 +29,7 @@ from models.crud import (
     get_candidate_by_lever_id,
     get_or_create_candidate,
     get_candidates_by_requisition_id,
-    increment_requisition_counter
+    increment_requisition_counter,
 )
 
 
@@ -71,6 +71,13 @@ class CandidateController(BaseController):
                 detail=f"Candidate with ID {candidate_id} not found"
             )
         return candidate
+    
+    async def get_candidate_by_email(
+        self,
+        db: AsyncSession,
+        email: str
+    )-> Optional[Candidate]:
+        return await get_candidate_by_email(db, email)
 
     async def update_candidate(
         self,
@@ -99,6 +106,13 @@ class CandidateController(BaseController):
         db: AsyncSession,
     ) -> list[Candidate]:
         return await get_candidates_by_requisition_id(db, requisition_id)
+    
+    async def get_or_create_candidate(
+        self,
+        db: AsyncSession,
+        candidate: CandidateCreate
+    ) -> Candidate:
+        return await get_or_create_candidate(db, candidate)
     
 #########################################################
     async def upload_cvs(
