@@ -5,6 +5,7 @@ from typing import List, Optional
 from models.database import get_db
 from models.schemas.candidate_schemas import Candidate, CandidateCreate, CandidateUpdate
 from models.schemas.application_schemas import Application, ApplicationCreate, ApplicationUpdate
+from models.schemas.applicationDetail_schemas import ApplicationDetail
 from models.tables_enums import ApplicationStatus
 from controllers.CandidateController import CandidateController
 from controllers.ApplicationController import ApplicationController
@@ -110,6 +111,13 @@ async def update_application_status(
         application_id, new_status, db, user_id, reason
     )
 
+@router.get("/applicationDetail/{application_id}", response_model=List[ApplicationDetail])
+async def get_application_details(
+    application_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    return await application_controller.get_application_details(db, application_id)
+    
 
 @router.post(
     "/upload",
