@@ -1,16 +1,17 @@
 import os
 import requests
+import time
 from dotenv import load_dotenv
+from langchain_groq import ChatGroq
 
 load_dotenv()
 
-import time
-
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b-instruct")
+BASE_URL = os.getenv("BASE_URL", "http://localhost:11434")
+MODEL = os.getenv("BASE_MODEL", "qwen2.5:3b-instruct")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 class UnifiedLLM:
-    def __init__(self, model_name=OLLAMA_MODEL, temperature=0.7, max_tokens=2048, provider="ollama"):
+    def __init__(self, model_name=MODEL, temperature=0.7, max_tokens=2048, provider="groq"):
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -23,19 +24,26 @@ class UnifiedLLM:
         """Generate with retries"""
         for attempt in range(self.max_retries):
             try:
-                return self._generate_ollama(prompt)
+                if self.provider == "groq":
+                    return self._generate_groq(prompt)
+                elif self.provider == "ollama":
+                    return self._generate_ollama(prompt)
+                elif self.provider == "langchain-groq":
+                    return self._generate_langchain_groq(prompt)
+                else:
+                    raise ValueError(f"Unsupported provider: {self.provider}")
             except Exception as e:
                 if attempt < self.max_retries - 1:
                     time.sleep(self.retry_delay)
                     continue
                 break
 
-        print("Ollama generation failed")
+        print(f"{self.provider} generation failed")
         return {"results": [{"generated_text": ""}]}
 
     def _generate_ollama(self, prompt: str):
         """Generate using local Ollama (OpenAI-compatible endpoint)"""
-        url = f"{OLLAMA_BASE_URL}/v1/chat/completions"
+        url = f"{BASE_URL}/v1/chat/completions"
         headers = {"Content-Type": "application/json"}
         data = {
             "model": self.model_name,
@@ -50,28 +58,57 @@ class UnifiedLLM:
         text = res["choices"][0]["message"]["content"]
         return {"results": [{"generated_text": text}]}
 
+    def _generate_groq(self, prompt: str):
+        """Generate using Groq API (OpenAI-compatible endpoint)"""
+        url = "https://api.groq.com/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {GROQ_API_KEY}"
+        }
+        data = {
+            "model": self.model_name,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens
+        }
+
+        r = requests.post(url, headers=headers, json=data, timeout=120)
+        r.raise_for_status()
+        res = r.json()
+        text = res["choices"][0]["message"]["content"]
+        return {"results": [{"generated_text": text}]}
+
+    def _generate_langchain_groq(self, prompt: str):
+        """Generate using LangChain's Groq integration"""
+        llm = ChatGroq(
+            model=self.model_name,
+            api_key=GROQ_API_KEY,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens
+        )
+        response = llm.invoke(prompt)
+        return {"results": [{"generated_text": response.content}]}
 
 ### Model Instances ###
 
 # Fast classification / routing (low temp for determinism)
-llm_routing = UnifiedLLM(OLLAMA_MODEL, temperature=0.1, provider="ollama")
+llm_routing = UnifiedLLM(MODEL, temperature=0.1, provider="groq")
 
 # General reasoning / chat
-llm_generic = UnifiedLLM(OLLAMA_MODEL, temperature=0.7, provider="ollama")
+llm_generic = UnifiedLLM(MODEL, temperature=0.7, provider="groq")
 
 # Structured extraction
-llm_extraction = UnifiedLLM(OLLAMA_MODEL, temperature=0.3, provider="ollama")
+llm_extraction = UnifiedLLM(MODEL, temperature=0.3, provider="groq")
 
 # Retrieval-Augmented Generation (larger model for context)
 llm_rag = UnifiedLLM(
-    model_name=OLLAMA_MODEL,
+    model_name=MODEL,
     temperature=0.7,
-    provider="ollama"
+    provider="langchain-groq"
 )
 
 # SQL / deterministic (low temp for precision)
-llm_sql = UnifiedLLM(OLLAMA_MODEL, temperature=0.1, provider="ollama")
-
+llm_sql = UnifiedLLM(MODEL, temperature=0.1, provider="groq")
 
 # ==========================================================
 # 🔍 Test Run
@@ -84,7 +121,7 @@ llm_sql = UnifiedLLM(OLLAMA_MODEL, temperature=0.1, provider="ollama")
 #         ("RAG", llm_rag, "Explain how RAG combines search and generation."),
 #         ("SQL", llm_sql, "Write SQL to find top 3 salaries per department."),
 #     ]
-
+#
 #     for name, model, prompt in prompts:
 #         print(f"\n=== 🧩 Testing {name} Model ===")
 #         result = model.generate(prompt)

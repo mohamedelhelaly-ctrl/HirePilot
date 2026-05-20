@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from .BaseController import BaseController
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException, UploadFile, status, File, Form
@@ -30,6 +30,9 @@ from models.crud import (
     get_or_create_candidate,
     get_candidates_by_requisition_id,
     increment_requisition_counter,
+    get_applications_by_requisition,
+    get_application_details,
+    get_screening_result_by_application,
 )
 
 
@@ -228,3 +231,57 @@ class CandidateController(BaseController):
             "failed": len(results) - ok_count,
             "files": results,
         }
+    
+
+    async def get_candidate_full_profile(self, db: AsyncSession, candidate_id: int, requisition_id: int) -> Dict[str, Any]:
+        """
+        Combine multiple CRUD operations to get full candidate profile.
+        Fetches candidate, their application for this requisition, application details, and screening result.
+        """
+        # Get candidate
+        candidate = await get_candidate_by_id(db, candidate_id)
+        if not candidate:
+            return {"error": "Candidate not found"}
+        
+        # Get application for this requisition
+        applications = await get_applications_by_requisition(
+            db, requisition_id, include_relations=True
+        )
+        application = next((app for app in applications if app.candidate_id == candidate_id), None)
+        if not application:
+            return {"error": "No application found for this candidate in the requisition"}
+        
+        # Get application details
+        details = await get_application_details(db, application.id)
+        details_dict = {detail.key: detail.value for detail in details}
+        
+        # Get screening result
+        screening = await get_screening_result_by_application(db, application.id)
+        screening_dict = None
+        if screening:
+            screening_dict = {
+                "score": screening.score,
+                "justification": screening.justification,
+            }
+        
+        # Build full profile - only include details that are actually saved/used in screening
+        profile = {
+            "candidate": {
+                "id": candidate.id,
+                "lever_id": candidate.lever_id,
+                "email": candidate.email,
+                "full_name": candidate.full_name,
+                "phone": candidate.phone,
+                "linkedin_url": candidate.linkedin_url,
+            },
+            "application": {
+                "id": application.id,
+                "status": application.status.value if application.status else None,
+                "combined_score": application.combined_score,
+                "applied_at": application.applied_at.isoformat() if application.applied_at else None,
+            },
+            "details": details_dict,
+            "screening_result": screening_dict,
+        }
+        
+        return profile

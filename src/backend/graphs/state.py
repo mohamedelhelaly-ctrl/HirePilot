@@ -6,6 +6,7 @@ State is immutable between nodes - each node returns a new/updated state instanc
 """
 
 
+from langchain_core.messages.base import BaseMessage
 from typing import Optional, Dict, Any, List, Literal
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -24,21 +25,26 @@ class OrchestratorState(BaseModel):
     Each node can read from state and return an updated state.
     """
     
-    # ==================== ROUTING INFORMATION ====================
-    # The 'intent' field tells the router which subgraph to invoke
+    # Input
     intent: Optional[Literal[
         "background_job",      # Scheduled task (e.g., 24-hour batch screening)
         "live_interview",      # Start real-time interview transcription
         "rag_query",           # Answer question about candidates
         "batch_screening"      # Score and rank all candidates for a requisition
     ]] = None 
-    
+    requisition_id: Optional[int] = None
+    query: Optional[str] = None
+    user_id: Optional[int] = None # Which HR/Hiring Manager triggered this (for auth/audit)
+    messages: Optional[List[BaseMessage]] = None 
+
+    # Output
+    saved_count: Optional[int] = 0
+    updated_count: Optional[int] = 0
+    response: Optional[str] = None
 
     # ==================== CONTEXT IDENTIFIERS ====================
-    # These IDs tell the subgraphs which entities to operate on
-    requisition_id: Optional[int] = None  
+    # These IDs tell the subgraphs which entities to operate on 
     application_id: Optional[int] = None  
-    user_id: Optional[int] = None         # Which HR/Hiring Manager triggered this (for auth/audit)
     session_id: Optional[str] = None      # WebSocket session ID (required for live_interview)
     
 

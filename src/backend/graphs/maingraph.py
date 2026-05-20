@@ -6,10 +6,9 @@ from .nodes import (
     router_node,
     batch_screening_node,
     # live_interview_node,
-    # rag_query_node,
+    rag_query_node,
 )
 import logging 
-
 logger = logging.getLogger(__name__)
 
 
@@ -59,7 +58,7 @@ def create_main_graph():
     
     # RAG query node - semantic search and LLM-powered Q&A about candidates
     # Invoked when intent="rag_query"
-    # workflow.add_node("rag_query", rag_query_node)
+    workflow.add_node("rag_query", rag_query_node)
     
     # ==================== ROUTING FROM START ====================
     # router_node is a plain function that reads state.intent and returns a
@@ -70,7 +69,7 @@ def create_main_graph():
         {
             "batch_screening":   "batch_screening",
             # "live_interview":    "live_interview",
-            # "rag_query":         "rag_query",
+            "rag_query":         "rag_query",
             "end": END,
         },
     )
@@ -78,7 +77,7 @@ def create_main_graph():
     # STATIC EDGES from all nodes to END
     workflow.add_edge("batch_screening", END)
     # workflow.add_edge("live_interview", END)
-    # workflow.add_edge("rag_query", END)
+    workflow.add_edge("rag_query", END)
 
     
     # ==================== COMPILE THE GRAPH ====================
