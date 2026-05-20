@@ -2,3 +2,4 @@ from .ApplicationController import ApplicationController
 from .AuthController import AuthController
 from .CandidateController import CandidateController
 from .RequisitonController import RequisitionController
+from .InterviewController import InterviewController

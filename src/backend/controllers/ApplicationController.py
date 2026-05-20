@@ -8,35 +8,35 @@ from models.schemas.application_schemas import (
     ApplicationCreate,
     ApplicationUpdate,
 )
-from models.crud.application_crud import (
+
+from models.crud import(
+    #application_crud
     create_application,
     get_application_by_id,
     get_applications_by_requisition,
     update_application,
     update_application_status,
-    get_application_by_lever_opportunity_id
-)
+    get_application_by_lever_opportunity_id,
 
+    #application_detail_crud
+    get_application_details,
+    create_application_detail,
+    create_application_details_bulk,
+    
+    #screening_result_crud
+    get_screening_result_by_application,
+    create_screening_result,
+    update_screening_result
+)
 
 
 from models.schemas.applicationDetail_schemas import (
     ApplicationDetail,
     ApplicationDetailCreate
 )
-from models.crud.application_detail_crud import(
-    get_application_details,
-    create_application_detail,
-    create_application_details_bulk
-)
+
 from models.tables_enums import ApplicationStatus
 
-
-
-from models.crud.screening_result_crud import(
-    get_screening_result_by_application,
-    create_screening_result,
-    update_screening_result
-)
 from models.schemas.screeningResult_schemas import(
     ScreeningResult,
     ScreeningResultUpdate,

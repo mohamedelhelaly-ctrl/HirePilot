@@ -36,18 +36,24 @@ class OrchestratorState(BaseModel):
     query: Optional[str] = None
     user_id: Optional[int] = None # Which HR/Hiring Manager triggered this (for auth/audit)
     messages: Optional[List[BaseMessage]] = None 
+    session_id: Optional[int] = None  # For live interview WebSocket sessions
+    application_id: Optional[int] = None  # For live interview WebSocket sessions
+    interview_type: Optional[str] = None  # For live interview WebSocket sessions (hr_screen, technical, etc.)
+    full_transcript: Optional[str] = None  # For live interview post-processing
+    pre_generated_questions: Optional[List[str]] = Field(default_factory=list)
+    job_description: Optional[str] = ""
+    candidate_name: Optional[str] = ""
+    followup_questions_log: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
+    interview_start_time: Optional[str] = None  # ISO string
+    interview_end_time: Optional[str] = None    # ISO string
 
     # Output
     saved_count: Optional[int] = 0
     updated_count: Optional[int] = 0
     response: Optional[str] = None
-
-    # ==================== CONTEXT IDENTIFIERS ====================
-    # These IDs tell the subgraphs which entities to operate on 
-    application_id: Optional[int] = None  
-    session_id: Optional[str] = None      # WebSocket session ID (required for live_interview)
     
 
+    
     # ==================== TRIGGER FLAGS ====================
     # If True, batch screening runs even if counter threshold isn't met, Set to True when HR clicks "Trigger Screening" button
     manual_trigger: bool = False  

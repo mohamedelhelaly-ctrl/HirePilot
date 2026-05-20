@@ -15,6 +15,8 @@ from models.crud import(
     get_requisitions,
     get_requisition_by_id,
     update_requisition,
+    increment_requisition_counter,
+    set_screening_in_progress
 )
 
 class RequisitionController(BaseController):
@@ -99,3 +101,12 @@ class RequisitionController(BaseController):
         update_data = RequisitionUpdate(is_active=False)
         await update_requisition(db, requisition_id, update_data)
         return None
+    
+    async def increment_requisition_counter(self, db: AsyncSession, requisition_id: int, counter_type: str):
+        return await increment_requisition_counter(
+            db, requisition_id, counter_type
+        )
+    
+    async def set_screening_in_progress(self, db: AsyncSession, requisition_id: int, value: bool, reset_counter: bool = False):
+        return await set_screening_in_progress(db, requisition_id, value, reset_counter)
+    
