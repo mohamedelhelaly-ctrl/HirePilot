@@ -380,7 +380,9 @@ async def cv_extraction_node(state: BatchScreeningState) -> BatchScreeningState:
         lever_id_to_candidate_id: dict[str, int] = {}
         try:
             async with AsyncSessionLocal() as db:
-                apps_on_req = await application_controller.get_applications_by_requisition(db, state.requisition_id)
+                apps_on_req = await application_controller.get_applications_by_requisition(
+                    state.requisition_id, db
+                )
                 for app in apps_on_req:
                     existing_candidate_ids_on_req.add(app.candidate_id)
                 for app in apps_on_req:

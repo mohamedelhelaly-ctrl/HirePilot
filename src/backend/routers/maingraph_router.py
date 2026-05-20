@@ -103,7 +103,9 @@ async def execute_graph(request: GraphExecuteRequest):
     logger.info(
         f"[graph/execute] Executing intent='{request.intent}' "
         f"with requisition_id={request.requisition_id}, "
-        f"user_id={request.user_id}"
+        f"query={request.query!r}, user_id={request.user_id}, "
+        f"application_id={request.application_id}, session_id={request.session_id}, "
+        f"manual_trigger={request.manual_trigger}"
     )
 
     # 2. Build orchestrator state
@@ -117,6 +119,7 @@ async def execute_graph(request: GraphExecuteRequest):
         manual_trigger = request.manual_trigger
         # result=request.payload or {},
     )
+    logger.debug(f"[graph/execute] Built graph_state: {graph_state.dict(exclude_none=True)}")
 
     # 3. Invoke the graph
     try:
@@ -141,6 +144,11 @@ async def execute_graph(request: GraphExecuteRequest):
     # 4. Extract result and error
     error_message = final_state.error if final_state.error else None
     result_data = final_state.result if final_state.result else None
+    logger.info(
+        f"[graph/execute] Graph execution completed. error={error_message!r}, "
+        f"result_keys={list(result_data.keys()) if isinstance(result_data, dict) else None}"
+    )
+    logger.debug(f"[graph/execute] final_state: {final_state.dict(exclude_none=True)}")
 
     if error_message:
         logger.warning(

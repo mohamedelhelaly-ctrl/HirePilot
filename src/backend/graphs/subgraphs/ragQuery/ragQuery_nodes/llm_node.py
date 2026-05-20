@@ -87,10 +87,19 @@ def make_llm_node(
         tools = build_tools_fn(state["user_id"], state["requisition_id"])
         system_prompt = build_prompt_fn(state["user_id"], state["requisition_id"])
 
-        tool_registry = {t.name: t for t in tools}
+        tool_registry = {
+            getattr(t, "name", None) or getattr(t, "__name__", None): t
+            for t in tools
+            if getattr(t, "name", None) or getattr(t, "__name__", None)
+        }
 
-        print("LLM NODE")
-        print(f"\n\n{state.get("query")}\n\n")
+        tool_names = sorted(tool_registry.keys())
+
+        logger.info(
+            f"[llm_node] starting RAG loop requisition_id={state['requisition_id']} "
+            f"user_id={state['user_id']} available_tools={tool_names}"
+        )
+        logger.debug(f"[llm_node] initial query={state.get('query')!r}")
 
         # Extract the user's question from the last HumanMessage
         question = next(
@@ -102,50 +111,71 @@ def make_llm_node(
         running = f"{system_prompt}\n\nQuestion: {question}\nThought:"
 
         final_answer: Optional[str] = None
+        tools_used = False
 
         for round_num in range(MAX_TOOL_ROUNDS):
             raw = await asyncio.to_thread(llm_rag.generate, running)
             text = raw["results"][0]["generated_text"].strip()
 
-            logger.debug(f"[RAG round {round_num + 1}] model output:\n{text[:300]}")
+            logger.info(f"[llm_node] round {round_num + 1} model output received")
+            logger.debug(f"[llm_node] model output:\n{text[:800]}")
 
             # Check for a final answer anywhere in what we have so far
             final_answer = _extract_final_answer(text)
-            if final_answer:
+            if final_answer and tools_used:
+                logger.info(
+                    f"[llm_node] final answer detected after tool use, breaking loop"
+                )
                 break
 
             # Try to parse a tool call
             tool_name, args = _parse_action(text)
+            logger.info(f"[llm_node] parsed tool_name={tool_name!r} args={args}")
             if tool_name is None:
-                # Model gave free text without an Action — treat as final answer
-                final_answer = text
-                break
+                logger.warning(
+                    "[RAG] Model output contained no tool action. "
+                    "Retrying with a stronger instruction to use one of the available tools."
+                )
+                running = (
+                    running
+                    + "\n"
+                    + text
+                    + "\nObservation: The model did not choose a tool. "
+                      "Please select one of the available tools and provide valid Action Input.\nThought:"
+                )
+                continue
 
             # Execute the tool
             tool = tool_registry.get(tool_name)
             if tool is None:
                 observation = (
                     f"Error: unknown tool '{tool_name}'. "
-                    f"Available tools: {list(tool_registry.keys())}"
+                    f"Available tools: {tool_names}"
                 )
-                logger.warning(f"[RAG] Unknown tool requested: '{tool_name}'")
-            else:
-                try:
-                    observation = await tool.ainvoke(args)
-                    logger.debug(f"[RAG] Tool '{tool_name}' returned: {str(observation)[:200]}")
-                except Exception as exc:
-                    observation = f"Tool error: {exc}"
-                    logger.warning(f"[RAG] Tool '{tool_name}' raised: {exc}")
+                logger.warning(f"[llm_node] Unknown tool requested: '{tool_name}'")
+                running = running + "\n" + text + f"\nObservation: {observation}\nThought:"
+                continue
+
+            try:
+                observation = await tool.ainvoke(args)
+                tools_used = True
+                logger.info(f"[llm_node] tool '{tool_name}' invoked successfully")
+                logger.debug(f"[llm_node] tool observation: {str(observation)[:800]}")
+            except Exception as exc:
+                observation = f"Tool error: {exc}"
+                logger.exception(f"[llm_node] tool '{tool_name}' raised an exception")
 
             # Append result and prompt for next Thought
             running = running + "\n" + text + f"\nObservation: {observation}\nThought:"
 
         # If we exhausted rounds without a Final Answer, force one last generation
         if not final_answer:
-            nudge = running + " I now have enough information to answer.\nFinal Answer:"
+            nudge = (
+                running
+                + "\nI now have enough information to answer using only the observed tool outputs.\nFinal Answer:"
+            )
             raw = await asyncio.to_thread(llm_rag.generate, nudge)
             final_answer = raw["results"][0]["generated_text"].strip()
-            # Strip any residual ReAct artefacts the model may prepend
             final_answer = _extract_final_answer("Final Answer: " + final_answer) or final_answer
 
         response_msg = AIMessage(content=final_answer)

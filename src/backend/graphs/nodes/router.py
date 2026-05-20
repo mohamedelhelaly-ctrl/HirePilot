@@ -5,8 +5,11 @@ This is the FIRST node executed in every workflow.
 It reads the 'intent' from state and returns the name of the next node.
 LangGraph uses this return value to route execution to the correct subgraph.
 """
+import logging
 from typing import Literal  # For type-safe string literals
 from ..state import OrchestratorState  # Import state schema from parent directory
+
+logger = logging.getLogger(__name__)
 
 
 def router_node(state: OrchestratorState) -> Literal[
@@ -55,9 +58,14 @@ def router_node(state: OrchestratorState) -> Literal[
         "background_job": "batch_screening",  # APScheduler triggers → batch screening subgraph
     }
     
+    next_node = routing_map.get(intent, "end")
+    logger.info(
+        f"[router_node] intent={intent!r} requisition_id={state.requisition_id} "
+        f"user_id={state.user_id} -> next_node={next_node}"
+    )
+    logger.debug(f"[router_node] state={state.dict(exclude_none=True)}")
     # Look up the intent in our routing map
     # If intent is not in map, default to "end" (graceful failure)
-    next_node = routing_map.get(intent, "end")
     
     # Return the node name - LangGraph will invoke that node next
     return next_node

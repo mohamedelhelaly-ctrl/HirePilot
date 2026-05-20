@@ -6,6 +6,7 @@ to close over the scoping context (user_id, requisition_id).
 """
 
 import json
+import logging
 from langchain_core.tools import tool
 
 
@@ -14,6 +15,8 @@ from controllers import CandidateController,RequisitionController,ApplicationCon
 candidate_controller = CandidateController()
 req_controller = RequisitionController()
 application_controller = ApplicationController()
+
+logger = logging.getLogger(__name__)
 
 
 def build_rag_tools(user_id: int, requisition_id: int):
@@ -28,15 +31,18 @@ def build_rag_tools(user_id: int, requisition_id: int):
         Get all candidates for the current requisition.
         Returns a list of candidates with their basic application information,
         sorted by combined score descending.
-        Returns:
-            JSON string with list of candidates and their application data
+        Output is JSON and includes name, email, status, score, and applied_at.
         """
+        logger.info(
+            f"[rag_tools] get_requisition_candidates called requisition_id={requisition_id} "
+            f"user_id={user_id}"
+        )
         try:
             async with AsyncSessionLocal() as db:
                 applications = await application_controller.get_applications_by_requisition(
-                    db, requisition_id, include_relations=True
+                    requisition_id, db, include_relations=True
                 )
-                
+
                 results = []
                 for app in applications:
                     candidate = app.candidate
@@ -48,49 +54,59 @@ def build_rag_tools(user_id: int, requisition_id: int):
                         "combined_score": app.combined_score,
                         "applied_at": app.applied_at.isoformat() if app.applied_at else None,
                     })
-                
-                return json.dumps(results)
-                
+
+                logger.debug(
+                    f"[rag_tools] get_requisition_candidates returning {len(results)} applications"
+                )
+                return json.dumps(results, ensure_ascii=False)
+
         except Exception as e:
+            logger.exception("[rag_tools] get_requisition_candidates failed")
             return json.dumps({"error": f"Failed to get requisition candidates: {str(e)}"})
+    get_requisition_candidates.name = "get_requisition_candidates"
 
     @tool
     async def get_candidate_details(candidate_id: str) -> str:
         """
         Get full profile details for a specific candidate.
-        
+
         Includes candidate info, application data, extracted details, and screening results.
-        
-        Args:
-            candidate_id: The ID of the candidate to retrieve
-        
-        Returns:
-            JSON string with complete candidate profile
+        Output is JSON and includes candidate profile, application metadata and screening results.
         """
+        logger.info(
+            f"[rag_tools] get_candidate_details called candidate_id={candidate_id} "
+            f"requisition_id={requisition_id} user_id={user_id}"
+        )
         try:
             async with AsyncSessionLocal() as db:
                 profile = await candidate_controller.get_candidate_full_profile(db, int(candidate_id), requisition_id)
-                return json.dumps(profile)
-                
+                logger.debug("[rag_tools] get_candidate_details returning profile data")
+                return json.dumps(profile, ensure_ascii=False)
+
         except Exception as e:
+            logger.exception("[rag_tools] get_candidate_details failed")
             return json.dumps({"error": f"Failed to get candidate details: {str(e)}"})
+    get_candidate_details.name = "get_candidate_details"
 
     @tool
     async def get_requisition_details() -> str:
         """
         Get details of the current requisition.
-        
-        Returns job description, requirements, and other requisition information.
-        
-        Returns:
-            JSON string with requisition details
+
+        Returns job title, description, requirements, and other requisition metadata.
+        Output is JSON.
         """
+        logger.info(
+            f"[rag_tools] get_requisition_details called requisition_id={requisition_id} "
+            f"user_id={user_id}"
+        )
         try:
             async with AsyncSessionLocal() as db:
                 requisition = await req_controller.get_requisition(requisition_id, db)
                 if not requisition:
+                    logger.warning("[rag_tools] get_requisition_details requisition not found")
                     return json.dumps({"error": "Requisition not found"})
-                
+
                 details = {
                     "id": requisition.id,
                     "title": requisition.title,
@@ -101,11 +117,14 @@ def build_rag_tools(user_id: int, requisition_id: int):
                     "is_active": requisition.is_active,
                     "created_at": requisition.created_at.isoformat() if requisition.created_at else None,
                 }
-                
-                return json.dumps(details)
-                
+
+                logger.debug("[rag_tools] get_requisition_details returning requisition details")
+                return json.dumps(details, ensure_ascii=False)
+
         except Exception as e:
+            logger.exception("[rag_tools] get_requisition_details failed")
             return json.dumps({"error": f"Failed to get requisition details: {str(e)}"})
+    get_requisition_details.name = "get_requisition_details"
 
     return [
         get_requisition_candidates,

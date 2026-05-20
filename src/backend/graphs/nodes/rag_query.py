@@ -19,8 +19,11 @@ async def rag_query_node(state: OrchestratorState) -> OrchestratorState:
     Writes the LLM answer back to state.result["response"].
     """
     query_text = state.query if state else None
-    print(f"\n\n query: {query_text} \n\n")
-    logger.info(f"RAG query node triggered: query='{query_text}', requisition_id={state.requisition_id}")
+    logger.info(
+        f"[rag_query_node] triggered query={query_text!r} requisition_id={state.requisition_id} "
+        f"user_id={state.user_id} application_id={state.application_id} session_id={state.session_id}"
+    )
+    logger.debug(f"[rag_query_node] incoming state={state.dict(exclude_none=True)}")
 
     if not query_text:
         logger.error("RAG query triggered without query text")
@@ -34,8 +37,14 @@ async def rag_query_node(state: OrchestratorState) -> OrchestratorState:
             "messages": [HumanMessage(content=query_text)],
             "response": "",
         }
+        logger.debug(f"[rag_query_node] rag_input={rag_input}")
 
         rag_result = await rag_query_subgraph.ainvoke(rag_input)
+        logger.info(
+            f"[rag_query_node] rag_query_subgraph completed response_length={len(rag_result.get('response',''))} "
+            f"error={rag_result.get('error')!r}"
+        )
+        logger.debug(f"[rag_query_node] rag_result={rag_result}")
 
         return state.model_copy(update={
             "result": {
