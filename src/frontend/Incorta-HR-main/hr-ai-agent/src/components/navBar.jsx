@@ -20,7 +20,6 @@ export default function Navbar() {
   return (
     <nav className="w-full flex items-center justify-between py-4 px-10 bg-white shadow-sm">
       <div className="flex items-center gap-2">
-        <div className="w-6 h-6 bg-blue-600 rounded-md"></div>
         <h1 className="text-2xl font-semibold">Incorta</h1>
       </div>
 

@@ -37,6 +37,7 @@ export default function HrDashboard() {
         setLoading(true);
         setError(null);
         const data = await fetchRequisitions({ is_active: true });
+        console.log("Fetched requisitions:", data);
         setRequisitions(data);
 
         // Extract unique departments
@@ -261,18 +262,6 @@ export default function HrDashboard() {
               <div>
                 <p className="text-gray-600 text-sm">Total Open Positions</p>
                 <p className="text-2xl font-bold text-blue-700">{filteredRequisitions.length}</p>
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">Total Candidates</p>
-                <p className="text-2xl font-bold text-blue-700">
-                  {filteredRequisitions.reduce((sum, req) => sum + (req.candidates || 0), 0)}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">New Applications</p>
-                <p className="text-2xl font-bold text-orange-600">
-                  {filteredRequisitions.reduce((sum, req) => sum + (req.new_applicants || 0), 0)}
-                </p>
               </div>
             </div>
 

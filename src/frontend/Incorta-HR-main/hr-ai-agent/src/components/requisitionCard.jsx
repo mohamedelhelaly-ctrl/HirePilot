@@ -1,4 +1,4 @@
-import { FiMapPin, FiUsers, FiBell, FiMoreVertical, FiEdit, FiTrash2 } from "react-icons/fi";
+import { FiMapPin, FiUsers, FiBell, FiMoreVertical, FiEdit, FiTrash2, FiCalendar } from "react-icons/fi";
 import Badge from "./badge";
 import { useState } from "react";
 
@@ -10,9 +10,19 @@ export default function RequisitionCard({ requisition, onEdit, onDelete }) {
     description,
     department,
     location,
-    candidates = 0,
-    new_applicants = 0,
+    created_at,
   } = requisition;
+
+  // Format the date
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", { 
+      year: "numeric", 
+      month: "short", 
+      day: "numeric" 
+    });
+  };
 
   return (
     <div
@@ -78,24 +88,13 @@ export default function RequisitionCard({ requisition, onEdit, onDelete }) {
         </div>
       )}
 
-      {/* Stats Section */}
-      <div className="px-6 py-4 bg-gray-50 flex gap-4 border-t border-gray-100">
-        <div className="flex items-center gap-2">
-          <FiUsers size={16} className="text-blue-600" />
-          <div>
-            <div className="text-sm text-gray-600">Candidates</div>
-            <div className="font-semibold text-gray-800">{candidates}</div>
-          </div>
+      {/* Date Section */}
+      {created_at && (
+        <div className="px-6 py-3 flex items-center gap-2 text-gray-600 border-t border-gray-100">
+          <FiCalendar size={16} className="text-gray-400 flex-shrink-0" />
+          <span className="text-sm">Posted on {formatDate(created_at)}</span>
         </div>
-
-        <div className="flex items-center gap-2">
-          <FiBell size={16} className="text-orange-600" />
-          <div>
-            <div className="text-sm text-gray-600">New Apps</div>
-            <div className="font-semibold text-gray-800">{new_applicants}</div>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Action Section */}
       <div className="px-6 py-4 border-t border-gray-100">
