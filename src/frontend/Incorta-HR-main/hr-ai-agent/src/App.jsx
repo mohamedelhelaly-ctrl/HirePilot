@@ -5,6 +5,7 @@ import './App.css';
 import HrDashboard from "./pages/hrHomePage";
 import JobPipeline from "./pages/jobPipeline";
 import HiringManagerDashboard from "./pages/hiringManagerDashboard";
+import RequisitionDetail from "./pages/requisitionDetail";
 
 export default function App() {
   return (
@@ -30,6 +31,16 @@ export default function App() {
           element={
             <ProtectedRoute>
               <JobPipeline />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Requisition Detail Page */}
+        <Route
+          path="/requisition/:id"
+          element={
+            <ProtectedRoute>
+              <RequisitionDetail />
             </ProtectedRoute>
           }
         />
