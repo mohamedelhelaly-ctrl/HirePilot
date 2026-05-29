@@ -103,14 +103,14 @@ export default function CandidateDetailsModal({ candidate, application, isOpen, 
                     {candidate.email && (
                       <a
                         href={`mailto:${candidate.email}`}
-                        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition"
+                        className="flex items-center gap-1.5 text-l text-gray-500 hover:text-blue-600 transition"
                       >
                         <FiMail size={14} />
                         {candidate.email}
                       </a>
                     )}
                     {candidate.phone && (
-                      <span className="flex items-center gap-1.5 text-sm text-gray-500">
+                      <span className="flex items-center gap-1.5 text-l text-gray-500">
                         <FiPhone size={14} />
                         {candidate.phone}
                       </span>
@@ -120,7 +120,7 @@ export default function CandidateDetailsModal({ candidate, application, isOpen, 
                         href={candidate.linkedin_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 transition"
+                        className="flex items-center gap-1.5 text-l text-blue-600 hover:text-blue-700 transition"
                       >
                         <FiLinkedin size={14} />
                         LinkedIn
@@ -144,7 +144,7 @@ export default function CandidateDetailsModal({ candidate, application, isOpen, 
           {/* Tabs */}
           <div className="px-6 border-b border-gray-200">
             <div className="flex gap-8">
-              {["overview", "cv", "timeline"].map((tab) => (
+              {["overview", "cv"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -156,7 +156,6 @@ export default function CandidateDetailsModal({ candidate, application, isOpen, 
                 >
                   {tab === "overview" && "Overview"}
                   {tab === "cv" && "CV Details"}
-                  {tab === "timeline" && "Timeline"}
                 </button>
               ))}
             </div>
@@ -192,40 +191,6 @@ export default function CandidateDetailsModal({ candidate, application, isOpen, 
                             })
                           : "—"}
                       </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contact Card */}
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 pb-4">Contact Information</h3>
-                  <div className="p-4 rounded-xl border border-gray-200 bg-white space-y-3">
-                    <div className="flex items-center gap-3">
-                      <FiMail className="text-gray-400" size={16} />
-                      <span className="text-sm text-gray-700">
-                        {candidate.email || "No email provided"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <FiPhone className="text-gray-400" size={16} />
-                      <span className="text-sm text-gray-700">
-                        {candidate.phone || "No phone provided"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <FiLinkedin className="text-gray-400" size={16} />
-                      {candidate.linkedin_url ? (
-                        <a
-                          href={candidate.linkedin_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline"
-                        >
-                          {candidate.linkedin_url}
-                        </a>
-                      ) : (
-                        <span className="text-sm text-gray-400">No LinkedIn profile</span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -296,82 +261,6 @@ export default function CandidateDetailsModal({ candidate, application, isOpen, 
               </div>
             )}
 
-            {activeTab === "timeline" && (
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 pb-4">Timeline</h3>
-                <div className="relative pl-6 space-y-8">
-                  {/* Vertical Line */}
-                  <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gray-200"></div>
-
-                  {/* Applied */}
-                  <div className="flex gap-4">
-                    <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white flex-shrink-0">
-                      <MdCheck size={18} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm text-gray-900">Application Received</p>
-                      <p className="text-xs text-gray-600">
-                        {application?.applied_at
-                          ? new Date(application.applied_at).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })
-                          : "—"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Screening */}
-                  {["screening_passed", "screening_rejected", "interview_scheduled", "interview_completed", "offer_extended", "hired", "rejected"].includes(application?.status) && (
-                    <div className="flex gap-4">
-                      <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white flex-shrink-0">
-                        <MdCheck size={18} />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm text-gray-900">AI Screening Complete</p>
-                        <p className="text-xs text-gray-600">
-                          Score: {candidate.score}/100
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Interview */}
-                  {["interview_scheduled", "interview_completed", "offer_extended", "hired"].includes(application?.status) && (
-                    <div className="flex gap-4">
-                      <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 ${
-                        application?.status === "interview_scheduled"
-                          ? "bg-blue-200 text-blue-500"
-                          : "bg-blue-500 text-white"
-                      }`}>
-                        {application?.status === "interview_scheduled" ? (
-                          <MdSchedule size={18} />
-                        ) : (
-                          <MdCheck size={18} />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm text-gray-900">
-                          {application?.status === "interview_scheduled"
-                            ? "Interview Scheduled"
-                            : "Interview Completed"}
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          {application?.interview_scheduled_at
-                            ? new Date(application.interview_scheduled_at).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })
-                            : "—"}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
