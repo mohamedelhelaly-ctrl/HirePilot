@@ -59,7 +59,7 @@ export const fetchInterviewSessions = async (applicationId) => {
  */
 export const createInterviewSession = async (applicationId, requisitionId, interviewType = "hr_screen") => {
   try {
-    const response = await fetch(`${API_BASE_URL}/interview/sessions`, {
+    const response = await fetch(`${API_BASE_URL}/sessions`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({
