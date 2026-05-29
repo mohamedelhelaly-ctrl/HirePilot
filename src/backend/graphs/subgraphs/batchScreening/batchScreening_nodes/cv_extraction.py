@@ -174,12 +174,20 @@ async def _extract_single(source: str, cv_text: str) -> ExtractedCV:
 
         raw_main  = main_result["results"][0]["generated_text"]
         raw_roles = roles_result["results"][0]["generated_text"]
+        logger.debug("[Node 2] raw_main for '%s' (truncated): %s", source, raw_main[:1000])
+        logger.debug("[Node 2] raw_roles for '%s' (truncated): %s", source, raw_roles[:1000])
 
         def _parse(raw: str, expected: type):
             clean = _clean_json_response(raw)
             try:
                 parsed = json.loads(clean)
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as exc:
+                logger.debug(
+                    "[Node 2] JSON decode error for '%s': %s\nraw preview=%s",
+                    source,
+                    exc,
+                    clean[:1000],
+                )
                 repaired = json_repair.loads(clean)
                 if not isinstance(repaired, expected):
                     raise ValueError(
@@ -188,6 +196,12 @@ async def _extract_single(source: str, cv_text: str) -> ExtractedCV:
                     )
                 return repaired
             if not isinstance(parsed, expected):
+                logger.debug(
+                    "[Node 2] Parsed JSON wrong type for '%s': %s\nraw preview=%s",
+                    source,
+                    type(parsed).__name__,
+                    clean[:1000],
+                )
                 raise ValueError(
                     f"Parsed JSON is {type(parsed).__name__}, "
                     f"expected {expected.__name__}"

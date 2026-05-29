@@ -1,3 +1,4 @@
+import logging
 import os
 import requests
 import time
@@ -6,6 +7,7 @@ from langchain_groq import ChatGroq
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
 BASE_URL = os.getenv("BASE_URL", "http://localhost:11434")
 MODEL = os.getenv("BASE_MODEL", "qwen2.5:3b-instruct")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -24,6 +26,14 @@ class UnifiedLLM:
         """Generate with retries"""
         for attempt in range(self.max_retries):
             try:
+                logger.debug(
+                    "LLM generate attempt %d/%d provider=%s model=%s prompt_len=%d",
+                    attempt + 1,
+                    self.max_retries,
+                    self.provider,
+                    self.model_name,
+                    len(prompt),
+                )
                 if self.provider == "groq":
                     return self._generate_groq(prompt)
                 elif self.provider == "ollama":
@@ -33,12 +43,24 @@ class UnifiedLLM:
                 else:
                     raise ValueError(f"Unsupported provider: {self.provider}")
             except Exception as e:
+                logger.warning(
+                    "LLM generate failed on attempt %d/%d: %s",
+                    attempt + 1,
+                    self.max_retries,
+                    e,
+                    exc_info=True,
+                )
                 if attempt < self.max_retries - 1:
                     time.sleep(self.retry_delay)
                     continue
+                logger.error(
+                    "LLM generate final failure after %d attempts: %s",
+                    self.max_retries,
+                    e,
+                )
                 break
 
-        print(f"{self.provider} generation failed")
+        logger.error("%s generation failed, returning empty result", self.provider)
         return {"results": [{"generated_text": ""}]}
 
     def _generate_ollama(self, prompt: str):
@@ -60,7 +82,7 @@ class UnifiedLLM:
 
     def _generate_groq(self, prompt: str):
         """Generate using Groq API (OpenAI-compatible endpoint)"""
-        url = "https://api.groq.com/v1/chat/completions"
+        url = f"{BASE_URL}/chat/completions"
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {GROQ_API_KEY}"
@@ -73,9 +95,17 @@ class UnifiedLLM:
         }
 
         r = requests.post(url, headers=headers, json=data, timeout=120)
+        if r.status_code != 200:
+            logger.error(
+                "GROQ API request failed status=%s response=%s",
+                r.status_code,
+                r.text[:1000],
+            )
         r.raise_for_status()
         res = r.json()
         text = res["choices"][0]["message"]["content"]
+        logger.debug("GROQ response length=%d", len(text))
+        logger.debug("GROQ response preview=%s", text[:1000])
         return {"results": [{"generated_text": text}]}
 
     def _generate_langchain_groq(self, prompt: str):

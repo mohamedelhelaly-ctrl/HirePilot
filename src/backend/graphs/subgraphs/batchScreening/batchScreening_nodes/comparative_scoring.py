@@ -168,6 +168,7 @@ async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreening
         full_prompt = f"SYSTEM:\n{_SYSTEM_PROMPT}\n\nUSER:\n{prompt}"
         result = await asyncio.to_thread(llm_generic.generate, full_prompt)
         raw = result["results"][0]["generated_text"]
+        logger.debug("[Node 3] raw LLM output (truncated): %s", raw[:1000])
         scores_data: list[dict] = _parse_json_robust(raw)
 
     except (json.JSONDecodeError, ValueError) as exc:
@@ -180,6 +181,7 @@ async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreening
         return state
 
     if not scores_data:
+        logger.debug("[Node 3] parsed scores_data is empty or invalid: %r", scores_data)
         state.error = "[Node 3] LLM returned empty response — no candidates scored"
         logger.error(state.error)
         return state
