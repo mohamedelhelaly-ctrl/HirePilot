@@ -1,9 +1,11 @@
 import DashboardLayout from "../layouts/hrHomePageLayout";
 import RequisitionCard from "../components/requisitionCard";
+import RequisitionModal from "../components/requisitionModal";
+import DeleteConfirmModal from "../components/deleteConfirmModal";
 import Button from "../components/button";
 import { FiPlus, FiSearch, FiAlertCircle } from "react-icons/fi";
 import { useState, useEffect } from "react";
-import { fetchRequisitions } from "../services/requisitionService";
+import { fetchRequisitions, createRequisition, updateRequisition, deleteRequisition } from "../services/requisitionService";
 
 export default function HrDashboard() {
   const [requisitions, setRequisitions] = useState([]);
@@ -12,6 +14,14 @@ export default function HrDashboard() {
   const [selectedDept, setSelectedDept] = useState("All");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Modal states
+  const [isRequisitionModalOpen, setIsRequisitionModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("create"); // "create" or "edit"
+  const [selectedRequisition, setSelectedRequisition] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [requisitionToDelete, setRequisitionToDelete] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get unique departments from requisitions
   const [departments, setDepartments] = useState(["All"]);
@@ -62,19 +72,66 @@ export default function HrDashboard() {
     setFilteredRequisitions(filtered);
   }, [requisitions, selectedDept, searchTerm]);
 
-  const handleEdit = (requisition) => {
-    console.log("Edit requisition:", requisition);
-    // TODO: Implement edit functionality
-  };
-
-  const handleDelete = (requisitionId) => {
-    console.log("Delete requisition:", requisitionId);
-    // TODO: Implement delete functionality
-  };
-
+  // Handle post new job
   const handlePostJob = () => {
-    console.log("Post new job");
-    // TODO: Implement post job functionality
+    setModalMode("create");
+    setSelectedRequisition(null);
+    setIsRequisitionModalOpen(true);
+  };
+
+  // Handle edit requisition
+  const handleEdit = (requisition) => {
+    setModalMode("edit");
+    setSelectedRequisition(requisition);
+    setIsRequisitionModalOpen(true);
+  };
+
+  // Handle delete requisition
+  const handleDelete = (requisitionId) => {
+    const req = requisitions.find(r => r.id === requisitionId);
+    setRequisitionToDelete(req);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Submit requisition (create or update)
+  const handleRequisitionSubmit = async (formData) => {
+    try {
+      setIsSubmitting(true);
+      
+      if (modalMode === "create") {
+        const newRequisition = await createRequisition(formData);
+        setRequisitions([...requisitions, newRequisition]);
+      } else {
+        const updatedRequisition = await updateRequisition(selectedRequisition.id, formData);
+        setRequisitions(requisitions.map(r => 
+          r.id === selectedRequisition.id ? updatedRequisition : r
+        ));
+      }
+      
+      setIsRequisitionModalOpen(false);
+      setSelectedRequisition(null);
+    } catch (err) {
+      console.error("Error submitting requisition:", err);
+      alert(`Error: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Confirm delete
+  const handleConfirmDelete = async () => {
+    try {
+      setIsSubmitting(true);
+      await deleteRequisition(requisitionToDelete.id);
+      setRequisitions(requisitions.filter(r => r.id !== requisitionToDelete.id));
+      setIsDeleteModalOpen(false);
+      setRequisitionToDelete(null);
+    } catch (err) {
+      console.error("Error deleting requisition:", err);
+      alert(`Error: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -120,26 +177,18 @@ export default function HrDashboard() {
               />
             </div>
 
-            {/* Department Filter */}
-            <div className="flex gap-2 flex-wrap">
-              {departments.map((dept, i) => {
-                const active = selectedDept === dept;
-                return (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedDept(dept)}
-                    aria-pressed={active}
-                    className={`focus:outline-none transition px-4 py-2.5 rounded-lg text-sm font-medium ${
-                      active
-                        ? "bg-blue-700 text-white shadow-md"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {dept}
-                  </button>
-                );
-              })}
-            </div>
+            {/* Department Filter Dropdown */}
+            <select
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition bg-white text-gray-700 font-medium cursor-pointer"
+            >
+              {departments.map((dept, i) => (
+                <option key={i} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -210,6 +259,31 @@ export default function HrDashboard() {
             )}
           </div>
         )}
+
+        {/* Requisition Modal */}
+        <RequisitionModal
+          isOpen={isRequisitionModalOpen}
+          mode={modalMode}
+          requisition={selectedRequisition}
+          onClose={() => {
+            setIsRequisitionModalOpen(false);
+            setSelectedRequisition(null);
+          }}
+          onSubmit={handleRequisitionSubmit}
+          loading={isSubmitting}
+        />
+
+        {/* Delete Confirm Modal */}
+        <DeleteConfirmModal
+          isOpen={isDeleteModalOpen}
+          requisitionTitle={requisitionToDelete?.title}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setRequisitionToDelete(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          loading={isSubmitting}
+        />
       </div>
     </DashboardLayout>
   );
