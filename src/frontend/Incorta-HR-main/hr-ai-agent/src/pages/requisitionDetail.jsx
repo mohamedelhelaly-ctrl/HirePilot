@@ -387,7 +387,7 @@ export default function RequisitionDetail() {
         </div>
 
         {/* ── Candidates Section ────────────────────────────────────────── */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${openDropdownId !== null ? 'overflow-visible' : 'overflow-hidden'}`}>
           {/* Section Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <div className="flex items-center gap-3">
@@ -423,7 +423,7 @@ export default function RequisitionDetail() {
               <p className="text-sm">Upload CVs to get started</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className={openDropdownId !== null ? 'overflow-visible' : 'overflow-x-auto'}>
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wider">
