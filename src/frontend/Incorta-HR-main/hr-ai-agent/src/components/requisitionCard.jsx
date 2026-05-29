@@ -1,9 +1,11 @@
 import { FiMapPin, FiUsers, FiBell, FiMoreVertical, FiEdit, FiTrash2, FiCalendar } from "react-icons/fi";
 import Badge from "./badge";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function RequisitionCard({ requisition, onEdit, onDelete }) {
   const [isHovering, setIsHovering] = useState(false);
+  const navigate = useNavigate();
   const {
     id,
     title,
@@ -98,7 +100,10 @@ export default function RequisitionCard({ requisition, onEdit, onDelete }) {
 
       {/* Action Section */}
       <div className="px-6 py-4 border-t border-gray-100">
-        <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm">
+        <button
+          onClick={() => navigate(`/requisition/${id}`)}
+          className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm"
+        >
           View Details
         </button>
       </div>
