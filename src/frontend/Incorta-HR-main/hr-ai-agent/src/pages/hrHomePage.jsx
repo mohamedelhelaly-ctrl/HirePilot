@@ -101,11 +101,21 @@ export default function HrDashboard() {
       if (modalMode === "create") {
         const newRequisition = await createRequisition(formData);
         setRequisitions([...requisitions, newRequisition]);
+        
+        // Add new department to dropdown if it doesn't exist
+        if (formData.department && !departments.includes(formData.department)) {
+          setDepartments([...departments, formData.department]);
+        }
       } else {
         const updatedRequisition = await updateRequisition(selectedRequisition.id, formData);
         setRequisitions(requisitions.map(r => 
           r.id === selectedRequisition.id ? updatedRequisition : r
         ));
+        
+        // Add updated department to dropdown if it doesn't exist
+        if (formData.department && !departments.includes(formData.department)) {
+          setDepartments([...departments, formData.department]);
+        }
       }
       
       setIsRequisitionModalOpen(false);
