@@ -1,17 +1,37 @@
 import { FiX } from "react-icons/fi";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function RequisitionModal({ isOpen, mode, requisition, onClose, onSubmit, loading = false }) {
-  const [formData, setFormData] = useState(
-    requisition || {
-      title: "",
-      description: "",
-      department: "",
-      location: "",
-    }
-  );
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    department: "",
+    location: "",
+  });
 
   const [errors, setErrors] = useState({});
+
+  // Update form data when requisition changes (for edit mode)
+  useEffect(() => {
+    if (requisition && mode === "edit") {
+      setFormData({
+        title: requisition.title || "",
+        description: requisition.description || "",
+        department: requisition.department || "",
+        location: requisition.location || "",
+      });
+      setErrors({});
+    } else if (mode === "create" && isOpen) {
+      // Reset form for create mode
+      setFormData({
+        title: "",
+        description: "",
+        department: "",
+        location: "",
+      });
+      setErrors({});
+    }
+  }, [requisition, mode, isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
