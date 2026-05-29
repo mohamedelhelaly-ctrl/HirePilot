@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { FiX } from "react-icons/fi";
 import { useState, useEffect } from "react";
 

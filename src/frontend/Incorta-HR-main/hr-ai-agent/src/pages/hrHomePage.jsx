@@ -2,6 +2,7 @@ import DashboardLayout from "../layouts/hrHomePageLayout";
 import RequisitionCard from "../components/requisitionCard";
 import RequisitionModal from "../components/requisitionModal";
 import DeleteConfirmModal from "../components/deleteConfirmModal";
+import Toast from "../components/toast";
 import Button from "../components/button";
 import { FiPlus, FiSearch, FiAlertCircle } from "react-icons/fi";
 import { useState, useEffect } from "react";
@@ -22,6 +23,9 @@ export default function HrDashboard() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [requisitionToDelete, setRequisitionToDelete] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Notification state
+  const [notification, setNotification] = useState(null);
 
   // Get unique departments from requisitions
   const [departments, setDepartments] = useState(["All"]);
@@ -48,6 +52,11 @@ export default function HrDashboard() {
 
     loadRequisitions();
   }, []);
+
+  // Helper function to show notifications
+  const showNotification = (type, title, message = "") => {
+    setNotification({ type, title, message });
+  };
 
   // Filter requisitions based on search and department
   useEffect(() => {
@@ -106,6 +115,8 @@ export default function HrDashboard() {
         if (formData.department && !departments.includes(formData.department)) {
           setDepartments([...departments, formData.department]);
         }
+        
+        showNotification("success", "Job Posted Successfully", `${formData.title} has been added to open positions.`);
       } else {
         const updatedRequisition = await updateRequisition(selectedRequisition.id, formData);
         setRequisitions(requisitions.map(r => 
@@ -116,13 +127,15 @@ export default function HrDashboard() {
         if (formData.department && !departments.includes(formData.department)) {
           setDepartments([...departments, formData.department]);
         }
+        
+        showNotification("success", "Job Updated Successfully", `${formData.title} has been updated.`);
       }
       
       setIsRequisitionModalOpen(false);
       setSelectedRequisition(null);
     } catch (err) {
       console.error("Error submitting requisition:", err);
-      alert(`Error: ${err.message}`);
+      showNotification("error", "Error", err.message || "Failed to save the job.");
     } finally {
       setIsSubmitting(false);
     }
@@ -133,12 +146,30 @@ export default function HrDashboard() {
     try {
       setIsSubmitting(true);
       await deleteRequisition(requisitionToDelete.id);
-      setRequisitions(requisitions.filter(r => r.id !== requisitionToDelete.id));
+      
+      // Remove from requisitions
+      const updatedRequisitions = requisitions.filter(r => r.id !== requisitionToDelete.id);
+      setRequisitions(updatedRequisitions);
+      
+      // Update departments - remove if no jobs with that department exist
+      const deletedDept = requisitionToDelete.department;
+      if (deletedDept && deletedDept !== "All") {
+        const deptStillExists = updatedRequisitions.some(r => r.department === deletedDept);
+        if (!deptStillExists) {
+          setDepartments(departments.filter(d => d !== deletedDept));
+          // Reset filter if the deleted department was selected
+          if (selectedDept === deletedDept) {
+            setSelectedDept("All");
+          }
+        }
+      }
+      
       setIsDeleteModalOpen(false);
       setRequisitionToDelete(null);
+      showNotification("success", "Job Deleted", `${requisitionToDelete.title} has been removed.`);
     } catch (err) {
       console.error("Error deleting requisition:", err);
-      alert(`Error: ${err.message}`);
+      showNotification("error", "Error", err.message || "Failed to delete the job.");
     } finally {
       setIsSubmitting(false);
     }
@@ -293,6 +324,12 @@ export default function HrDashboard() {
           }}
           onConfirm={handleConfirmDelete}
           loading={isSubmitting}
+        />
+
+        {/* Toast Notification */}
+        <Toast
+          notification={notification}
+          onClose={() => setNotification(null)}
         />
       </div>
     </DashboardLayout>
