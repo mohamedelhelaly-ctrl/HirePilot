@@ -1,7 +1,9 @@
 import { FiMapPin, FiUsers, FiBell, FiMoreVertical, FiEdit, FiTrash2 } from "react-icons/fi";
 import Badge from "./badge";
+import { useState } from "react";
 
 export default function RequisitionCard({ requisition, onEdit, onDelete }) {
+  const [isHovering, setIsHovering] = useState(false);
   const {
     id,
     title,
@@ -13,11 +15,18 @@ export default function RequisitionCard({ requisition, onEdit, onDelete }) {
   } = requisition;
 
   return (
-    <div className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow duration-300 overflow-hidden h-full flex flex-col">
+    <div
+      className="relative bg-white rounded-lg shadow hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+    >
       {/* Header Section */}
       <div className="p-6 border-b border-gray-100">
         <div className="flex items-start justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-800 flex-1 leading-tight">
+          <h3 
+            className="text-lg font-semibold text-gray-800 flex-1 leading-tight"
+            title={title}
+          >
             {title}
           </h3>
           <div className="flex gap-2 ml-4">
@@ -47,18 +56,25 @@ export default function RequisitionCard({ requisition, onEdit, onDelete }) {
 
       {/* Description Section */}
       {description && (
-        <div className="px-6 py-4 flex-1">
-          <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
+        <div className="px-6 py-4 flex-1 relative">
+          <p 
+            className={`text-gray-600 text-sm leading-relaxed transition-all duration-200 ${
+              isHovering ? "line-clamp-none" : "line-clamp-2"
+            }`}
+            title={description}
+          >
             {description}
           </p>
+          
+          {/* Full Description Tooltip on Hover */}
         </div>
       )}
 
       {/* Location Section */}
       {location && (
         <div className="px-6 py-3 flex items-center gap-2 text-gray-600 border-t border-gray-100">
-          <FiMapPin size={16} className="text-gray-400" />
-          <span className="text-sm">{location}</span>
+          <FiMapPin size={16} className="text-gray-400 flex-shrink-0" />
+          <span className="text-sm" title={location}>{location}</span>
         </div>
       )}
 
