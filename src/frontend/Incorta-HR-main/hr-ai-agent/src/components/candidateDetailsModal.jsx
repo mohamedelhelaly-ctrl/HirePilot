@@ -1,11 +1,73 @@
-import { FiX } from "react-icons/fi";
+import { FiX, FiMail, FiPhone, FiLinkedin, FiExternalLink } from "react-icons/fi";
 import { MdCheck, MdSchedule } from "react-icons/md";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { fetchApplicationDetails } from "../services/candidateService";
 
-export default function CandidateDetailsModal({ candidate, isOpen, onClose }) {
+export default function CandidateDetailsModal({ candidate, application, isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState("overview");
+  const [cvDetails, setCvDetails] = useState([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Load CV details when the CV tab is selected
+  useEffect(() => {
+    if (isOpen && application?.id && activeTab === "cv") {
+      loadCvDetails();
+    }
+  }, [isOpen, application?.id, activeTab]);
+
+  // Reset tab on open
+  useEffect(() => {
+    if (isOpen) setActiveTab("overview");
+  }, [isOpen]);
+
+  const loadCvDetails = async () => {
+    try {
+      setLoadingDetails(true);
+      const details = await fetchApplicationDetails(application.id);
+      setCvDetails(details || []);
+    } catch (err) {
+      console.error("Error loading CV details:", err);
+      setCvDetails([]);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
 
   if (!isOpen || !candidate) return null;
+
+  const score = candidate.score || 0;
+  const initials = candidate.name
+    ? candidate.name
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase()
+    : "?";
+
+  // Format CV detail values nicely
+  const formatValue = (key, value) => {
+    if (value === null || value === undefined) return "—";
+    if (Array.isArray(value)) {
+      if (value.length === 0) return "—";
+      // Array of objects (e.g., education, previous_roles)
+      if (typeof value[0] === "object") {
+        return value;
+      }
+      // Array of strings (e.g., skills, certifications)
+      return value.join(", ");
+    }
+    if (typeof value === "object") {
+      return JSON.stringify(value, null, 2);
+    }
+    return String(value);
+  };
+
+  const formatKey = (key) => {
+    return key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+  };
 
   return (
     <>
@@ -31,22 +93,42 @@ export default function CandidateDetailsModal({ candidate, isOpen, onClose }) {
           <div className="p-6 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
               <div className="flex gap-4">
-                <div className="h-24 w-24 min-w-[96px] rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
-                  {candidate.name.charAt(0)}
+                <div className="h-20 w-20 min-w-[80px] rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-blue-500/20">
+                  {initials}
                 </div>
                 <div className="flex flex-col justify-center">
                   <p className="text-2xl font-bold text-gray-900">{candidate.name}</p>
-                  <p className="text-gray-600 text-base">Senior {candidate.status}</p>
+                  {/* Contact Info */}
+                  <div className="flex flex-wrap gap-3 mt-2">
+                    {candidate.email && (
+                      <a
+                        href={`mailto:${candidate.email}`}
+                        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition"
+                      >
+                        <FiMail size={14} />
+                        {candidate.email}
+                      </a>
+                    )}
+                    {candidate.phone && (
+                      <span className="flex items-center gap-1.5 text-sm text-gray-500">
+                        <FiPhone size={14} />
+                        {candidate.phone}
+                      </span>
+                    )}
+                    {candidate.linkedin_url && (
+                      <a
+                        href={candidate.linkedin_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 transition"
+                      >
+                        <FiLinkedin size={14} />
+                        LinkedIn
+                        <FiExternalLink size={12} />
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex gap-3 w-full sm:w-auto">
-                <button className="flex-1 sm:flex-auto px-4 py-2 h-10 rounded-lg bg-gray-200 text-gray-900 text-sm font-bold hover:bg-gray-300 transition">
-                  Schedule Interview
-                </button>
-                <button className="flex-1 sm:flex-auto px-4 py-2 h-10 rounded-lg bg-blue-500 text-white text-sm font-bold hover:bg-blue-600 transition">
-                  Message
-                </button>
               </div>
             </div>
           </div>
@@ -54,9 +136,9 @@ export default function CandidateDetailsModal({ candidate, isOpen, onClose }) {
           {/* Status */}
           <div className="flex gap-3 p-6 border-b border-gray-200 items-center">
             <p className="text-sm font-medium text-gray-600">Status:</p>
-            <button className="h-8 px-3 rounded-lg bg-gray-200 text-gray-900 text-sm font-medium hover:bg-gray-300 transition flex items-center gap-2">
-              {candidate.status}
-            </button>
+            <span className="h-8 px-3 rounded-lg bg-gray-100 text-gray-800 text-sm font-medium flex items-center">
+              {candidate.status?.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) || "—"}
+            </span>
           </div>
 
           {/* Tabs */}
@@ -84,39 +166,67 @@ export default function CandidateDetailsModal({ candidate, isOpen, onClose }) {
           <div className="p-6 space-y-8">
             {activeTab === "overview" && (
               <>
-                {/* Scores Breakdown */}
+                {/* Score */}
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 pb-4">Scores Breakdown</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-4 rounded-lg border border-gray-200 bg-white">
-                      <p className="text-gray-600 text-sm font-medium mb-2">Overall Fit</p>
-                      <p className="text-2xl font-bold text-blue-500">{candidate.score}%</p>
+                  <h3 className="text-lg font-bold text-gray-900 pb-4">Score Overview</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-5 rounded-xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white">
+                      <p className="text-gray-500 text-sm font-medium mb-2">
+                        Overall Score
+                      </p>
+                      <p className="text-3xl font-bold text-blue-600">
+                        {score}
+                        <span className="text-lg text-gray-400 font-normal">/100</span>
+                      </p>
                     </div>
-                    <div className="p-4 rounded-lg border border-gray-200 bg-white">
-                      <p className="text-gray-600 text-sm font-medium mb-2">Technical Skills</p>
-                      <p className="text-2xl font-bold text-gray-900">92%</p>
-                    </div>
-                    <div className="p-4 rounded-lg border border-gray-200 bg-white">
-                      <p className="text-gray-600 text-sm font-medium mb-2">Behavioral</p>
-                      <p className="text-2xl font-bold text-gray-900">85%</p>
-                    </div>
-                    <div className="p-4 rounded-lg border border-gray-200 bg-white">
-                      <p className="text-gray-600 text-sm font-medium mb-2">Soft Skills</p>
-                      <p className="text-2xl font-bold text-gray-900">89%</p>
+                    <div className="p-5 rounded-xl border border-gray-200 bg-white">
+                      <p className="text-gray-500 text-sm font-medium mb-2">
+                        Application Date
+                      </p>
+                      <p className="text-lg font-semibold text-gray-800">
+                        {application?.applied_at
+                          ? new Date(application.applied_at).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : "—"}
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                {/* CV Summary */}
+                {/* Contact Card */}
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 pb-4">AI-Generated CV Summary</h3>
-                  <div className="p-4 rounded-lg border border-gray-200 bg-white text-gray-600 text-sm space-y-3">
-                    <p>Highly skilled Senior {candidate.status} with over 8 years of experience in developing scalable applications. Proven ability to lead projects from conception to deployment.</p>
-                    <ul className="list-disc list-inside space-y-1 text-gray-600">
-                      <li>Expert in modern technology stacks and cloud-native solutions</li>
-                      <li>Strong track record of mentoring junior developers</li>
-                      <li>Contributed to major projects with excellent results</li>
-                    </ul>
+                  <h3 className="text-lg font-bold text-gray-900 pb-4">Contact Information</h3>
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white space-y-3">
+                    <div className="flex items-center gap-3">
+                      <FiMail className="text-gray-400" size={16} />
+                      <span className="text-sm text-gray-700">
+                        {candidate.email || "No email provided"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <FiPhone className="text-gray-400" size={16} />
+                      <span className="text-sm text-gray-700">
+                        {candidate.phone || "No phone provided"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <FiLinkedin className="text-gray-400" size={16} />
+                      {candidate.linkedin_url ? (
+                        <a
+                          href={candidate.linkedin_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          {candidate.linkedin_url}
+                        </a>
+                      ) : (
+                        <span className="text-sm text-gray-400">No LinkedIn profile</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </>
@@ -125,20 +235,64 @@ export default function CandidateDetailsModal({ candidate, isOpen, onClose }) {
             {activeTab === "cv" && (
               <div>
                 <h3 className="text-lg font-bold text-gray-900 pb-4">CV Details</h3>
-                <div className="p-4 rounded-lg border border-gray-200 bg-white text-gray-600 text-sm space-y-4">
-                  <div>
-                    <p className="font-semibold text-gray-900 mb-2">Experience</p>
-                    <p>8+ years of professional experience in software development</p>
+                {loadingDetails ? (
+                  <div className="space-y-3">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="h-14 bg-gray-100 rounded-lg animate-pulse" />
+                    ))}
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 mb-2">Skills</p>
-                    <p>React, Node.js, Python, AWS, Docker, Kubernetes</p>
+                ) : cvDetails.length === 0 ? (
+                  <div className="p-8 text-center rounded-xl border border-gray-200 bg-gray-50 text-gray-400">
+                    <p className="text-base font-medium mb-1">No CV details available</p>
+                    <p className="text-sm">
+                      CV data will appear here after screening is complete
+                    </p>
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 mb-2">Education</p>
-                    <p>Bachelor's degree in Computer Science</p>
+                ) : (
+                  <div className="space-y-3">
+                    {cvDetails.map((detail) => {
+                      const formattedValue = formatValue(detail.key, detail.value);
+                      const isArray = Array.isArray(formattedValue);
+                      const isObjectArray =
+                        isArray && formattedValue.length > 0 && typeof formattedValue[0] === "object";
+
+                      return (
+                        <div
+                          key={detail.id}
+                          className="p-4 rounded-xl border border-gray-200 bg-white"
+                        >
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                            {formatKey(detail.key)}
+                          </p>
+
+                          {isObjectArray ? (
+                            <div className="space-y-2">
+                              {formattedValue.map((item, idx) => (
+                                <div
+                                  key={idx}
+                                  className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg"
+                                >
+                                  {Object.entries(item).map(([k, v]) => (
+                                    <p key={k}>
+                                      <span className="font-medium text-gray-600">
+                                        {formatKey(k)}:
+                                      </span>{" "}
+                                      {String(v)}
+                                    </p>
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-700 leading-relaxed">
+                              {typeof formattedValue === "string" ? formattedValue : String(formattedValue)}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -149,38 +303,72 @@ export default function CandidateDetailsModal({ candidate, isOpen, onClose }) {
                   {/* Vertical Line */}
                   <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gray-200"></div>
 
-                  {/* Timeline Item 1 */}
+                  {/* Applied */}
                   <div className="flex gap-4">
                     <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white flex-shrink-0">
                       <MdCheck size={18} />
                     </div>
                     <div>
-                      <p className="font-semibold text-sm text-gray-900">CV Received</p>
-                      <p className="text-xs text-gray-600">June 10, 2024</p>
+                      <p className="font-semibold text-sm text-gray-900">Application Received</p>
+                      <p className="text-xs text-gray-600">
+                        {application?.applied_at
+                          ? new Date(application.applied_at).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })
+                          : "—"}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Timeline Item 2 */}
-                  <div className="flex gap-4">
-                    <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white flex-shrink-0">
-                      <MdCheck size={18} />
+                  {/* Screening */}
+                  {["screening_passed", "screening_rejected", "interview_scheduled", "interview_completed", "offer_extended", "hired", "rejected"].includes(application?.status) && (
+                    <div className="flex gap-4">
+                      <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white flex-shrink-0">
+                        <MdCheck size={18} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm text-gray-900">AI Screening Complete</p>
+                        <p className="text-xs text-gray-600">
+                          Score: {candidate.score}/100
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-sm text-gray-900">AI Screening Complete</p>
-                      <p className="text-xs text-gray-600">June 11, 2024</p>
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Timeline Item 3 */}
-                  <div className="flex gap-4">
-                    <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-blue-200 text-blue-500 flex-shrink-0">
-                      <MdSchedule size={18} />
+                  {/* Interview */}
+                  {["interview_scheduled", "interview_completed", "offer_extended", "hired"].includes(application?.status) && (
+                    <div className="flex gap-4">
+                      <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 ${
+                        application?.status === "interview_scheduled"
+                          ? "bg-blue-200 text-blue-500"
+                          : "bg-blue-500 text-white"
+                      }`}>
+                        {application?.status === "interview_scheduled" ? (
+                          <MdSchedule size={18} />
+                        ) : (
+                          <MdCheck size={18} />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm text-gray-900">
+                          {application?.status === "interview_scheduled"
+                            ? "Interview Scheduled"
+                            : "Interview Completed"}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {application?.interview_scheduled_at
+                            ? new Date(application.interview_scheduled_at).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })
+                            : "—"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-sm text-gray-900">Interview Scheduled</p>
-                      <p className="text-xs text-gray-600">Pending for June 18, 2024</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             )}
