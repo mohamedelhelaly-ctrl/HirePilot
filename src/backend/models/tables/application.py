@@ -23,6 +23,7 @@ class Application(Base):
     # Scores
     combined_score = Column(Float, index=True)  # Weighted combination
     years_of_experience = Column(Float)
+    tech_questions = Column(JSON, nullable=True, default=list)
    
     
     # Interview data
