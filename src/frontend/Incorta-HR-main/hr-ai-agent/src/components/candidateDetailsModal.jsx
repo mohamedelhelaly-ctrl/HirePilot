@@ -24,7 +24,7 @@ export default function CandidateDetailsModal({ candidate, application, isOpen, 
     try {
       setLoadingDetails(true);
       const details = await fetchApplicationDetails(application.id);
-      setCvDetails(details || []);
+      setCvDetails((details || []).filter((d) => d.key !== "contact_info"));
     } catch (err) {
       console.error("Error loading CV details:", err);
       setCvDetails([]);
