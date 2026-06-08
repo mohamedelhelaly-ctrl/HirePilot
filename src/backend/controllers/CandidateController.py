@@ -6,6 +6,7 @@ from pathlib import Path
 import logging
 logger = logging.getLogger(__name__)
 from stores.vectordb.vectorize_cv import process_and_vectorize_cv
+from controllers.services.generate_questions import generate_questions_for_application
 BASE_DIR = Path(__file__).resolve()
 
 for parent in BASE_DIR.parents:
@@ -81,6 +82,25 @@ class CandidateController(BaseController):
         email: str
     )-> Optional[Candidate]:
         return await get_candidate_by_email(db, email)
+
+    async def generate_application_tech_questions(
+        self,
+        db: AsyncSession,
+        application_id: int,
+    ) -> List[Dict[str, str]]:
+        try:
+            return await generate_questions_for_application(db, application_id)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(exc)
+            )
+        except Exception as exc:
+            logger.exception("Failed to generate tech questions for application %s", application_id)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to generate tech questions: {exc}"
+            )
 
     async def update_candidate(
         self,

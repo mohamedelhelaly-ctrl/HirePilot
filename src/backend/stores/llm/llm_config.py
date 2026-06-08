@@ -125,7 +125,7 @@ class UnifiedLLM:
 llm_routing = UnifiedLLM(MODEL, temperature=0.1, provider="groq")
 
 # General reasoning / chat
-llm_generic = UnifiedLLM(MODEL, temperature=0.7, provider="ollama")
+llm_generic = UnifiedLLM(MODEL, temperature=0.7, provider="groq")
 
 # Structured extraction
 llm_extraction = UnifiedLLM(MODEL, temperature=0.3, provider="groq")
