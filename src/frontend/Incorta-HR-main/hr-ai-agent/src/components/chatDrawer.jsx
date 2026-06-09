@@ -3,6 +3,93 @@ import { useState, useEffect, useRef } from "react";
 import { queryRagChatbot } from "../services/graphService";
 
 /**
+ * Detect if text contains a table (ASCII/markdown format)
+ */
+const containsTable = (text) => {
+  return /\|.*\|/.test(text) && (/\|-+\|/.test(text) || text.split('\n').filter(line => line.includes('|')).length >= 3);
+};
+
+/**
+ * Parse ASCII/markdown table from text
+ */
+const parseTable = (text) => {
+  const lines = text.split('\n');
+  const tableLines = lines.filter(line => line.includes('|'));
+  
+  if (tableLines.length < 2) return null;
+
+  // Extract headers (first line with |)
+  const headerLine = tableLines[0];
+  const headers = headerLine.split('|').map(h => h.trim()).filter(h => h && h !== '');
+
+  // Skip separator line if it exists (line with dashes)
+  let dataStartIndex = 1;
+  if (tableLines[1].includes('-')) {
+    dataStartIndex = 2;
+  }
+
+  // Extract rows
+  const rows = tableLines.slice(dataStartIndex).map(line =>
+    line.split('|').map(cell => cell.trim()).filter((_, i) => i > 0 && i <= headers.length)
+  );
+
+  return { headers, rows };
+};
+
+/**
+ * Table Component
+ */
+function TableMessage({ text }) {
+  const table = parseTable(text);
+
+  if (!table) {
+    return <div className="whitespace-pre-wrap">{text}</div>;
+  }
+
+  const { headers, rows } = table;
+
+  return (
+    <div className="max-w-full">
+      <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-300">
+        <table className="w-full border-collapse text-xs">
+          <thead className="sticky top-0 z-10">
+            <tr className="bg-blue-100 border-b border-gray-300">
+              {headers.map((header, idx) => (
+                <th
+                  key={idx}
+                  className="px-2 py-2 text-left font-semibold text-gray-800 border-r border-gray-300 last:border-r-0 whitespace-nowrap"
+                >
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, rowIdx) => (
+              <tr
+                key={rowIdx}
+                className={`border-b border-gray-200 hover:bg-blue-50 transition ${
+                  rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                }`}
+              >
+                {row.map((cell, cellIdx) => (
+                  <td
+                    key={cellIdx}
+                    className="px-2 py-2 text-gray-700 border-r border-gray-200 last:border-r-0 break-words"
+                  >
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/**
  * ChatDrawer — A premium, modern slide-over chatbot assistant panel
  */
 export default function ChatDrawer({ isOpen, onClose, requisitionId, requisitionTitle }) {
@@ -92,7 +179,7 @@ export default function ChatDrawer({ isOpen, onClose, requisitionId, requisition
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" onClick={onClose}></div>
 
       {/* Slide-Over Panel */}
-      <div className="fixed top-0 right-0 h-full w-full max-w-lg bg-gray-50 shadow-2xl z-50 flex flex-col overflow-hidden border-l border-gray-100">
+      <div className="fixed top-0 right-0 h-full w-full max-w-2xl bg-gray-50 shadow-2xl z-50 flex flex-col overflow-hidden border-l border-gray-100">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 bg-white border-b border-gray-150 shadow-sm">
           <div>
@@ -135,13 +222,17 @@ export default function ChatDrawer({ isOpen, onClose, requisitionId, requisition
                 {/* Bubble */}
                 <div className="flex flex-col">
                   <div
-                    className={`px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed whitespace-pre-wrap ${
+                    className={`px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed ${
                       isBot
                         ? "bg-white text-gray-800 border border-gray-200/80 rounded-tl-none"
-                        : "bg-blue-600 text-white rounded-tr-none"
+                        : "bg-blue-600 text-white rounded-tr-none whitespace-pre-wrap"
                     }`}
                   >
-                    {msg.text}
+                    {isBot && containsTable(msg.text) ? (
+                      <TableMessage text={msg.text} />
+                    ) : (
+                      <div className="whitespace-pre-wrap">{msg.text}</div>
+                    )}
                   </div>
                   <span
                     className={`text-[10px] text-gray-400 mt-1 font-medium ${
