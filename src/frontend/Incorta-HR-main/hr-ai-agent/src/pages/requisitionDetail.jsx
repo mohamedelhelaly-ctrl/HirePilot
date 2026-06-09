@@ -16,6 +16,7 @@ import {
   FiEdit3,
   FiMessageSquare,
   FiLoader,
+  FiAlertTriangle,
 } from "react-icons/fi";
 import { MdMic } from "react-icons/md";
 import { fetchRequisitionById, updateRequisition } from "../services/requisitionService";
@@ -172,6 +173,14 @@ export default function RequisitionDetail() {
   const rejected = applications.filter(
     (a) => a.status === "screening_rejected" || a.status === "rejected"
   ).length;
+
+  // ── Unscreened CVs detection ──────────────────────────────────────────────
+  // new_candidate_counter is incremented each time a CV is uploaded.
+  // It is the sole signal for "unscreened" CVs — status "new" actually means
+  // the candidate has ALREADY been screened and is awaiting HR action.
+  const newCandidateCounter = requisition?.new_candidate_counter ?? 0;
+  const hasUnscreenedCVs = newCandidateCounter > 0;
+  const allScreened = applications.length > 0 && newCandidateCounter === 0;
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -453,25 +462,47 @@ export default function RequisitionDetail() {
             {/* Screen CVs */}
             <button
               onClick={handleScreenCVs}
-              disabled={isScreeningCVs || applications.length === 0}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+              disabled={isScreeningCVs || (!hasUnscreenedCVs && (applications.length === 0 || allScreened))}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
                 isScreeningCVs
                   ? "bg-blue-500 text-white cursor-wait opacity-80"
+                  : hasUnscreenedCVs
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] ring-2 ring-blue-400/50 animate-pulse"
+                  : allScreened
+                  ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
                   : applications.length === 0
                   ? "bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed"
                   : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow"
               }`}
-              title={applications.length === 0 ? "Upload CVs first to screen" : "Run batch screening on uploaded CVs"}
+              title={
+                allScreened
+                  ? "All CVs have been screened"
+                  : applications.length === 0
+                  ? "Upload CVs first to screen"
+                  : hasUnscreenedCVs
+                  ? `${newCandidateCounter} new CV(s) awaiting screening — click to screen now`
+                  : "Run batch screening on uploaded CVs"
+              }
             >
               {isScreeningCVs ? (
                 <>
                   <FiLoader size={16} className="animate-spin" />
                   Screening...
                 </>
+              ) : allScreened ? (
+                <>
+                  <FiCheck size={16} />
+                  All Screened
+                </>
               ) : (
                 <>
                   <FiCheck size={16} />
                   Screen CVs
+                  {hasUnscreenedCVs && (
+                    <span className="ml-1 flex items-center justify-center w-5 h-5 rounded-full bg-white/25 text-[11px] font-bold">
+                      {newCandidateCounter}
+                    </span>
+                  )}
                 </>
               )}
             </button>
@@ -486,6 +517,23 @@ export default function RequisitionDetail() {
             </button>
           </div>
         </div>
+
+        {/* ── Unscreened CVs Banner ──────────────────────────────────────── */}
+        {hasUnscreenedCVs && !isScreeningCVs && (
+          <div className="flex items-center gap-3 px-5 py-3.5 mb-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl shadow-sm animate-[fadeIn_0.3s_ease-out]">
+            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-amber-100 flex-shrink-0">
+              <FiAlertTriangle size={18} className="text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-800">
+                {newCandidateCounter} new CV{newCandidateCounter !== 1 ? "s" : ""} awaiting screening
+              </p>
+              <p className="text-xs text-amber-600 mt-0.5">
+                Newly uploaded CVs have been vectorized but not yet screened. Click the &ldquo;Screen CVs&rdquo; button above to analyze and score them.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* ── Candidates Section ────────────────────────────────────────── */}
         <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${openDropdownId !== null ? 'overflow-visible' : 'overflow-hidden'}`}>
