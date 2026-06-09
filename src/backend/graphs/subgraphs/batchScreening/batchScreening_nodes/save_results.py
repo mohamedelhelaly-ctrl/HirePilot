@@ -27,6 +27,7 @@ from sqlalchemy import delete
 
 from models.database import AsyncSessionLocal
 from models.tables.application_detail import ApplicationDetail
+from models.crud.requisition_crud import reset_requisition_counter
 
 from models.schemas import (
     CandidateCreate,
@@ -320,6 +321,23 @@ async def save_results_node(state: BatchScreeningState) -> BatchScreeningState:
                 state.error = f"[Node 4] DB operation failed for source='{source}': {exc}"
                 logger.error(state.error)
                 return state
+
+    # ── Reset the new_candidate_counter so the frontend knows all CVs
+    #    have been screened (banner hides, button grays out). ─────────────────
+    async with AsyncSessionLocal() as db:
+        try:
+            await reset_requisition_counter(db, state.requisition_id, "candidate")
+            logger.info(
+                f"[Node 4] Reset new_candidate_counter for "
+                f"requisition_id={state.requisition_id}"
+            )
+        except Exception as exc:
+            # Non-fatal: screening data is saved; counter miss will self-correct
+            # on the next upload or manual trigger.
+            logger.warning(
+                f"[Node 4] Failed to reset new_candidate_counter for "
+                f"requisition_id={state.requisition_id}: {exc}"
+            )
 
     logger.info(f"[Node 4] Complete — inserted={saved}, updated={updated}")
     state.saved_count   = saved
