@@ -15,6 +15,7 @@ import {
   FiFileText,
   FiEdit3,
   FiMessageSquare,
+  FiLoader,
 } from "react-icons/fi";
 import { MdMic } from "react-icons/md";
 import { fetchRequisitionById, updateRequisition } from "../services/requisitionService";
@@ -26,6 +27,7 @@ import {
   uploadCVs,
 } from "../services/candidateService";
 import { createInterviewSession } from "../services/interviewService";
+import { executeGraph } from "../services/graphService";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -113,7 +115,8 @@ export default function RequisitionDetail() {
   // Tech questions generation loading state
   const [generatingQuestionId, setGeneratingQuestionId] = useState(null);
 
-  // ── Load data on mount ────────────────────────────────────────────────────
+  // CV screening state
+  const [isScreeningCVs, setIsScreeningCVs] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -288,6 +291,38 @@ export default function RequisitionDetail() {
     setIsQuestionsModalOpen(true);
   };
 
+  const handleScreenCVs = async () => {
+    try {
+      setIsScreeningCVs(true);
+      showNotification(
+        "info",
+        "Screening in Progress",
+        "Analyzing CVs and scoring candidates..."
+      );
+
+      const response = await executeGraph({
+        intent: "batch_screening",
+        requisition_id: parseInt(id),
+      });
+
+      if (response.error) {
+        showNotification("error", "Screening Failed", response.error);
+      } else {
+        showNotification(
+          "success",
+          "Screening Complete",
+          `Scored ${response.result?.candidates_scored || 0} candidates successfully.`
+        );
+        // Reload data to show updated scores and statuses
+        await loadData();
+      }
+    } catch (err) {
+      showNotification("error", "Screening Error", err.message);
+    } finally {
+      setIsScreeningCVs(false);
+    }
+  };
+
   const handleViewJD = () => {
     setIsJdModalOpen(true);
   };
@@ -413,6 +448,32 @@ export default function RequisitionDetail() {
             >
               <FiFileText size={16} />
               View JD
+            </button>
+
+            {/* Screen CVs */}
+            <button
+              onClick={handleScreenCVs}
+              disabled={isScreeningCVs || applications.length === 0}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+                isScreeningCVs
+                  ? "bg-blue-500 text-white cursor-wait opacity-80"
+                  : applications.length === 0
+                  ? "bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow"
+              }`}
+              title={applications.length === 0 ? "Upload CVs first to screen" : "Run batch screening on uploaded CVs"}
+            >
+              {isScreeningCVs ? (
+                <>
+                  <FiLoader size={16} className="animate-spin" />
+                  Screening...
+                </>
+              ) : (
+                <>
+                  <FiCheck size={16} />
+                  Screen CVs
+                </>
+              )}
             </button>
 
             {/* Edit */}
