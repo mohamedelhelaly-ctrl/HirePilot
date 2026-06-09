@@ -157,22 +157,18 @@ export default function RequisitionDetail() {
   // ── Statistics ─────────────────────────────────────────────────────────────
 
   const totalCVs = applications.length;
-  const screened = applications.filter(
-    (a) => a.status !== "new" && a.status !== "screening_pending"
+  const interviewScheduled = applications.filter(
+    (a) => a.status === "interview_scheduled"
   ).length;
-  const shortlisted = applications.filter(
-    (a) => a.status === "screening_passed"
+  const offerExtended = applications.filter(
+    (a) => a.status === "offer_extended"
+  ).length;
+  const hired = applications.filter(
+    (a) => a.status === "hired"
   ).length;
   const rejected = applications.filter(
     (a) => a.status === "screening_rejected" || a.status === "rejected"
   ).length;
-  const avgScore =
-    applications.length > 0
-      ? (
-          applications.reduce((sum, a) => sum + (a.combined_score || 0), 0) /
-          applications.length
-        ).toFixed(1)
-      : "—";
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -394,10 +390,10 @@ export default function RequisitionDetail() {
             {/* Stat Boxes */}
             {[
               { label: "CVs", value: totalCVs },
-              { label: "Screened", value: screened },
-              { label: "Shortlisted", value: shortlisted },
+              { label: "Interview Scheduled", value: interviewScheduled },
+              { label: "Offer Extended", value: offerExtended },
+              { label: "Hired", value: hired },
               { label: "Rejected", value: rejected },
-              { label: "AVG Score", value: avgScore },
             ].map(({ label, value }) => (
               <div
                 key={label}
