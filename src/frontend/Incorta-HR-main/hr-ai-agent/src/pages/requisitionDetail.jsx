@@ -3,6 +3,7 @@ import Toast from "../components/toast";
 import InterviewModal from "../components/interviewModal";
 import CandidateDetailsModal from "../components/candidateDetailsModal";
 import RequisitionModal from "../components/requisitionModal";
+import ChatDrawer from "../components/chatDrawer";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import {
@@ -13,6 +14,7 @@ import {
   FiChevronDown,
   FiFileText,
   FiEdit3,
+  FiMessageSquare,
 } from "react-icons/fi";
 import { MdMic } from "react-icons/md";
 import { fetchRequisitionById, updateRequisition } from "../services/requisitionService";
@@ -98,6 +100,9 @@ export default function RequisitionDetail() {
   // Edit modal states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Chatbot drawer state
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // ── Load data on mount ────────────────────────────────────────────────────
 
@@ -382,6 +387,15 @@ export default function RequisitionDetail() {
             >
               <FiEdit3 size={16} />
               Edit
+            </button>
+
+            {/* AI Copilot Chat */}
+            <button
+              onClick={() => setIsChatOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition shadow-md shadow-blue-500/10 hover:shadow-lg hover:shadow-blue-500/20 active:scale-95"
+            >
+              <FiMessageSquare size={16} />
+              AI Copilot
             </button>
           </div>
         </div>
@@ -701,6 +715,14 @@ export default function RequisitionDetail() {
           onClose={() => setIsEditModalOpen(false)}
           onSubmit={handleEditSubmit}
           loading={isSubmitting}
+        />
+
+        {/* ── Chat Copilot Drawer ────────────────────────────────────────── */}
+        <ChatDrawer
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          requisitionId={parseInt(id)}
+          requisitionTitle={requisition?.title}
         />
 
         {/* ── Toast ────────────────────────────────────────────────────── */}
