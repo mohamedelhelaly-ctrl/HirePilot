@@ -72,6 +72,15 @@ async def get_application(
     return await application_controller.get_application(application_id, db, include_relations)
 
 
+@router.post("/applications/{application_id}/tech-questions", response_model=List[dict], status_code=status.HTTP_200_OK)
+async def generate_application_tech_questions(
+    application_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate tailored technical questions and answers for an application."""
+    return await candidate_controller.generate_application_tech_questions(db, application_id)
+
+
 @router.patch("/applications/{application_id}", response_model=Application)
 async def update_application(
     application_id: int,
@@ -131,6 +140,8 @@ async def upload_cvs(
     db: AsyncSession = Depends(get_db),
 ):
     return await candidate_controller.upload_cvs(db, requisition_id, files)
+
+
 
 
 

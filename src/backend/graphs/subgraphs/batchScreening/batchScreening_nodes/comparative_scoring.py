@@ -143,6 +143,7 @@ async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreening
                 "education":              cv.education,
                 "previous_roles":         cv.previous_roles,
                 "certifications":         cv.certifications,
+                "projects":               cv.projects,
                 "summary":                cv.summary,
             }
             for cv in state.extracted_cv_data

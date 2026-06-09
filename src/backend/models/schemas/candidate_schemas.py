@@ -76,6 +76,10 @@ class ExtractedCV(BaseModel):
         )
     )
     certifications: List[str] = Field(default_factory=list)
+    projects: List[dict] = Field(
+        default_factory=list,
+        description="List of project entries with keys such as name, description, technologies, duration"
+    )
     summary: str = ""
 
     # ── Routing flag set by Node 2 ────────────────────────────────────────────
