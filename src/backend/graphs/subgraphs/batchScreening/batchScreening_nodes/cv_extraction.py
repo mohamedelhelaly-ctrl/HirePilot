@@ -100,6 +100,7 @@ Return ONLY a valid JSON object with EXACTLY these keys — no extra keys, no co
   "skills": ["skill1", "skill2"],
   "education": [{"degree": "...", "institution": "..."}],
   "certifications": ["cert1", "cert2"],
+  "projects": [{"name": "...", "description": "..."],
   "summary": "One concise sentence describing the candidate's profile."
 }
 
@@ -236,6 +237,7 @@ async def _extract_single(source: str, cv_text: str) -> ExtractedCV:
                 for c in (data.get("certifications") or [])
                 if c
             ],
+            projects=data.get("projects") or [],
             summary=data.get("summary") or "",
             raw_llm_output=f"[main]\n{raw_main}\n\n[roles]\n{raw_roles}",
         )
@@ -254,7 +256,7 @@ def _reconstruct_from_details(source: str, details: list) -> ExtractedCV:
 
     ApplicationDetail keys written by Node 4:
         technical_skills, total_years_experience, education,
-        previous_roles, certifications, profile_summary, contact_info
+        previous_roles, certifications, projects, profile_summary, contact_info
 
     For Bucket A candidates the total_years_experience stored in the DB was
     already calculated by Python on their first screening run, so we trust it
@@ -276,6 +278,8 @@ def _reconstruct_from_details(source: str, details: list) -> ExtractedCV:
             kwargs["previous_roles"] = val if isinstance(val, list) else []
         elif key == "certifications":
             kwargs["certifications"] = val if isinstance(val, list) else []
+        elif key == "projects":
+            kwargs["projects"] = val if isinstance(val, list) else []
         elif key == "profile_summary":
             kwargs["summary"] = str(val) if val else ""
         elif key == "contact_info" and isinstance(val, dict):

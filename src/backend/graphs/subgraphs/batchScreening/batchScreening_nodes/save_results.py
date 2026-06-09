@@ -97,6 +97,13 @@ def _build_application_detail_entries(
             value=extracted.certifications,
         ))
 
+    if extracted.projects:
+        entries.append(ApplicationDetailCreate(
+            application_id=app_id,
+            key="projects",
+            value=extracted.projects,
+        ))
+
     if extracted.summary:
         entries.append(ApplicationDetailCreate(
             application_id=app_id,
