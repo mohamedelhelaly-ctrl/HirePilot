@@ -22,6 +22,7 @@ import {
   fetchApplicationsByRequisition,
   fetchCandidateById,
   updateApplicationStatus,
+  generateTechQuestions,
   uploadCVs,
 } from "../services/candidateService";
 import { createInterviewSession } from "../services/interviewService";
@@ -103,6 +104,14 @@ export default function RequisitionDetail() {
 
   // Chatbot drawer state
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // Tech questions modal state
+  const [isQuestionsModalOpen, setIsQuestionsModalOpen] = useState(false);
+  const [selectedQuestions, setSelectedQuestions] = useState(null);
+  const [selectedQuestionsCandidate, setSelectedQuestionsCandidate] = useState(null);
+
+  // Tech questions generation loading state
+  const [generatingQuestionId, setGeneratingQuestionId] = useState(null);
 
   // ── Load data on mount ────────────────────────────────────────────────────
 
@@ -251,6 +260,36 @@ export default function RequisitionDetail() {
 
   const handleComingSoon = (featureName) => {
     showNotification("info", "Coming Soon", `${featureName} feature is coming soon!`);
+  };
+
+  const handleGenerateTechQuestions = async (applicationId, candidateName) => {
+    try {
+      setGeneratingQuestionId(applicationId);
+      const questions = await generateTechQuestions(applicationId);
+      
+      // Update the application in state with the generated questions
+      setApplications((prev) =>
+        prev.map((a) => 
+          a.id === applicationId ? { ...a, tech_questions: questions } : a
+        )
+      );
+      
+      showNotification(
+        "success",
+        "Tech Questions Generated",
+        `Generated ${questions.length} technical questions for ${candidateName}.`
+      );
+    } catch (err) {
+      showNotification("error", "Generation Failed", err.message);
+    } finally {
+      setGeneratingQuestionId(null);
+    }
+  };
+
+  const handleViewTechQuestions = (questions, candidateName) => {
+    setSelectedQuestions(questions);
+    setSelectedQuestionsCandidate(candidateName);
+    setIsQuestionsModalOpen(true);
   };
 
   const handleViewJD = () => {
@@ -578,12 +617,36 @@ export default function RequisitionDetail() {
                         {/* Question Generation — Coming Soon */}
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleComingSoon("Technical Questions")}
-                              className="px-3 py-1.5 text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
-                            >
-                              Tech Q
-                            </button>
+                            {app.tech_questions && app.tech_questions.length > 0 ? (
+                              <button
+                                onClick={() =>
+                                  handleViewTechQuestions(
+                                    app.tech_questions,
+                                    candidate?.full_name || "Candidate"
+                                  )
+                                }
+                                className="px-3 py-1.5 text-xs font-semibold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
+                              >
+                                View Tech Q ({app.tech_questions.length})
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  handleGenerateTechQuestions(
+                                    app.id,
+                                    candidate?.full_name || "Candidate"
+                                  )
+                                }
+                                disabled={generatingQuestionId === app.id}
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
+                                  generatingQuestionId === app.id
+                                    ? "bg-blue-50 text-blue-600 border border-blue-200 cursor-wait"
+                                    : "text-gray-600 border border-gray-200 hover:bg-gray-50"
+                                }`}
+                              >
+                                {generatingQuestionId === app.id ? "Generating..." : "Tech Q"}
+                              </button>
+                            )}
                             <button
                               onClick={() => handleComingSoon("CBI Questions")}
                               className="px-3 py-1.5 text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
@@ -724,6 +787,79 @@ export default function RequisitionDetail() {
           requisitionId={parseInt(id)}
           requisitionTitle={requisition?.title}
         />
+
+        {/* ── Tech Questions Modal ────────────────────────────────────────── */}
+        {isQuestionsModalOpen && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/50 z-50"
+              onClick={() => setIsQuestionsModalOpen(false)}
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Technical Questions</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">{selectedQuestionsCandidate}</p>
+                  </div>
+                  <button
+                    onClick={() => setIsQuestionsModalOpen(false)}
+                    className="text-gray-400 hover:text-gray-600 transition p-1.5 hover:bg-gray-100 rounded-lg"
+                  >
+                    <FiX size={22} />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="flex-1 overflow-y-auto px-6 py-6">
+                  {selectedQuestions && selectedQuestions.length > 0 ? (
+                    <div className="space-y-6">
+                      {selectedQuestions.map((item, index) => (
+                        <div
+                          key={index}
+                          className="border border-gray-200 rounded-lg p-5 hover:bg-gray-50 transition"
+                        >
+                          <div className="flex items-start gap-3 mb-3">
+                            <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold flex-shrink-0">
+                              {index + 1}
+                            </span>
+                            <h3 className="text-base font-semibold text-gray-900 leading-relaxed">
+                              {item.question}
+                            </h3>
+                          </div>
+                          <div className="ml-10">
+                            <p className="text-sm text-gray-600 leading-relaxed italic">
+                              {item.answer}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-400 py-8">
+                      <p className="text-lg font-medium mb-1">No questions available</p>
+                      <p className="text-sm">Questions will appear here once generated.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                  <button
+                    onClick={() => setIsQuestionsModalOpen(false)}
+                    className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* ── Toast ────────────────────────────────────────────────────── */}
         <Toast
