@@ -123,7 +123,10 @@ def make_llm_node(
             state.get("query", ""),
         )
 
-        history_block = format_conversation_history(state["messages"])
+        history_block = format_conversation_history(
+            state["messages"],
+            summary=state.get("conversation_summary"),
+        )
 
         # Seed the ReAct prompt — model picks up from "Thought:"
         running = f"{system_prompt}\n\n{history_block}Question: {question}\nThought:"

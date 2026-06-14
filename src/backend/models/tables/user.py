@@ -21,3 +21,4 @@ class User(Base):
     assigned_requisitions = relationship("Requisition", back_populates="hiring_manager")
     conducted_interviews = relationship("InterviewSession", back_populates="interviewer")
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    chat_threads = relationship("ChatThread", back_populates="user")

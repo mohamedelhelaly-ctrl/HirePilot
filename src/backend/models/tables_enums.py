@@ -33,3 +33,8 @@ class InterviewStatus(str, enum.Enum):
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+
+
+class ChatMessageRole(str, enum.Enum):
+    USER = "user"
+    ASSISTANT = "assistant"

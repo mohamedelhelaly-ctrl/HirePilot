@@ -11,4 +11,12 @@ from .statusHistory_schemas import StatusHistoryBase, StatusHistoryCreate, Statu
 from .transcriptChunk_schemas import TranscriptChunkBase, TranscriptChunkCreate, TranscriptChunk
 from .user_schemas import UserBase, UserCreate, AdminUserCreate, UserUpdate, User
 from .graph_schemas import GraphExecuteRequest, GraphExecuteResponse
+from .chat_schemas import (
+    ChatThreadCreate,
+    ChatThreadUpdate,
+    ChatThread,
+    ChatThreadSummary,
+    ChatMessageCreate,
+    ChatMessage,
+)
 

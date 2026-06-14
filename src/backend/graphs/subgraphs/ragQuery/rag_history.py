@@ -1,69 +1,57 @@
 """
-In-memory LangChain chat history for the RAG query subgraph.
+Persistent LangChain-compatible chat history for the RAG query subgraph.
 
-Sessions are keyed by chat_thread_id (e.g. rag-{requisition_id}-{uuid}).
-History lives in process memory and resets when the server restarts.
+Messages are stored in PostgreSQL (chat_threads / chat_messages).
+Long conversations use a ConversationSummaryBuffer-style pattern: older turns
+are summarized into chat_threads.summary; recent turns stay verbatim.
 """
 
+import asyncio
 import logging
 import os
-from threading import Lock
-from typing import Optional
+from typing import List, Optional, Tuple
 
-from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.crud.chat_crud import (
+    append_chat_message,
+    get_messages_by_thread,
+    get_thread_by_external_id,
+    update_thread_summary,
+)
+from models.tables_enums import ChatMessageRole
 
 logger = logging.getLogger(__name__)
 
-MAX_RAG_HISTORY_MESSAGES = int(os.getenv("RAG_MAX_HISTORY_MESSAGES", "20"))
-
-_histories: dict[str, InMemoryChatMessageHistory] = {}
-_lock = Lock()
+RAG_MEMORY_BUFFER_MESSAGES = int(os.getenv("RAG_MEMORY_BUFFER_MESSAGES", "6"))
+RAG_MEMORY_SUMMARY_THRESHOLD = int(os.getenv("RAG_MEMORY_SUMMARY_THRESHOLD", "12"))
 
 
-def build_default_thread_id(requisition_id: int, user_id: Optional[int] = None) -> str:
-    return f"rag-req-{requisition_id}-user-{user_id or 0}"
-
-
-def get_rag_history(thread_id: str) -> InMemoryChatMessageHistory:
-    with _lock:
-        if thread_id not in _histories:
-            _histories[thread_id] = InMemoryChatMessageHistory()
-            logger.info("[rag_history] created session thread_id=%s", thread_id)
-        return _histories[thread_id]
-
-
-def clear_rag_history(thread_id: str) -> None:
-    with _lock:
-        _histories.pop(thread_id, None)
-    logger.info("[rag_history] cleared session thread_id=%s", thread_id)
-
-
-def trim_rag_history(history: InMemoryChatMessageHistory) -> None:
-    excess = len(history.messages) - MAX_RAG_HISTORY_MESSAGES
-    if excess <= 0:
-        return
-    with _lock:
-        del history.messages[:excess]
-    logger.debug(
-        "[rag_history] trimmed %d message(s), remaining=%d",
-        excess,
-        len(history.messages),
-    )
-
-
-def append_turn(history: InMemoryChatMessageHistory, user_text: str, assistant_text: str) -> None:
-    history.add_user_message(user_text)
-    history.add_ai_message(assistant_text)
-    trim_rag_history(history)
+def _db_messages_to_langchain(messages) -> List[BaseMessage]:
+    lc: List[BaseMessage] = []
+    for msg in messages:
+        if msg.role == ChatMessageRole.USER:
+            lc.append(HumanMessage(content=msg.content))
+        else:
+            lc.append(AIMessage(content=msg.content))
+    return lc
 
 
 def format_conversation_history(
     messages: list[BaseMessage],
     *,
+    summary: Optional[str] = None,
     exclude_last_user: bool = True,
 ) -> str:
-    """Render prior turns for the ReAct prompt (excludes the current question)."""
+    """Render prior turns (+ optional summary) for the ReAct prompt."""
+    parts: list[str] = []
+
+    if summary:
+        parts.append("## Conversation summary")
+        parts.append(summary.strip())
+        parts.append("")
+
     lines: list[str] = []
     iterable = messages[:-1] if exclude_last_user and messages else messages
 
@@ -73,7 +61,107 @@ def format_conversation_history(
         elif isinstance(message, AIMessage):
             lines.append(f"Assistant: {message.content}")
 
-    if not lines:
+    if lines:
+        parts.append("## Recent messages")
+        parts.extend(lines)
+        parts.append("")
+
+    if not parts:
         return ""
 
-    return "## Prior conversation\n" + "\n".join(lines) + "\n\n"
+    return "\n".join(parts)
+
+
+def _build_summarization_prompt(existing_summary: Optional[str], messages) -> str:
+    lines = []
+    if existing_summary:
+        lines.append(f"Existing summary:\n{existing_summary}\n")
+    lines.append("Conversation to summarize:")
+    for msg in messages:
+        role = "User" if msg.role == ChatMessageRole.USER else "Assistant"
+        lines.append(f"{role}: {msg.content}")
+    lines.append(
+        "\nWrite a concise summary capturing key facts: candidate names, IDs, "
+        "scores, skills, and decisions discussed. Keep it under 400 words."
+    )
+    return "\n".join(lines)
+
+
+async def _summarize_messages(
+    existing_summary: Optional[str],
+    messages,
+) -> str:
+    from stores.llm.llm_config import llm_rag
+
+    prompt = _build_summarization_prompt(existing_summary, messages)
+    raw = await asyncio.to_thread(llm_rag.generate, prompt)
+    return raw["results"][0]["generated_text"].strip()
+
+
+class RAGSummaryBufferMemory:
+    """ConversationSummaryBufferMemory-style helper backed by PostgreSQL."""
+
+    @staticmethod
+    async def load_prompt_context(
+        db: AsyncSession,
+        external_id: str,
+    ) -> Tuple[Optional[str], List[BaseMessage]]:
+        thread = await get_thread_by_external_id(db, external_id)
+        if not thread:
+            return None, []
+
+        db_messages = await get_messages_by_thread(db, thread.id)
+        total = len(db_messages)
+
+        if total <= RAG_MEMORY_BUFFER_MESSAGES:
+            return thread.summary, _db_messages_to_langchain(db_messages)
+
+        if total <= RAG_MEMORY_SUMMARY_THRESHOLD:
+            return thread.summary, _db_messages_to_langchain(db_messages)
+
+        buffer_count = RAG_MEMORY_BUFFER_MESSAGES
+        recent = db_messages[-buffer_count:]
+        return thread.summary, _db_messages_to_langchain(recent)
+
+    @staticmethod
+    async def maybe_update_summary(db: AsyncSession, external_id: str) -> None:
+        thread = await get_thread_by_external_id(db, external_id)
+        if not thread:
+            return
+
+        db_messages = await get_messages_by_thread(db, thread.id)
+        total = len(db_messages)
+        if total <= RAG_MEMORY_SUMMARY_THRESHOLD:
+            return
+
+        buffer_count = RAG_MEMORY_BUFFER_MESSAGES
+        to_summarize = db_messages[: total - buffer_count]
+        if not to_summarize:
+            return
+
+        try:
+            new_summary = await _summarize_messages(thread.summary, to_summarize)
+            await update_thread_summary(db, thread.id, new_summary)
+            logger.info(
+                "[rag_history] updated summary thread=%s summarized=%d messages",
+                external_id,
+                len(to_summarize),
+            )
+        except Exception:
+            logger.exception("[rag_history] failed to summarize thread=%s", external_id)
+
+    @staticmethod
+    async def append_turn(
+        db: AsyncSession,
+        external_id: str,
+        user_text: str,
+        assistant_text: str,
+    ) -> None:
+        thread = await get_thread_by_external_id(db, external_id)
+        if not thread:
+            logger.warning("[rag_history] append_turn unknown thread=%s", external_id)
+            return
+
+        await append_chat_message(db, thread.id, ChatMessageRole.USER, user_text)
+        await append_chat_message(db, thread.id, ChatMessageRole.ASSISTANT, assistant_text)
+        await RAGSummaryBufferMemory.maybe_update_summary(db, external_id)

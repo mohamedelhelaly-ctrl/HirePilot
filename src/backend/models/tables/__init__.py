@@ -9,3 +9,5 @@ from .screening_result import ScreeningResult
 from .status_history import StatusHistory
 from .transcript_chunk import TranscriptChunk
 from .user import User
+from .chat_thread import ChatThread
+from .chat_message import ChatMessage

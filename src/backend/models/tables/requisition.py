@@ -37,3 +37,4 @@ class Requisition(Base):
     # Relationships
     hiring_manager = relationship("User", back_populates="assigned_requisitions")
     applications = relationship("Application", back_populates="requisition", cascade="all, delete-orphan")
+    chat_threads = relationship("ChatThread", back_populates="requisition", cascade="all, delete-orphan")

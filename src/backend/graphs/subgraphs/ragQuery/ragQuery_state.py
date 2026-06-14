@@ -20,7 +20,10 @@ class RAGQueryState(TypedDict):
     """User making the query (for access control and logging)"""
 
     chat_thread_id: Optional[str]
-    """In-memory conversation session key for LangChain chat history"""
+    """Persistent conversation session key (chat_threads.external_id)"""
+
+    conversation_summary: Optional[str]
+    """Rolling summary of pruned conversation history"""
     
     # Agent fields
     messages: List[BaseMessage]

@@ -9,3 +9,4 @@ from .screening_result_crud import *
 from .status_history_crud import *
 from .transcript_chunk_crud import *
 from .user_crud import *
+from .chat_crud import *

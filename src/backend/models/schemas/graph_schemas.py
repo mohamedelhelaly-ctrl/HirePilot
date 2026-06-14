@@ -45,7 +45,7 @@ class GraphExecuteRequest(BaseModel):
     )
     chat_thread_id: Optional[str] = Field(
         None,
-        description="RAG chat session id for in-memory conversation history",
+        description="Persistent chat thread external_id (chat_threads.external_id)",
     )
     user_id: Optional[int] = Field(
         None,
