@@ -96,7 +96,8 @@ def verify_google_token(id_token_str: str) -> Dict[str, Any]:
         payload = id_token.verify_oauth2_token(
             id_token_str,
             requests.Request(),
-            GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_ID,
+            clock_skew_in_seconds=60,
         )
         return payload
     except ValueError as e:

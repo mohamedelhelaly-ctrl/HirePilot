@@ -64,7 +64,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-FOLLOWUP_INTERVAL_SECONDS = 60   # How often to generate a follow-up question
+FOLLOWUP_INTERVAL_SECONDS = 30   # How often to generate a follow-up question
 MIN_NEW_CHARS_FOR_FOLLOWUP = 150  # Don't fire if barely anything new was said
 
 
@@ -85,6 +85,7 @@ class _Session:
         "last_followup_question",   # str | None
         "transcript_at_last_followup",  # how many chars were in transcript when we last fired
         "interview_start_time",     # datetime
+        "pending_db_tasks",         # asyncio.Task — in-flight transcript chunk writes
     )
 
     def __init__(self):
@@ -102,6 +103,7 @@ class _Session:
         self.last_followup_question: str | None = None
         self.transcript_at_last_followup: int = 0
         self.interview_start_time: datetime = datetime.now(timezone.utc)
+        self.pending_db_tasks: list[asyncio.Task] = []
 
     @property
     def full_transcript(self) -> str:
@@ -340,17 +342,11 @@ async def interview_stream(websocket: WebSocket):
 
                 # ── Transcribe ────────────────────────────────────────────────
                 await _send(websocket, {"type": "status", "status": "transcribing"})
-                try:
-                    text = await transcribe_chunk(
-                        audio_bytes,
-                        session_id=ws_session_key,
-                        audio_format=audio_format,
-                    )
-                except Exception as exc:
-                    logger.warning(
-                        f"[Interview {sess.session_id}] Transcription error: {exc}"
-                    )
-                    text = ""
+                text = await transcribe_chunk(
+                    audio_bytes,
+                    session_id=ws_session_key,
+                    audio_format=audio_format,
+                )
 
                 if not text:
                     continue  # silent chunk — nothing to do
@@ -384,7 +380,12 @@ async def interview_stream(websocket: WebSocket):
                             f"[Interview {sess.session_id}] Chunk DB save failed: {exc}"
                         )
 
-                asyncio.create_task(_save_chunk(text, sess.chunk_sequence))
+                sess.pending_db_tasks = [
+                    t for t in sess.pending_db_tasks if not t.done()
+                ]
+                sess.pending_db_tasks.append(
+                    asyncio.create_task(_save_chunk(text, sess.chunk_sequence))
+                )
 
                 # ── Follow-up timer check ─────────────────────────────────────
                 if _should_generate_followup(sess):
@@ -404,6 +405,17 @@ async def interview_stream(websocket: WebSocket):
                 })
 
                 end_time = datetime.now(timezone.utc)
+
+                # Wait for in-flight per-chunk DB writes before final save
+                pending = [t for t in sess.pending_db_tasks if not t.done()]
+                if pending:
+                    results = await asyncio.gather(*pending, return_exceptions=True)
+                    for exc in results:
+                        if isinstance(exc, Exception):
+                            logger.warning(
+                                f"[Interview {sess.session_id}] Chunk DB task failed before save: {exc}"
+                            )
+                sess.pending_db_tasks.clear()
 
                 # Invoke post-interview subgraph
                 subgraph_input = LiveInterviewState(

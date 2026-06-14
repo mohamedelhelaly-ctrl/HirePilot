@@ -215,12 +215,18 @@ export const sendInterviewInit = (
 /**
  * Send a base64-encoded audio chunk to the server.
  */
-export const sendAudioChunk = (ws, audioBase64, audioFormat = "webm") => {
+export const sendAudioChunk = (
+  ws,
+  audioBase64,
+  audioFormat = "webm",
+  audioSource = "microphone"
+) => {
   ws.send(
     JSON.stringify({
       type: "audio_chunk",
       audio_data: audioBase64,
       audio_format: audioFormat,
+      audio_source: audioSource,
     })
   );
 };
