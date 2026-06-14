@@ -8,12 +8,16 @@ from langchain_groq import ChatGroq
 load_dotenv()
 
 logger = logging.getLogger(__name__)
-BASE_URL = os.getenv("BASE_URL", "http://localhost:11434")
-MODEL = os.getenv("BASE_MODEL", "qwen2.5:3b-instruct")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+OLLAMA_MODEL = os.getenv("BASE_MODEL", "qwen2.5:3b-instruct")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 class UnifiedLLM:
-    def __init__(self, model_name=MODEL, temperature=0.7, max_tokens=2048, provider="groq"):
+    def __init__(self, model_name=None, temperature=0.7, max_tokens=2048, provider="groq"):
+        if model_name is None:
+            model_name = GROQ_MODEL if provider in ("groq", "langchain-groq") else OLLAMA_MODEL
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -65,7 +69,7 @@ class UnifiedLLM:
 
     def _generate_ollama(self, prompt: str):
         """Generate using local Ollama (OpenAI-compatible endpoint)"""
-        url = f"{BASE_URL}/v1/chat/completions"
+        url = f"{OLLAMA_BASE_URL}/v1/chat/completions"
         headers = {"Content-Type": "application/json"}
         data = {
             "model": self.model_name,
@@ -82,7 +86,10 @@ class UnifiedLLM:
 
     def _generate_groq(self, prompt: str):
         """Generate using Groq API (OpenAI-compatible endpoint)"""
-        url = f"{BASE_URL}/chat/completions"
+        if not GROQ_API_KEY:
+            raise ValueError("GROQ_API_KEY is not set")
+
+        url = f"{GROQ_BASE_URL}/chat/completions"
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {GROQ_API_KEY}"
@@ -122,23 +129,22 @@ class UnifiedLLM:
 ### Model Instances ###
 
 # Fast classification / routing (low temp for determinism)
-llm_routing = UnifiedLLM(MODEL, temperature=0.1, provider="groq")
+llm_routing = UnifiedLLM(temperature=0.1, provider="groq")
 
 # General reasoning / chat
-llm_generic = UnifiedLLM(MODEL, temperature=0.7, provider="ollama")
+llm_generic = UnifiedLLM(temperature=0.7, provider="groq")
 
 # Structured extraction
-llm_extraction = UnifiedLLM(MODEL, temperature=0.3, provider="groq")
+llm_extraction = UnifiedLLM(temperature=0.3, provider="groq")
 
 # Retrieval-Augmented Generation (larger model for context)
 llm_rag = UnifiedLLM(
-    model_name=MODEL,
     temperature=0.7,
     provider="langchain-groq"
 )
 
 # SQL / deterministic (low temp for precision)
-llm_sql = UnifiedLLM(MODEL, temperature=0.1, provider="groq")
+llm_sql = UnifiedLLM(temperature=0.1, provider="groq")
 
 # ==========================================================
 # 🔍 Test Run

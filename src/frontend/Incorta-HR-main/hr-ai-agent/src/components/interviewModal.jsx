@@ -5,7 +5,6 @@ import {
   sendInterviewInit,
   sendAudioChunk,
   sendEndInterview,
-  blobToBase64,
   getOrCreateInterviewSession,
   INTERVIEW_TYPES,
   INTERVIEW_TYPE_OPTIONS,
@@ -40,8 +39,17 @@ export default function InterviewModal({
   const wsRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
+  const segmentTimerRef = useRef(null);
+  const isEndingRef = useRef(false);
 
   const cleanupMedia = useCallback(() => {
+    isEndingRef.current = true;
+
+    if (segmentTimerRef.current) {
+      clearInterval(segmentTimerRef.current);
+      segmentTimerRef.current = null;
+    }
+
     if (mediaRecorderRef.current?.state !== "inactive") {
       try {
         mediaRecorderRef.current?.stop();
@@ -111,28 +119,92 @@ export default function InterviewModal({
     return () => intervals.forEach(clearInterval);
   }, [isRecording]);
 
-  const startMediaCapture = useCallback(async (ws) => {
+  const startMediaCapture = useCallback(async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaStreamRef.current = stream;
 
-    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-      ? "audio/webm;codecs=opus"
-      : "audio/webm";
+    const mimeType = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/ogg;codecs=opus",
+      "audio/ogg",
+      "audio/mp4",
+    ].find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
 
-    const recorder = new MediaRecorder(stream, { mimeType });
-    mediaRecorderRef.current = recorder;
+    const fmt = mimeType.includes("ogg")
+      ? "ogg"
+      : mimeType.includes("mp4")
+        ? "mp4"
+        : "webm";
 
-    recorder.ondataavailable = async (event) => {
-      if (!event.data?.size || ws.readyState !== WebSocket.OPEN) return;
-      try {
-        const base64 = await blobToBase64(event.data);
-        sendAudioChunk(ws, base64, "webm");
-      } catch (err) {
-        console.error("Failed to send audio chunk:", err);
-      }
+    isEndingRef.current = false;
+
+    const startSegment = () => {
+      if (isEndingRef.current || !mediaStreamRef.current) return;
+
+      const segmentChunks = [];
+      const recorder = new MediaRecorder(
+        mediaStreamRef.current,
+        mimeType ? { mimeType } : undefined
+      );
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) segmentChunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const socket = wsRef.current;
+
+        const restartOrEnd = () => {
+          if (!isEndingRef.current) {
+            startSegment();
+          } else {
+            mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+            setTimeout(() => {
+              if (wsRef.current?.readyState === WebSocket.OPEN) {
+                sendEndInterview(wsRef.current);
+              }
+            }, 300);
+          }
+        };
+
+        if (segmentChunks.length === 0 || !socket || socket.readyState !== WebSocket.OPEN) {
+          restartOrEnd();
+          return;
+        }
+
+        const blob = new Blob(segmentChunks, { type: mimeType || "audio/webm" });
+        if (blob.size < 500) {
+          restartOrEnd();
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          const b64 = String(reader.result).split(",")[1];
+          if (b64 && socket.readyState === WebSocket.OPEN) {
+            sendAudioChunk(socket, b64, fmt, "microphone");
+          }
+          restartOrEnd();
+        };
+        reader.onerror = () => {
+          console.error("Failed to read audio chunk");
+          restartOrEnd();
+        };
+        reader.readAsDataURL(blob);
+      };
+
+      recorder.start();
     };
 
-    recorder.start(CHUNK_INTERVAL_MS);
+    startSegment();
+
+    segmentTimerRef.current = setInterval(() => {
+      if (mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+    }, CHUNK_INTERVAL_MS);
   }, []);
 
   const handleWsMessage = useCallback(async (msg) => {
@@ -141,7 +213,7 @@ export default function InterviewModal({
         setStatus("Interview started");
         setIsConnecting(false);
         try {
-          await startMediaCapture(wsRef.current);
+          await startMediaCapture();
           setIsRecording(true);
         } catch (err) {
           setError(err.message || "Microphone access denied");
@@ -222,9 +294,27 @@ export default function InterviewModal({
     }
 
     setIsEnding(true);
+    setIsRecording(false);
     setStatus("generating_summary");
-    cleanupMedia();
-    sendEndInterview(wsRef.current);
+
+    if (segmentTimerRef.current) {
+      clearInterval(segmentTimerRef.current);
+      segmentTimerRef.current = null;
+    }
+
+    isEndingRef.current = true;
+
+    const rec = mediaRecorderRef.current;
+    if (rec && rec.state === "recording") {
+      rec.stop();
+    } else {
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+      setTimeout(() => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          sendEndInterview(wsRef.current);
+        }
+      }, 100);
+    }
   };
 
   const formatTime = (seconds) => {

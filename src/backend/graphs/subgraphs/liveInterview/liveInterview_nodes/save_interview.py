@@ -6,7 +6,7 @@ Responsibilities:
 2. Update Application row: overall_interview_score, last_interview_completed_at,
    status → INTERVIEW_COMPLETED
 3. Increment new_interview_counter on Requisition
-4. If counter >= threshold → trigger batch screening (background, non-blocking)
+4. (disabled) If counter >= threshold → trigger batch screening
 """
 
 import sys
@@ -29,10 +29,54 @@ interview_controller = InterviewController()
 logger = logging.getLogger(__name__)
 
 
+# Disabled until interview screening threshold is decided.
+# async def _trigger_background_screening(requisition_id: int) -> None:
+#     """Run batch screening on a dedicated DB session (never share the save session)."""
+#     from graphs.maingraph import main_graph
+#     from graphs.state import OrchestratorState
+#
+#     try:
+#         async with AsyncSessionLocal() as db:
+#             await req_controller.set_screening_in_progress(
+#                 db, requisition_id, value=True
+#             )
+#
+#         graph_state = OrchestratorState(
+#             intent="batch_screening",
+#             requisition_id=requisition_id,
+#             manual_trigger=False,
+#         )
+#         raw = await main_graph.ainvoke(graph_state)
+#         final = (
+#             raw if isinstance(raw, OrchestratorState)
+#             else OrchestratorState(**raw)
+#         )
+#         success = not bool(final.error)
+#
+#         async with AsyncSessionLocal() as db:
+#             await req_controller.set_screening_in_progress(
+#                 db, requisition_id,
+#                 value=False,
+#                 reset_counter=success,
+#             )
+#     except Exception as exc:
+#         logger.error(
+#             f"[Node 2] Background screening trigger failed: {exc}",
+#             exc_info=True,
+#         )
+#         try:
+#             async with AsyncSessionLocal() as db:
+#                 await req_controller.set_screening_in_progress(
+#                     db, requisition_id, value=False
+#                 )
+#         except Exception:
+#             pass
+
+
 async def save_interview_node(state: LiveInterviewState) -> LiveInterviewState:
     """
-    Node 2: Persist all interview results to PostgreSQL and trigger
-    re-screening if the interview threshold is met.
+    Node 2: Persist all interview results to PostgreSQL.
+    (Post-interview batch screening trigger is disabled for now.)
 
     Reads:
         state.session_id
@@ -116,56 +160,18 @@ async def save_interview_node(state: LiveInterviewState) -> LiveInterviewState:
                 f"counter={requisition.new_interview_counter if requisition else '?'}"
             )
 
-            # ── 4. Check threshold → trigger batch screening ──────────────────
-            if (
-                requisition
-                and requisition.new_interview_counter >= requisition.new_interview_threshold
-                and not requisition.screening_in_progress
-            ):
-                logger.info(
-                    f"[Node 2] Interview threshold met for "
-                    f"requisition_id={state.requisition_id} — "
-                    "triggering batch screening in background"
-                )
-                # Fire-and-forget — import here to avoid circular imports
-                import asyncio
-                from graphs.maingraph import main_graph
-                from graphs.state import OrchestratorState
-
-                async def _trigger():
-                    try:
-                        await req_controller.set_screening_in_progress(
-                            db, state.requisition_id, value=True
-                        )
-                        
-                        graph_state = OrchestratorState(
-                            intent="batch_screening",
-                            requisition_id=state.requisition_id,
-                            manual_trigger=False,
-                        )
-                        raw = await main_graph.ainvoke(graph_state)
-                        final = (
-                            raw if isinstance(raw, OrchestratorState)
-                            else OrchestratorState(**raw)
-                        )
-                        success = not bool(final.error)
-                        await req_controller.set_screening_in_progress(
-                            db, state.requisition_id,
-                            value=False,
-                            reset_counter=success,
-                        )
-                    except Exception as exc:
-                        logger.error(
-                            f"[Node 2] Background screening trigger failed: {exc}"
-                        )
-                        try:
-                            await req_controller.set_screening_in_progress(
-                                db, state.requisition_id, value=False
-                            )
-                        except Exception:
-                            pass
-
-                asyncio.create_task(_trigger())
+            # ── 4. Check threshold → trigger batch screening (disabled) ───────
+            # if (
+            #     requisition
+            #     and requisition.new_interview_counter >= requisition.new_interview_threshold
+            #     and not requisition.screening_in_progress
+            # ):
+            #     should_trigger_screening = True
+            #     logger.info(
+            #         f"[Node 2] Interview threshold met for "
+            #         f"requisition_id={state.requisition_id} — "
+            #         "will trigger batch screening after save"
+            #     )
 
         state.saved = True
         logger.info(f"[Node 2] Interview results saved for session_id={state.session_id}")
@@ -173,6 +179,11 @@ async def save_interview_node(state: LiveInterviewState) -> LiveInterviewState:
     except Exception as exc:
         state.error = f"[Node 2] DB save failed: {exc}"
         logger.error(state.error, exc_info=True)
+        return state
+
+    # if should_trigger_screening:
+    #     import asyncio
+    #     asyncio.create_task(_trigger_background_screening(state.requisition_id))
 
     return state
 

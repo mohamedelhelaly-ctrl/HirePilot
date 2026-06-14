@@ -4,21 +4,23 @@ Whisper Service — Local Model Singleton
 Handles real-time audio transcription and Arabic/English → English translation
 using a local HuggingFace Whisper model loaded once at startup.
 
-Adapted from the work project's local_whisper_service.py with:
-- Proper async/await (no asyncio.run inside async context)
-- Session buffer management for overlap handling
-- Clean singleton pattern matching the rest of this codebase
-- Graceful degradation on ffmpeg/model errors
+Mirrors talent-acquisition-agent/src/services/local_whisper_service.py:
+- ffmpeg -i pipe:0 (auto-detect format; no byte-concatenation of chunks)
+- Session buffer for deduplication only
+- Tempfile fallback when pipe decode fails (extension hint, no forced -f)
 
 Environment variables:
     WHISPER_MODEL_NAME   — HuggingFace model ID or local path (default: openai/whisper-small)
     WHISPER_DEVICE       — "cuda" or "cpu" (default: auto-detect)
+    FFMPEG_PATH          — Path to ffmpeg binary (default: ffmpeg on PATH)
 """
 
 import hashlib
 import logging
 import os
+import shutil
 import subprocess
+import tempfile
 from collections import deque
 
 import numpy as np
@@ -30,40 +32,59 @@ logger = logging.getLogger(__name__)
 # ── Configuration ─────────────────────────────────────────────────────────────
 MODEL_NAME = os.getenv("WHISPER_MODEL_NAME", "openai/whisper-small")
 DEVICE     = os.getenv("WHISPER_DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
+FFMPEG_BIN = os.getenv("FFMPEG_PATH", "ffmpeg")
 
-# How many previous audio chunks to prepend for overlap handling
-# (reduces word cut-off at chunk boundaries)
 OVERLAP_BUFFER_SIZE = 2
+
+_CHUNK_SAMPLES  = 25 * 16000
+_STRIDE_SAMPLES = 2 * 16000
+
+_FORMAT_EXTENSIONS = {
+    "webm": ".webm",
+    "ogg":  ".ogg",
+    "mp4":  ".mp4",
+    "wav":  ".wav",
+    "mp3":  ".mp3",
+}
 
 # ── Singleton state ───────────────────────────────────────────────────────────
 _processor: WhisperProcessor | None = None
 _model: WhisperForConditionalGeneration | None = None
-
-# Per-session overlap buffers: session_id → deque of (hash, bytes)
+_ffmpeg_path: str | None = None
 _session_buffers: dict[str, deque] = {}
 
 
+def _resolve_ffmpeg() -> str:
+    global _ffmpeg_path
+    if _ffmpeg_path:
+        return _ffmpeg_path
+
+    candidate = shutil.which(FFMPEG_BIN) or (
+        FFMPEG_BIN if os.path.isfile(FFMPEG_BIN) else None
+    )
+    if not candidate:
+        raise RuntimeError(
+            "ffmpeg is required but not found. Install ffmpeg or set FFMPEG_PATH in .env"
+        )
+    _ffmpeg_path = candidate
+    return _ffmpeg_path
+
+
 def load_whisper() -> None:
-    """
-    Load the Whisper model and processor into memory.
-    Called once at application startup via the FastAPI lifespan.
-    Subsequent calls are no-ops.
-    """
     global _processor, _model
 
     if _processor is not None and _model is not None:
-        logger.debug("[Whisper] Model already loaded — skipping")
         return
 
+    logger.info(f"[Whisper] Using ffmpeg at: {_resolve_ffmpeg()}")
     logger.info(f"[Whisper] Loading model '{MODEL_NAME}' on {DEVICE}...")
     _processor = WhisperProcessor.from_pretrained(MODEL_NAME)
     _model = WhisperForConditionalGeneration.from_pretrained(MODEL_NAME).to(DEVICE)
     _model.config.forced_decoder_ids = None
-    logger.info(f"[Whisper] ✅ Model loaded successfully on {DEVICE}")
+    logger.info(f"[Whisper] Model loaded successfully on {DEVICE}")
 
 
 def unload_whisper() -> None:
-    """Release model from memory on shutdown."""
     global _processor, _model
     if _model is not None:
         del _model
@@ -71,10 +92,7 @@ def unload_whisper() -> None:
     if _processor is not None:
         del _processor
         _processor = None
-    logger.info("[Whisper] Model unloaded")
 
-
-# ── Internal helpers ──────────────────────────────────────────────────────────
 
 def _get_processor() -> WhisperProcessor:
     if _processor is None:
@@ -92,103 +110,77 @@ def _chunk_hash(audio_data: bytes) -> str:
     return hashlib.md5(audio_data).hexdigest()
 
 
-def _load_audio_tensor(audio_data: bytes) -> torch.Tensor:
-    """
-    Decode audio bytes (any format: webm, wav, mp3, ogg…) to a
-    mono 16 kHz float32 tensor using ffmpeg.
+def _pcm_to_tensor(pcm_data: bytes) -> torch.Tensor:
+    if not pcm_data:
+        return torch.tensor([])
+    audio_array = np.frombuffer(pcm_data, dtype=np.int16).astype(np.float32) / 32768.0
+    return torch.from_numpy(audio_array).float()
 
-    Raises:
-        RuntimeError: if ffmpeg is not installed or conversion fails.
+
+def load_audio_from_bytes(audio_data: bytes, audio_format: str = "webm") -> torch.Tensor:
     """
+    Decode audio bytes to a mono 16 kHz float32 tensor.
+
+    Primary path matches the Talent reference: ffmpeg reads from stdin and
+    auto-detects the container (WebM/WAV/OGG/MP4).
+
+    If pipe decode fails, retry via a tempfile with the client format extension
+    so ffmpeg can probe from the filename — never force-decode WebM as WAV.
+    """
+    if not audio_data:
+        return torch.tensor([])
+
+    ffmpeg = _resolve_ffmpeg()
+    output_args = ["-f", "s16le", "-ac", "1", "-ar", "16000", "pipe:1"]
+    errors: list[str] = []
+
+    # ── Strategy 1: stdin pipe (Talent reference) ─────────────────────────────
     process = subprocess.Popen(
-        [
-            "ffmpeg",
-            "-i", "pipe:0",
-            "-f", "s16le",
-            "-ac", "1",
-            "-ar", "16000",
-            "-loglevel", "quiet",
-            "pipe:1",
-        ],
+        [ffmpeg, "-i", "pipe:0", *output_args],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
     pcm_data, stderr = process.communicate(input=audio_data)
+    if process.returncode == 0 and pcm_data:
+        return _pcm_to_tensor(pcm_data)
+    if stderr:
+        errors.append(f"pipe: {stderr.decode(errors='replace')[:300]}")
 
-    if process.returncode != 0:
-        raise RuntimeError(f"ffmpeg conversion failed: {stderr.decode()[:200]}")
-
-    audio_array = np.frombuffer(pcm_data, dtype=np.int16).astype(np.float32) / 32768.0
-    return torch.from_numpy(audio_array).float()
-
-
-# ── Public API ────────────────────────────────────────────────────────────────
-
-async def transcribe_chunk(
-    audio_data: bytes,
-    session_id: str,
-    audio_format: str = "webm",
-) -> str:
-    """
-    Transcribe and translate one audio chunk to English.
-
-    Handles Arabic, English, and mixed-language audio by forcing
-    Whisper into translate mode (always outputs English).
-
-    Uses a per-session overlap buffer to prepend the last
-    OVERLAP_BUFFER_SIZE chunks before the current one, reducing
-    word cut-offs at chunk boundaries.  Duplicate chunks (same hash)
-    are silently skipped.
-
-    Args:
-        audio_data:   Raw audio bytes (any format supported by ffmpeg).
-        session_id:   Unique identifier for this interview session.
-                      Used to maintain the overlap buffer.
-        audio_format: Hint for logging only — ffmpeg auto-detects.
-
-    Returns:
-        Transcribed/translated text in English, or "" on empty/silent input.
-
-    Raises:
-        RuntimeError: if model not loaded or ffmpeg not available.
-    """
-    if not audio_data:
-        return ""
-
-    # ── Overlap buffer management ─────────────────────────────────────────────
-    if session_id not in _session_buffers:
-        _session_buffers[session_id] = deque(maxlen=OVERLAP_BUFFER_SIZE)
-
-    buf = _session_buffers[session_id]
-    chunk_hash = _chunk_hash(audio_data)
-
-    # Skip exact duplicates (client may resend on reconnect)
-    existing_hashes = {h for h, _ in buf}
-    if chunk_hash in existing_hashes:
-        logger.debug(f"[Whisper] Duplicate chunk skipped (session={session_id[:8]})")
-        return ""
-
-    # Build audio with overlap context
-    buffered = b"".join(chunk for _, chunk in buf) + audio_data
-    buf.append((chunk_hash, audio_data))
-
-    # ── Audio → tensor ────────────────────────────────────────────────────────
+    # ── Strategy 2: tempfile with format extension (auto-detect) ────────────
+    fmt = (audio_format or "webm").lower().lstrip(".")
+    ext = _FORMAT_EXTENSIONS.get(fmt, ".webm")
+    tmp_path = None
     try:
-        audio_tensor = _load_audio_tensor(buffered)
-    except RuntimeError as exc:
-        logger.warning(f"[Whisper] Audio decode failed (session={session_id[:8]}): {exc}")
-        return ""
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            tmp.write(audio_data)
+            tmp_path = tmp.name
 
-    if audio_tensor.numel() == 0:
-        return ""
+        result = subprocess.run(
+            [ffmpeg, "-y", "-i", tmp_path, *output_args],
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout:
+            return _pcm_to_tensor(result.stdout)
+        if result.stderr:
+            errors.append(f"file({ext}): {result.stderr.decode(errors='replace')[:300]}")
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
-    # ── Inference ─────────────────────────────────────────────────────────────
+    raise RuntimeError(
+        f"ffmpeg decode failed ({len(audio_data)} bytes, fmt={fmt}): "
+        + " | ".join(errors) or "unknown error"
+    )
+
+
+def _transcribe_tensor_chunk(chunk: torch.Tensor) -> str:
     processor = _get_processor()
     model     = _get_model()
 
     input_features = processor(
-        audio_tensor,
+        chunk,
         sampling_rate=16000,
         return_tensors="pt",
     ).input_features.to(DEVICE)
@@ -203,12 +195,74 @@ async def transcribe_chunk(
             forced_decoder_ids=forced_decoder_ids,
         )
 
-    text = processor.batch_decode(predicted_ids, skip_special_tokens=True)[0].strip()
-    logger.debug(f"[Whisper] Transcribed (session={session_id[:8]}): {text[:80]}")
+    return processor.batch_decode(predicted_ids, skip_special_tokens=True)[0].strip()
+
+
+def _transcribe_full_tensor(audio_tensor: torch.Tensor) -> str:
+    total = audio_tensor.shape[0]
+    if total <= _CHUNK_SAMPLES:
+        return _transcribe_tensor_chunk(audio_tensor)
+
+    parts: list[str] = []
+    start = 0
+    while start < total:
+        end = min(start + _CHUNK_SAMPLES, total)
+        text = _transcribe_tensor_chunk(audio_tensor[start:end])
+        if text:
+            parts.append(text)
+        start += _CHUNK_SAMPLES - _STRIDE_SAMPLES
+
+    return " ".join(parts)
+
+
+async def transcribe_chunk(
+    audio_data: bytes,
+    session_id: str,
+    audio_format: str = "webm",
+) -> str:
+    """
+    Transcribe and translate one self-contained audio chunk to English.
+
+    Each chunk is processed independently (no byte concatenation).
+    """
+    if not audio_data:
+        return ""
+
+    if session_id not in _session_buffers:
+        _session_buffers[session_id] = deque(maxlen=OVERLAP_BUFFER_SIZE)
+
+    buf = _session_buffers[session_id]
+    chunk_hash = _chunk_hash(audio_data)
+
+    if chunk_hash in {h for h, _ in buf}:
+        logger.debug(f"[Whisper] Duplicate chunk skipped (session={session_id[:8]})")
+        return ""
+
+    try:
+        audio_tensor = load_audio_from_bytes(audio_data, audio_format)
+    except RuntimeError as exc:
+        logger.warning(f"[Whisper] Audio decode failed (session={session_id[:8]}): {exc}")
+        return ""
+
+    # Record only after successful decode (allows format retries upstream)
+    buf.append((chunk_hash, audio_data))
+
+    if audio_tensor.numel() == 0:
+        return ""
+
+    try:
+        text = _transcribe_full_tensor(audio_tensor)
+    except Exception as exc:
+        logger.warning(f"[Whisper] Transcription failed (session={session_id[:8]}): {exc}")
+        return ""
+
+    if text:
+        logger.info(
+            f"[Whisper] Transcribed (session={session_id[:8]}, fmt={audio_format}, "
+            f"{len(audio_data)} bytes, {audio_tensor.shape[0] / 16000:.1f}s): {text[:80]}"
+        )
     return text
 
 
 def clear_session_buffer(session_id: str) -> None:
-    """Remove the overlap buffer for a session when it ends."""
     _session_buffers.pop(session_id, None)
-    logger.debug(f"[Whisper] Buffer cleared for session={session_id[:8]}")
