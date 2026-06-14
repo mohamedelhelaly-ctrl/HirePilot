@@ -146,6 +146,22 @@ llm_rag = UnifiedLLM(
 # SQL / deterministic (low temp for precision)
 llm_sql = UnifiedLLM(temperature=0.1, provider="groq")
 
+# ── Provider switch (temporary Watsonx testing) ─────────────────────────────
+# Set LLM_PROVIDER=watsonx in .env to use IBM Watsonx instead of Groq.
+# Requires WATSON_APIKEY and PROJECT_ID (same as talent-acquisition-agent).
+
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq").strip().lower()
+
+if LLM_PROVIDER == "watsonx":
+    from stores.llm import watsonx_config as _wx
+
+    llm_routing = _wx.llm_classification
+    llm_generic = _wx.llm_generic
+    llm_extraction = _wx.llm_extraction
+    llm_rag = _wx.llm_generic
+    llm_sql = _wx.llm_classification
+    logger.info("LLM provider: watsonx (temporary testing config)")
+
 # ==========================================================
 # 🔍 Test Run
 # ==========================================================

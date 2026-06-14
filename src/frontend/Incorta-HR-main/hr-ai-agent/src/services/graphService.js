@@ -48,13 +48,15 @@ export const executeGraph = async (payload) => {
 };
 
 /**
- * Ask the RAG chatbot about candidates for a specific requisition
+ * Ask the RAG chatbot about candidates for a specific requisition.
+ * Pass chatThreadId to continue an in-memory conversation on the backend.
  */
-export const queryRagChatbot = async (requisitionId, queryText) => {
+export const queryRagChatbot = async (requisitionId, queryText, chatThreadId = null) => {
   return executeGraph({
     intent: "rag_query",
     requisition_id: requisitionId,
     query: queryText,
+    ...(chatThreadId && { chat_thread_id: chatThreadId }),
   });
 };
 

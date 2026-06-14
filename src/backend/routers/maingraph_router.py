@@ -114,6 +114,7 @@ async def execute_graph(request: GraphExecuteRequest):
         requisition_id=request.requisition_id,
         user_id=request.user_id,
         query = request.query,
+        chat_thread_id = request.chat_thread_id,
         application_id = request.application_id,
         session_id = request.session_id,
         manual_trigger = request.manual_trigger

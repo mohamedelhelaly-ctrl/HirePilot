@@ -34,6 +34,7 @@ class OrchestratorState(BaseModel):
     ]] = None 
     requisition_id: Optional[int] = None
     query: Optional[str] = None
+    chat_thread_id: Optional[str] = None  # RAG in-memory conversation session key
     user_id: Optional[int] = None # Which HR/Hiring Manager triggered this (for auth/audit)
     messages: Optional[List[BaseMessage]] = None 
     session_id: Optional[int] = None  # For live interview WebSocket sessions

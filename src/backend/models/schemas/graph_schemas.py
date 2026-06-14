@@ -43,6 +43,10 @@ class GraphExecuteRequest(BaseModel):
         None,
         description="Free-text question passed to the rag_query workflow",
     )
+    chat_thread_id: Optional[str] = Field(
+        None,
+        description="RAG chat session id for in-memory conversation history",
+    )
     user_id: Optional[int] = Field(
         None,
         description="HR / Hiring-manager user ID for auth and audit (if applicable)",

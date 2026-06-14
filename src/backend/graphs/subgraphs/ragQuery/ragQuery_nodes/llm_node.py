@@ -24,6 +24,7 @@ from typing import Callable, List, Optional
 from langchain_core.messages import AIMessage, HumanMessage
 
 from ..ragQuery_state import RAGQueryState
+from ..rag_history import format_conversation_history
 
 
 logger = logging.getLogger(__name__)
@@ -97,7 +98,9 @@ def make_llm_node(
 
         logger.info(
             f"[llm_node] starting RAG loop requisition_id={state['requisition_id']} "
-            f"user_id={state['user_id']} available_tools={tool_names}"
+            f"user_id={state['user_id']} chat_thread_id={state.get('chat_thread_id')} "
+            f"history_turns={max(0, len(state['messages']) - 1)} "
+            f"available_tools={tool_names}"
         )
         logger.debug(f"[llm_node] initial query={state.get('query')!r}")
 
@@ -107,8 +110,10 @@ def make_llm_node(
             state.get("query", ""),
         )
 
+        history_block = format_conversation_history(state["messages"])
+
         # Seed the ReAct prompt — model picks up from "Thought:"
-        running = f"{system_prompt}\n\nQuestion: {question}\nThought:"
+        running = f"{system_prompt}\n\n{history_block}Question: {question}\nThought:"
 
         final_answer: Optional[str] = None
         tools_used = False

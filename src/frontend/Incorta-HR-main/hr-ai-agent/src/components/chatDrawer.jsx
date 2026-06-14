@@ -96,7 +96,21 @@ export default function ChatDrawer({ isOpen, onClose, requisitionId, requisition
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [chatThreadId, setChatThreadId] = useState(null);
   const messagesEndRef = useRef(null);
+
+  // Stable thread id for backend in-memory LangChain history (per drawer session)
+  useEffect(() => {
+    if (isOpen && !chatThreadId) {
+      const storedKey = `rag-thread-${requisitionId}`;
+      const existing = sessionStorage.getItem(storedKey);
+      const threadId = existing || `rag-${requisitionId}-${crypto.randomUUID()}`;
+      if (!existing) {
+        sessionStorage.setItem(storedKey, threadId);
+      }
+      setChatThreadId(threadId);
+    }
+  }, [isOpen, requisitionId, chatThreadId]);
 
   // Initialize with a welcoming bot message when drawer opens
   useEffect(() => {
@@ -144,8 +158,13 @@ export default function ChatDrawer({ isOpen, onClose, requisitionId, requisition
 
     try {
       // Call RAG orchestrator graph API
-      const response = await queryRagChatbot(requisitionId, userMessageText);
+      const response = await queryRagChatbot(requisitionId, userMessageText, chatThreadId);
       const botReply = response.result?.response || "I couldn't process that query. Please try again.";
+      const returnedThreadId = response.result?.chat_thread_id;
+      if (returnedThreadId && returnedThreadId !== chatThreadId) {
+        setChatThreadId(returnedThreadId);
+        sessionStorage.setItem(`rag-thread-${requisitionId}`, returnedThreadId);
+      }
 
       // Add bot message
       setMessages((prev) => [

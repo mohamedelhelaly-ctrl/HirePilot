@@ -18,6 +18,9 @@ class RAGQueryState(TypedDict):
     
     user_id: Optional[int]
     """User making the query (for access control and logging)"""
+
+    chat_thread_id: Optional[str]
+    """In-memory conversation session key for LangChain chat history"""
     
     # Agent fields
     messages: List[BaseMessage]
