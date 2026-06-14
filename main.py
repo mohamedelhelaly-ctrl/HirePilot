@@ -1,6 +1,6 @@
 """Root entrypoint that re-exports the FastAPI app."""
 
-from backend.app.main import app
+from src.backend.main import app
 
 
 if __name__ == "__main__":

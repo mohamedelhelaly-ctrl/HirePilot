@@ -64,7 +64,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-FOLLOWUP_INTERVAL_SECONDS = 30   # How often to generate a follow-up question
+FOLLOWUP_INTERVAL_SECONDS = 60   # How often to generate a follow-up question
 MIN_NEW_CHARS_FOR_FOLLOWUP = 150  # Don't fire if barely anything new was said
 
 
@@ -110,6 +110,11 @@ class _Session:
 
 # ── Helpers
 
+def _interview_type_str(value) -> str:
+    """Normalize InterviewType enum or string to a plain string value."""
+    return value.value if hasattr(value, "value") else str(value)
+
+
 async def _send(ws: WebSocket, msg: dict) -> None:
     """Send a JSON message to the frontend. Silently ignores closed connections."""
     try:
@@ -147,10 +152,18 @@ async def _load_session_context(
             if not requisition:
                 return f"Requisition {requisition_id} not found"
 
+            db_interview_type = _interview_type_str(db_session.interview_type)
+            if interview_type and interview_type != db_interview_type:
+                logger.warning(
+                    f"[Interview {session_id}] Client interview_type={interview_type!r} "
+                    f"does not match session record={db_interview_type!r}; "
+                    "using session record"
+                )
+
             sess.session_id             = session_id
             sess.application_id         = application_id
             sess.requisition_id         = requisition_id
-            sess.interview_type         = interview_type
+            sess.interview_type         = db_interview_type
             sess.job_description        = requisition.description or ""
             sess.candidate_name         = (
                 application.candidate.full_name
@@ -486,7 +499,7 @@ from pydantic import BaseModel as _BaseModel
 class CreateSessionRequest(_BaseModel):
     application_id: int
     requisition_id: int
-    interview_type: str = "hr_screen"  # "hr_screen" | "technical" | "behavioral" | "final"
+    interview_type: str = "hr_screen"  # "hr_screen" | "technical"
 
 
 @router.get(
@@ -513,7 +526,7 @@ async def list_sessions(application_id: int):
             {
                 "id":                  s.id,
                 "application_id":      s.application_id,
-                "interview_type":      s.interview_type,
+                "interview_type":      _interview_type_str(s.interview_type),
                 "status":              s.status,
                 "scheduled_start_time": s.scheduled_start_time.isoformat()
                     if s.scheduled_start_time else None,
@@ -549,14 +562,16 @@ async def create_session(req: CreateSessionRequest):
     from models.tables_enums import InterviewType as DBInterviewType, InterviewStatus as DBInterviewStatus
     from models.schemas import InterviewSessionCreate
 
-    # Map string to enum
     type_map = {
-        "hr_screen":  DBInterviewType.HR_SCREEN,
-        "technical":  DBInterviewType.TECHNICAL,
-        "behavioral": DBInterviewType.BEHAVIORAL,
-        "final":      DBInterviewType.FINAL,
+        "hr_screen": DBInterviewType.HR_SCREEN,
+        "technical": DBInterviewType.TECHNICAL,
     }
-    db_interview_type = type_map.get(req.interview_type, DBInterviewType.HR_SCREEN)
+    if req.interview_type not in type_map:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail="interview_type must be 'hr_screen' or 'technical'",
+        )
+    db_interview_type = type_map[req.interview_type]
 
     try:
         async with AsyncSessionLocal() as db:
@@ -590,7 +605,7 @@ async def create_session(req: CreateSessionRequest):
             return {
                 "id":             db_session.id,
                 "application_id": db_session.application_id,
-                "interview_type": db_session.interview_type,
+                "interview_type": _interview_type_str(db_session.interview_type),
                 "status":         db_session.status,
                 "candidate_name": candidate_name,
                 "questions":      db_session.questions or [],
