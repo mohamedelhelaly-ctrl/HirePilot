@@ -9,7 +9,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Check if user is already authenticated
   useEffect(() => {
     if (authService.isAuthenticated()) {
       navigate("/hr");
@@ -21,13 +20,8 @@ export default function Login() {
     setError("");
 
     try {
-      // Get the ID token from Google
       const idToken = credentialResponse.credential;
-
-      // Send token to backend via authService
-      const response = await authService.googleLogin(idToken);
-
-      // Get user to determine role and navigate accordingly
+      await authService.googleLogin(idToken);
       const user = authService.getUser();
 
       if (user.role === "hr_manager") {
@@ -52,30 +46,25 @@ export default function Login() {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}>
       <AuthLayout>
-        <div className="flex w-full">
-          {/* Left Image */}
-          <div className="w-1/2 bg-white p-10 flex items-center justify-center">
-            <img
-              src="/logo-width.svg"
-              alt="Incorta HR AI"
-              className="rounded-xl w-full h-full object-cover"
-            />
-          </div>
-
-          {/* Right Form */}
-          <div className="w-1/2 p-12 flex flex-col justify-center border-l border-gray-200">
-            <h2 className="text-3xl font-bold mb-2">Sign in to your account</h2>
-            <p className="text-gray-500 mb-8">Welcome to the AI HR Agent.</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[520px]">
+          {/* Form side */}
+          <div className="p-8 lg:p-12 flex flex-col justify-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted mb-2">
+              Welcome back
+            </p>
+            <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
+              Sign in to your account
+            </h2>
+            <p className="text-muted mb-8">Access the Incorta AI HR Agent dashboard.</p>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm">
                 {error}
               </div>
             )}
 
             <div className="flex flex-col gap-6">
-              {/* Google Login Button */}
-              <div className="w-full flex justify-center">
+              <div className="w-full flex justify-center lg:justify-start">
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
                   onError={handleGoogleError}
@@ -85,31 +74,42 @@ export default function Login() {
                 />
               </div>
 
-              {/* Divider */}
               <div className="flex items-center gap-4">
-                <div className="flex-1 border-t border-gray-300"></div>
-                <span className="text-gray-500 text-sm">or</span>
-                <div className="flex-1 border-t border-gray-300"></div>
+                <div className="flex-1 border-t border-border" />
+                <span className="text-muted text-sm">or</span>
+                <div className="flex-1 border-t border-border" />
               </div>
 
-              {/* Info Box */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-blue-900 text-sm">
-                  <strong>Need an account?</strong> <br />
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                <p className="text-brand-800 text-sm">
+                  <strong>Need an account?</strong>
+                  <br />
                   Contact your HR Manager to be added to the system.
                 </p>
               </div>
             </div>
 
-            {/* Loading state */}
             {loading && (
-              <div className="mt-4 text-center">
-                <div className="inline-block">
-                  <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-                <p className="text-gray-600 text-sm mt-2">Signing in...</p>
+              <div className="mt-6 flex items-center gap-3">
+                <div className="w-5 h-5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+                <p className="text-muted text-sm">Signing in...</p>
               </div>
             )}
+          </div>
+
+          {/* Hero side */}
+          <div className="relative hidden lg:flex flex-col justify-center p-12 bg-gradient-to-br from-brand-600 to-brand-800 text-white overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-white/10 -translate-y-1/2 translate-x-1/4" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-white/5 translate-y-1/3 -translate-x-1/4" />
+            <div className="relative z-10">
+              <img src="/favicon.svg" alt="" className="h-14 w-14 rounded-xl mb-6" />
+              <h3 className="text-3xl font-bold mb-3 tracking-tight">Incorta HR</h3>
+              <p className="text-blue-100 text-lg mb-6">AI Recruitment Assistant</p>
+              <p className="text-blue-200/90 text-sm leading-relaxed max-w-sm">
+                Screen, interview, and hire smarter with AI-powered candidate insights and
+                conversational search across your talent pipeline.
+              </p>
+            </div>
           </div>
         </div>
       </AuthLayout>

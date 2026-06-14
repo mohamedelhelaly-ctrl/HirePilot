@@ -1,8 +1,19 @@
 import { useNavigate } from "react-router-dom";
 import * as authService from "../services/authService";
 import { FiLogOut } from "react-icons/fi";
+import Button from "./button";
 
-export default function Navbar() {
+function getInitials(name) {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+}
+
+export default function Navbar({ compact = false }) {
   const navigate = useNavigate();
   const user = authService.getUser();
 
@@ -12,30 +23,51 @@ export default function Navbar() {
       navigate("/login");
     } catch (error) {
       console.error("Logout failed:", error);
-      // Force logout even if API call fails
       navigate("/login");
     }
   };
 
   return (
-    <nav className="w-full flex items-center justify-between py-4 px-10 bg-white shadow-sm">
-      <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-semibold">Incorta</h1>
+    <nav
+      className={`sticky top-0 z-30 w-full flex items-center justify-between px-10 bg-surface border-b border-border shadow-[0_1px_0_rgb(0_0_0_/_0.04)] ${
+        compact ? "h-[52px]" : "h-[68px]"
+      }`}
+    >
+      <div className="flex items-center gap-2.5">
+        <img src="/favicon.svg" alt="" className={compact ? "h-7 w-7 rounded-md" : "h-9 w-9 rounded-lg"} />
+        <div>
+          <h1 className={`font-bold text-gray-900 leading-tight ${compact ? "text-base" : "text-lg"}`}>
+            Incorta HR
+          </h1>
+          {!compact && (
+            <p className="text-[11px] text-muted font-medium">AI Recruitment Assistant</p>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="flex flex-col items-end">
-          <p className="text-sm font-medium text-gray-700">{user?.full_name}</p>
-          <p className="text-xs text-gray-500">{user?.role === "hr_manager" ? "HR Manager" : "Hiring Manager"}</p>
+        <div className="flex items-center gap-3">
+          <div className={`rounded-full bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center text-white font-bold ${compact ? "h-8 w-8 text-[10px]" : "h-9 w-9 text-xs"}`}>
+            {getInitials(user?.full_name)}
+          </div>
+          <div className="hidden sm:flex flex-col items-end">
+            <p className="text-sm font-semibold text-gray-900">{user?.full_name}</p>
+            <p className="text-xs text-muted">
+              {user?.role === "hr_manager" ? "HR Manager" : "Hiring Manager"}
+            </p>
+          </div>
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={handleLogout}
-          className="ml-4 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition flex items-center gap-2"
-          title="Logout"
-        >
-          <FiLogOut size={20} />
-          <span className="text-sm font-medium">Logout</span>
-        </button>
+          title={
+            <span className="flex items-center gap-2">
+              <FiLogOut size={16} />
+              <span>Logout</span>
+            </span>
+          }
+        />
       </div>
     </nav>
   );

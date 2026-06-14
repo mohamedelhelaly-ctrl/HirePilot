@@ -4,9 +4,17 @@ import RequisitionModal from "../components/requisitionModal";
 import DeleteConfirmModal from "../components/deleteConfirmModal";
 import Toast from "../components/toast";
 import Button from "../components/button";
+import Card from "../components/Card";
+import PageHeader from "../components/PageHeader";
+import { inputClasses } from "../components/inputField";
 import { FiPlus, FiSearch, FiAlertCircle } from "react-icons/fi";
 import { useState, useEffect } from "react";
-import { fetchRequisitions, createRequisition, updateRequisition, deleteRequisition } from "../services/requisitionService";
+import {
+  fetchRequisitions,
+  createRequisition,
+  updateRequisition,
+  deleteRequisition,
+} from "../services/requisitionService";
 
 export default function HrDashboard() {
   const [requisitions, setRequisitions] = useState([]);
@@ -16,32 +24,23 @@ export default function HrDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Modal states
   const [isRequisitionModalOpen, setIsRequisitionModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("create"); // "create" or "edit"
+  const [modalMode, setModalMode] = useState("create");
   const [selectedRequisition, setSelectedRequisition] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [requisitionToDelete, setRequisitionToDelete] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Notification state
   const [notification, setNotification] = useState(null);
-
-  // Get unique departments from requisitions
   const [departments, setDepartments] = useState(["All"]);
 
-  // Fetch requisitions on mount
   useEffect(() => {
     const loadRequisitions = async () => {
       try {
         setLoading(true);
         setError(null);
         const data = await fetchRequisitions({ is_active: true });
-        console.log("Fetched requisitions:", data);
         setRequisitions(data);
-
-        // Extract unique departments
-        const uniqueDepts = ["All", ...new Set(data.map(r => r.department).filter(Boolean))];
+        const uniqueDepts = ["All", ...new Set(data.map((r) => r.department).filter(Boolean))];
         setDepartments(uniqueDepts);
       } catch (err) {
         setError(err.message || "Failed to load requisitions");
@@ -50,88 +49,69 @@ export default function HrDashboard() {
         setLoading(false);
       }
     };
-
     loadRequisitions();
   }, []);
 
-  // Helper function to show notifications
   const showNotification = (type, title, message = "") => {
     setNotification({ type, title, message });
   };
 
-  // Filter requisitions based on search and department
   useEffect(() => {
     let filtered = requisitions;
-
-    // Filter by department
     if (selectedDept !== "All") {
-      filtered = filtered.filter(req => req.department === selectedDept);
+      filtered = filtered.filter((req) => req.department === selectedDept);
     }
-
-    // Filter by search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(req =>
-        req.title.toLowerCase().includes(term) ||
-        req.description?.toLowerCase().includes(term) ||
-        req.location?.toLowerCase().includes(term) ||
-        req.department?.toLowerCase().includes(term)
+      filtered = filtered.filter(
+        (req) =>
+          req.title.toLowerCase().includes(term) ||
+          req.description?.toLowerCase().includes(term) ||
+          req.location?.toLowerCase().includes(term) ||
+          req.department?.toLowerCase().includes(term)
       );
     }
-
     setFilteredRequisitions(filtered);
   }, [requisitions, selectedDept, searchTerm]);
 
-  // Handle post new job
   const handlePostJob = () => {
     setModalMode("create");
     setSelectedRequisition(null);
     setIsRequisitionModalOpen(true);
   };
 
-  // Handle edit requisition
   const handleEdit = (requisition) => {
     setModalMode("edit");
     setSelectedRequisition(requisition);
     setIsRequisitionModalOpen(true);
   };
 
-  // Handle delete requisition
   const handleDelete = (requisitionId) => {
-    const req = requisitions.find(r => r.id === requisitionId);
+    const req = requisitions.find((r) => r.id === requisitionId);
     setRequisitionToDelete(req);
     setIsDeleteModalOpen(true);
   };
 
-  // Submit requisition (create or update)
   const handleRequisitionSubmit = async (formData) => {
     try {
       setIsSubmitting(true);
-      
       if (modalMode === "create") {
         const newRequisition = await createRequisition(formData);
         setRequisitions([...requisitions, newRequisition]);
-        
-        // Add new department to dropdown if it doesn't exist
         if (formData.department && !departments.includes(formData.department)) {
           setDepartments([...departments, formData.department]);
         }
-        
-        showNotification("success", "Job Posted Successfully", `${formData.title} has been added to open positions.`);
+        showNotification("success", "Job Posted Successfully", `${formData.title} has been added.`);
       } else {
         const updatedRequisition = await updateRequisition(selectedRequisition.id, formData);
-        setRequisitions(requisitions.map(r => 
-          r.id === selectedRequisition.id ? updatedRequisition : r
-        ));
-        
-        // Add updated department to dropdown if it doesn't exist
+        setRequisitions(
+          requisitions.map((r) => (r.id === selectedRequisition.id ? updatedRequisition : r))
+        );
         if (formData.department && !departments.includes(formData.department)) {
           setDepartments([...departments, formData.department]);
         }
-        
         showNotification("success", "Job Updated Successfully", `${formData.title} has been updated.`);
       }
-      
       setIsRequisitionModalOpen(false);
       setSelectedRequisition(null);
     } catch (err) {
@@ -142,29 +122,20 @@ export default function HrDashboard() {
     }
   };
 
-  // Confirm delete
   const handleConfirmDelete = async () => {
     try {
       setIsSubmitting(true);
       await deleteRequisition(requisitionToDelete.id);
-      
-      // Remove from requisitions
-      const updatedRequisitions = requisitions.filter(r => r.id !== requisitionToDelete.id);
+      const updatedRequisitions = requisitions.filter((r) => r.id !== requisitionToDelete.id);
       setRequisitions(updatedRequisitions);
-      
-      // Update departments - remove if no jobs with that department exist
       const deletedDept = requisitionToDelete.department;
       if (deletedDept && deletedDept !== "All") {
-        const deptStillExists = updatedRequisitions.some(r => r.department === deletedDept);
+        const deptStillExists = updatedRequisitions.some((r) => r.department === deletedDept);
         if (!deptStillExists) {
-          setDepartments(departments.filter(d => d !== deletedDept));
-          // Reset filter if the deleted department was selected
-          if (selectedDept === deletedDept) {
-            setSelectedDept("All");
-          }
+          setDepartments(departments.filter((d) => d !== deletedDept));
+          if (selectedDept === deletedDept) setSelectedDept("All");
         }
       }
-      
       setIsDeleteModalOpen(false);
       setRequisitionToDelete(null);
       showNotification("success", "Job Deleted", `${requisitionToDelete.title} has been removed.`);
@@ -176,151 +147,134 @@ export default function HrDashboard() {
     }
   };
 
+  const activeDeptCount =
+    selectedDept === "All"
+      ? new Set(filteredRequisitions.map((r) => r.department).filter(Boolean)).size
+      : 1;
+
   return (
     <DashboardLayout>
-      <div className="w-full mx-auto">
-        {/* Header Section */}
-        <div className="w-full flex items-center justify-between gap-6 mt-10 mb-8">
-          <div className="flex-1">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900">
-              Incorta AI HR Agent
-            </h1>
-            <p className="text-gray-600 mt-3 text-lg">
-              Streamline Your Hiring Process with AI-Powered Insights
-            </p>
-          </div>
+      <PageHeader
+        title="Requisitions"
+        description="Manage active job openings"
+        actions={
+          <Button size="sm" onClick={handlePostJob}>
+            <FiPlus size={14} />
+            Post New Job
+          </Button>
+        }
+      />
 
-          <div>
-            <Button
-              onClick={handlePostJob}
-              title={
-                <span className="flex items-center gap-3">
-                  <FiPlus size={20} />
-                  <span>Post New Job</span>
-                </span>
-              }
-              className="w-auto px-6 py-3 shadow hover:shadow-lg transition"
+      {/* Toolbar */}
+      <Card className="mb-4 shadow-[0_4px_24px_rgb(0_0_0_/_0.06)]">
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center px-5 py-3.5">
+          <div className="flex-1 relative">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+            <input
+              type="text"
+              placeholder="Search by job title, location, or keyword..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`${inputClasses} pl-9 text-sm py-2`}
             />
           </div>
+          <select
+            value={selectedDept}
+            onChange={(e) => setSelectedDept(e.target.value)}
+            className={`${inputClasses} md:w-44 bg-white cursor-pointer text-sm font-medium py-2`}
+          >
+            {departments.map((dept, i) => (
+              <option key={i} value={dept}>
+                {dept}
+              </option>
+            ))}
+          </select>
         </div>
+      </Card>
 
-        {/* Search and Filter Section */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-            {/* Search Bar */}
-            <div className="flex-1 relative">
-              <FiSearch className="absolute left-4 top-3.5 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search by job title, location, or keyword..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
-              />
-            </div>
-
-            {/* Department Filter Dropdown */}
-            <select
-              value={selectedDept}
-              onChange={(e) => setSelectedDept(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition bg-white text-gray-700 font-medium cursor-pointer"
-            >
-              {departments.map((dept, i) => (
-                <option key={i} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2.5">
+          <FiAlertCircle className="text-red-600 shrink-0 mt-0.5" size={16} />
+          <div>
+            <h3 className="text-sm font-semibold text-red-900">Error Loading Requisitions</h3>
+            <p className="text-red-700 text-xs mt-0.5">{error}</p>
           </div>
         </div>
+      )}
 
-        {/* Error State */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <FiAlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
-            <div>
-              <h3 className="font-semibold text-red-900">Error Loading Requisitions</h3>
-              <p className="text-red-700 text-sm mt-1">{error}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
+      {loading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-gray-200 rounded-xl h-64 animate-pulse" />
+          ))}
+        </div>
+      ) : filteredRequisitions.length > 0 ? (
+        <>
+          {/* Stats */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {[
+              { label: "Total", value: filteredRequisitions.length },
+              { label: "Departments", value: activeDeptCount },
+            ].map(({ label, value }) => (
               <div
-                key={i}
-                className="bg-gray-200 rounded-lg h-80 animate-pulse"
+                key={label}
+                className="flex flex-col items-center px-3 py-1.5 min-w-[48px] rounded-lg border border-border bg-canvas"
+              >
+                <span className="text-base font-bold leading-none text-gray-900">{value}</span>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.06em] text-muted mt-0.5 whitespace-nowrap">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {filteredRequisitions.map((req) => (
+              <RequisitionCard
+                key={req.id}
+                requisition={req}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
               />
             ))}
           </div>
-        ) : filteredRequisitions.length > 0 ? (
-          <>
-            {/* Stats Bar */}
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg flex gap-6 items-center">
-              <div>
-                <p className="text-gray-600 text-sm">Total Open Positions</p>
-                <p className="text-2xl font-bold text-blue-700">{filteredRequisitions.length}</p>
-              </div>
-            </div>
+        </>
+      ) : (
+        <Card className="py-12 text-center shadow-[0_4px_24px_rgb(0_0_0_/_0.06)]">
+          <p className="text-sm font-medium text-muted">
+            No requisitions found for{" "}
+            {selectedDept === "All" ? "your filters" : `the ${selectedDept} department`}
+          </p>
+          {searchTerm && (
+            <p className="text-xs text-gray-400 mt-1.5">Try adjusting your search term or filters</p>
+          )}
+        </Card>
+      )}
 
-            {/* Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredRequisitions.map((req) => (
-                <RequisitionCard
-                  key={req.id}
-                  requisition={req}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="text-center py-16 bg-gray-50 rounded-lg">
-            <p className="text-gray-600 text-lg">
-              No requisitions found for {selectedDept === "All" ? "your filters" : `the ${selectedDept} department`}
-            </p>
-            {searchTerm && (
-              <p className="text-gray-500 text-sm mt-2">
-                Try adjusting your search term or filters
-              </p>
-            )}
-          </div>
-        )}
+      <RequisitionModal
+        isOpen={isRequisitionModalOpen}
+        mode={modalMode}
+        requisition={selectedRequisition}
+        onClose={() => {
+          setIsRequisitionModalOpen(false);
+          setSelectedRequisition(null);
+        }}
+        onSubmit={handleRequisitionSubmit}
+        loading={isSubmitting}
+      />
 
-        {/* Requisition Modal */}
-        <RequisitionModal
-          isOpen={isRequisitionModalOpen}
-          mode={modalMode}
-          requisition={selectedRequisition}
-          onClose={() => {
-            setIsRequisitionModalOpen(false);
-            setSelectedRequisition(null);
-          }}
-          onSubmit={handleRequisitionSubmit}
-          loading={isSubmitting}
-        />
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        requisitionTitle={requisitionToDelete?.title}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setRequisitionToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        loading={isSubmitting}
+      />
 
-        {/* Delete Confirm Modal */}
-        <DeleteConfirmModal
-          isOpen={isDeleteModalOpen}
-          requisitionTitle={requisitionToDelete?.title}
-          onClose={() => {
-            setIsDeleteModalOpen(false);
-            setRequisitionToDelete(null);
-          }}
-          onConfirm={handleConfirmDelete}
-          loading={isSubmitting}
-        />
-
-        {/* Toast Notification */}
-        <Toast
-          notification={notification}
-          onClose={() => setNotification(null)}
-        />
-      </div>
+      <Toast notification={notification} onClose={() => setNotification(null)} />
     </DashboardLayout>
   );
 }

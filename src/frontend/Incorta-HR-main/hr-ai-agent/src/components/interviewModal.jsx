@@ -330,14 +330,14 @@ export default function InterviewModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col"
+        className="bg-surface rounded-xl shadow-[0_24px_80px_rgb(0_0_0_/_0.2)] w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Live Interview</h2>
             <p className="text-sm text-gray-500 mt-0.5">

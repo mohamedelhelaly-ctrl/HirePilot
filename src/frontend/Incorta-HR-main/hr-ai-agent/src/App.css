@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", system-ui, sans-serif;
+
+  /* Incorta brand */
+  --color-brand-600: #1d4ed8;
+  --color-brand-700: #1e40af;
+  --color-brand-800: #312e81;
+
+  /* Surfaces (Talent-inspired) */
+  --color-surface: #ffffff;
+  --color-canvas: #f5f5f7;
+  --color-muted: #6e6e73;
+  --color-border: #e5e5ea;
+
+  /* Radius */
+  --radius-card: 12px;
+}
+
+@layer base {
+  body {
+    @apply bg-canvas text-gray-900 antialiased font-sans;
+  }
+}

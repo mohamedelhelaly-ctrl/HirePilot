@@ -46,8 +46,18 @@ class Application(ApplicationBase):
     last_activity_at: datetime
     created_at: datetime
     updated_at: datetime
+    justification: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+def application_to_read(app) -> "Application":
+    """Map ORM application (+ optional screening_result) to API schema."""
+    data = Application.model_validate(app)
+    screening = getattr(app, "screening_result", None)
+    if screening is not None and screening.justification is not None:
+        return data.model_copy(update={"justification": screening.justification})
+    return data
 
 
 

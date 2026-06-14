@@ -1,112 +1,99 @@
-import { FiMapPin, FiUsers, FiBell, FiMoreVertical, FiEdit, FiTrash2, FiCalendar } from "react-icons/fi";
+import { FiMapPin, FiEdit, FiTrash2, FiCalendar } from "react-icons/fi";
 import Badge from "./badge";
-import { useState } from "react";
+import Button from "./button";
+import Card from "./Card";
 import { useNavigate } from "react-router-dom";
 
-export default function RequisitionCard({ requisition, onEdit, onDelete }) {
-  const [isHovering, setIsHovering] = useState(false);
-  const navigate = useNavigate();
-  const {
-    id,
-    title,
-    description,
-    department,
-    location,
-    created_at,
-  } = requisition;
+const JD_SNIPPET_LEN = 220;
 
-  // Format the date
+export default function RequisitionCard({ requisition, onEdit, onDelete }) {
+  const navigate = useNavigate();
+  const { id, title, description, department, location, created_at } = requisition;
+
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", { 
-      year: "numeric", 
-      month: "short", 
-      day: "numeric" 
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
+  const jdSnippet =
+    description && description.length > JD_SNIPPET_LEN
+      ? description.slice(0, JD_SNIPPET_LEN).trimEnd() + "…"
+      : description;
+
   return (
-    <div
-      className="relative bg-white rounded-lg shadow hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col"
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
-    >
-      {/* Header Section */}
-      <div className="p-6 border-b border-gray-100">
-        <div className="flex items-start justify-between mb-3">
-          <h3 
-            className="text-lg font-semibold text-gray-800 flex-1 leading-tight"
-            title={title}
-          >
-            {title}
-          </h3>
-          <div className="flex gap-2 ml-4">
+    <Card accentColor="#1d4ed8" interactive className="flex flex-col h-full group shadow-[0_4px_24px_rgb(0_0_0_/_0.06)]">
+      <div className="px-5 py-4 flex flex-col gap-2.5 flex-1">
+        {/* Top row: badge + actions */}
+        <div className="flex items-start justify-between gap-3">
+          {department ? <Badge text={department} /> : <span />}
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
-              onClick={() => onEdit && onEdit(requisition)}
-              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit?.(requisition);
+              }}
+              className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-brand-600 hover:bg-blue-50 rounded-lg border border-transparent hover:border-gray-200 transition"
               title="Edit"
             >
-              <FiEdit size={18} />
+              <FiEdit size={14} />
             </button>
             <button
-              onClick={() => onDelete && onDelete(id)}
-              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete?.(id);
+              }}
+              className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-gray-200 transition"
               title="Delete"
             >
-              <FiTrash2 size={18} />
+              <FiTrash2 size={14} />
             </button>
           </div>
         </div>
 
-        {department && (
-          <div className="flex gap-2">
-            <Badge text={department} />
+        {/* Title */}
+        <h3 className="m-0 text-[1.2rem] font-bold leading-[1.2] text-gray-900" title={title}>
+          {title}
+        </h3>
+
+        {/* Meta + JD */}
+        <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-3 flex-1">
+          <div className="flex flex-col gap-1.5 text-[0.9rem] text-muted">
+            {location && (
+              <div className="flex items-center gap-1.5">
+                <FiMapPin size={12} className="shrink-0 text-gray-400" />
+                <span className="truncate" title={location}>
+                  {location}
+                </span>
+              </div>
+            )}
+            {created_at && (
+              <div className="flex items-center gap-1.5">
+                <FiCalendar size={12} className="shrink-0 text-gray-400" />
+                <span>{formatDate(created_at)}</span>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Description Section */}
-      {description && (
-        <div className="px-6 py-4 flex-1 relative">
-          <p 
-            className={`text-gray-600 text-sm leading-relaxed transition-all duration-200 ${
-              isHovering ? "line-clamp-none" : "line-clamp-2"
-            }`}
-            title={description}
-          >
-            {description}
-          </p>
-          
-          {/* Full Description Tooltip on Hover */}
+          {jdSnippet && (
+            <p className="text-[13px] text-muted leading-relaxed line-clamp-3 m-0">{jdSnippet}</p>
+          )}
         </div>
-      )}
 
-      {/* Location Section */}
-      {location && (
-        <div className="px-6 py-3 flex items-center gap-2 text-gray-600 border-t border-gray-100">
-          <FiMapPin size={16} className="text-gray-400 flex-shrink-0" />
-          <span className="text-sm" title={location}>{location}</span>
-        </div>
-      )}
-
-      {/* Date Section */}
-      {created_at && (
-        <div className="px-6 py-3 flex items-center gap-2 text-gray-600 border-t border-gray-100">
-          <FiCalendar size={16} className="text-gray-400 flex-shrink-0" />
-          <span className="text-sm">Posted on {formatDate(created_at)}</span>
-        </div>
-      )}
-
-      {/* Action Section */}
-      <div className="px-6 py-4 border-t border-gray-100">
-        <button
+        {/* CTA */}
+        <Button
+          variant="primary"
+          size="sm"
+          className="w-full mt-1"
           onClick={() => navigate(`/requisition/${id}`)}
-          className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm"
         >
-          View Details
-        </button>
+          View Details →
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }

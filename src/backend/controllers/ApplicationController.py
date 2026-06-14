@@ -7,6 +7,7 @@ from models.schemas.application_schemas import (
     Application,
     ApplicationCreate,
     ApplicationUpdate,
+    application_to_read,
 )
 
 from models.crud import(
@@ -74,7 +75,7 @@ class ApplicationController(BaseController):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Application with ID {application_id} not found"
             )
-        return application
+        return application_to_read(application)
 
     async def update_application(
         self,
@@ -88,7 +89,7 @@ class ApplicationController(BaseController):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Application with ID {application_id} not found"
             )
-        return application
+        return application_to_read(application)
 
     async def get_applications_by_requisition(
         self,
@@ -100,9 +101,10 @@ class ApplicationController(BaseController):
         limit: int = 100,
         include_relations: bool = False,
     ) -> List[Application]:
-        return await get_applications_by_requisition(
+        applications = await get_applications_by_requisition(
             db, requisition_id, status, min_score, skip, limit, include_relations
         )
+        return [application_to_read(app) for app in applications]
 
     async def update_application_status(
         self,
@@ -118,7 +120,7 @@ class ApplicationController(BaseController):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Application with ID {application_id} not found"
             )
-        return application
+        return application_to_read(application)
     
     async def get_application_by_lever_opportunity_id(
         self,

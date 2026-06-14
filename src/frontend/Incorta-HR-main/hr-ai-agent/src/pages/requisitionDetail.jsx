@@ -4,6 +4,8 @@ import InterviewModal from "../components/interviewModal";
 import CandidateDetailsModal from "../components/candidateDetailsModal";
 import RequisitionModal from "../components/requisitionModal";
 import ChatDrawer from "../components/chatDrawer";
+import Card from "../components/Card";
+import Button from "../components/button";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import {
@@ -12,7 +14,6 @@ import {
   FiCheck,
   FiX,
   FiChevronDown,
-  FiFileText,
   FiEdit3,
   FiMessageSquare,
   FiLoader,
@@ -240,6 +241,7 @@ export default function RequisitionDetail() {
         ? Math.round(application.combined_score * 100)
         : 0,
       status: application.status,
+      justification: application.justification || null,
     });
     setSelectedApplication(application);
     setIsCandidateModalOpen(true);
@@ -386,162 +388,147 @@ export default function RequisitionDetail() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="w-full mx-auto">
-        {/* ── Back Link ─────────────────────────────────────────────────── */}
-        <button
-          onClick={() => navigate("/hr")}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition mb-4 group"
-        >
-          <FiArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
-          <span>Requisitions</span>
-        </button>
-
-        {/* ── Header Section ────────────────────────────────────────────── */}
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-8">
-          {/* Left — Title & Meta */}
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">
-              {requisition?.title}
-            </h1>
-            <p className="text-gray-500 text-base mb-3">
-              {requisition?.department}
-              {requisition?.location ? ` · ${requisition.location}` : ""}
-            </p>
-            <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-              {requisition?.hiring_manager_id && (
-                <span>
-                  <span className="font-medium text-gray-600 mr-1">CREATED BY</span>
-                  Hiring Manager #{requisition.hiring_manager_id}
-                </span>
+    <DashboardLayout fullHeight>
+      <div className="flex flex-col flex-1 min-h-0 w-full">
+        {/* ── Workspace header (talent ws-header pattern) ─────────────────── */}
+        <header className="shrink-0 w-full flex flex-wrap items-center gap-x-5 gap-y-2.5 px-6 py-3 bg-surface border-b border-border">
+          <div className="flex-1 min-w-[200px]">
+            <button
+              onClick={() => navigate("/hr")}
+              className="block text-[13px] font-semibold text-muted hover:text-brand-600 transition mb-0.5"
+            >
+              ← Requisitions
+            </button>
+            <div className="flex items-baseline flex-wrap gap-x-2.5 gap-y-1 mt-0.5 min-w-0">
+              <h1 className="m-0 text-[1.2rem] font-bold leading-[1.2] text-gray-900 truncate max-w-full">
+                {requisition?.title}
+              </h1>
+              {(requisition?.department || requisition?.location) && (
+                <>
+                  <span className="text-[0.85rem] text-muted select-none leading-none">·</span>
+                  <span className="text-[0.9rem] text-muted whitespace-nowrap">
+                    {[requisition?.department, requisition?.location].filter(Boolean).join(" · ")}
+                  </span>
+                </>
               )}
+              <span className="text-[0.85rem] text-muted select-none leading-none">·</span>
+              <button
+                type="button"
+                onClick={handleViewJD}
+                className="p-0 m-0 bg-transparent border-none cursor-pointer text-[0.9rem] text-[#2563eb] underline underline-offset-2 whitespace-nowrap hover:text-brand-700"
+              >
+                View JD
+              </button>
             </div>
           </div>
 
-          {/* Right — Stats + Actions */}
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Stat Boxes */}
-            {[
-              { label: "CVs", value: totalCVs },
-              { label: "Interview Scheduled", value: interviewScheduled },
-              { label: "Offer Extended", value: offerExtended },
-              { label: "Hired", value: hired },
-              { label: "Rejected", value: rejected },
-            ].map(({ label, value }) => (
-              <div
-                key={label}
-                className="flex flex-col items-center px-4 py-2.5 bg-white border border-gray-200 rounded-lg min-w-[70px] shadow-sm"
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { label: "CVs", value: totalCVs },
+                { label: "Interview Scheduled", value: interviewScheduled },
+                { label: "Offer Extended", value: offerExtended },
+                { label: "Hired", value: hired },
+                { label: "Rejected", value: rejected },
+              ].map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="flex flex-col items-center px-3 py-1.5 min-w-[48px] rounded-lg border border-border bg-canvas"
+                >
+                  <span className="text-base font-bold leading-none text-gray-900">{value}</span>
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.06em] text-muted mt-0.5 whitespace-nowrap">
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleScreenCVs}
+                disabled={isScreeningCVs || (!hasUnscreenedCVs && (applications.length === 0 || allScreened))}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-sm font-semibold transition-all ${
+                  isScreeningCVs
+                    ? "bg-brand-600 text-white cursor-wait opacity-80"
+                    : hasUnscreenedCVs
+                    ? "bg-brand-600 text-white hover:bg-brand-700 animate-pulse"
+                    : allScreened
+                    ? "bg-canvas text-muted border border-border cursor-not-allowed"
+                    : applications.length === 0
+                    ? "bg-canvas text-muted border border-border cursor-not-allowed"
+                    : "bg-brand-600 text-white hover:bg-brand-700"
+                }`}
+                title={
+                  allScreened
+                    ? "All CVs have been screened"
+                    : applications.length === 0
+                    ? "Upload CVs first to screen"
+                    : hasUnscreenedCVs
+                    ? `${newCandidateCounter} new CV(s) awaiting screening`
+                    : "Run batch screening on uploaded CVs"
+                }
               >
-                <span className="text-xl font-bold text-gray-800">{value}</span>
-                <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
-                  {label}
-                </span>
-              </div>
-            ))}
+                {isScreeningCVs ? (
+                  <>
+                    <FiLoader size={14} className="animate-spin" />
+                    Screening...
+                  </>
+                ) : allScreened ? (
+                  <>
+                    <FiCheck size={14} />
+                    All Screened
+                  </>
+                ) : (
+                  <>
+                    <FiCheck size={14} />
+                    Screen CVs
+                    {hasUnscreenedCVs && (
+                      <span className="ml-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white/25 text-[10px] font-bold">
+                        {newCandidateCounter}
+                      </span>
+                    )}
+                  </>
+                )}
+              </button>
 
-            {/* View JD */}
-            <button
-              onClick={handleViewJD}
-              className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition bg-white shadow-sm"
-            >
-              <FiFileText size={16} />
-              View JD
-            </button>
-
-            {/* Screen CVs */}
-            <button
-              onClick={handleScreenCVs}
-              disabled={isScreeningCVs || (!hasUnscreenedCVs && (applications.length === 0 || allScreened))}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-                isScreeningCVs
-                  ? "bg-blue-500 text-white cursor-wait opacity-80"
-                  : hasUnscreenedCVs
-                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] ring-2 ring-blue-400/50 animate-pulse"
-                  : allScreened
-                  ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
-                  : applications.length === 0
-                  ? "bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow"
-              }`}
-              title={
-                allScreened
-                  ? "All CVs have been screened"
-                  : applications.length === 0
-                  ? "Upload CVs first to screen"
-                  : hasUnscreenedCVs
-                  ? `${newCandidateCounter} new CV(s) awaiting screening — click to screen now`
-                  : "Run batch screening on uploaded CVs"
-              }
-            >
-              {isScreeningCVs ? (
-                <>
-                  <FiLoader size={16} className="animate-spin" />
-                  Screening...
-                </>
-              ) : allScreened ? (
-                <>
-                  <FiCheck size={16} />
-                  All Screened
-                </>
-              ) : (
-                <>
-                  <FiCheck size={16} />
-                  Screen CVs
-                  {hasUnscreenedCVs && (
-                    <span className="ml-1 flex items-center justify-center w-5 h-5 rounded-full bg-white/25 text-[11px] font-bold">
-                      {newCandidateCounter}
-                    </span>
-                  )}
-                </>
-              )}
-            </button>
-
-            {/* Edit */}
-            <button
-              onClick={handleEdit}
-              className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition bg-white shadow-sm"
-            >
-              <FiEdit3 size={16} />
-              Edit
-            </button>
+              <Button variant="secondary" size="sm" onClick={handleEdit}>
+                <FiEdit3 size={14} />
+                Edit
+              </Button>
+            </div>
           </div>
-        </div>
+        </header>
 
         {/* ── Unscreened CVs Banner ──────────────────────────────────────── */}
         {hasUnscreenedCVs && !isScreeningCVs && (
-          <div className="flex items-center gap-3 px-5 py-3.5 mb-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl shadow-sm animate-[fadeIn_0.3s_ease-out]">
-            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-amber-100 flex-shrink-0">
-              <FiAlertTriangle size={18} className="text-amber-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-800">
-                {newCandidateCounter} new CV{newCandidateCounter !== 1 ? "s" : ""} awaiting screening
-              </p>
-              <p className="text-xs text-amber-600 mt-0.5">
-                Newly uploaded CVs have been vectorized but not yet screened. Click the &ldquo;Screen CVs&rdquo; button above to analyze and score them.
-              </p>
-            </div>
+          <div className="shrink-0 mx-6 mt-3 flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+            <FiAlertTriangle size={15} className="text-amber-600 shrink-0" />
+            <p className="text-xs font-semibold text-amber-800">
+              {newCandidateCounter} new CV{newCandidateCounter !== 1 ? "s" : ""} awaiting screening
+            </p>
           </div>
         )}
 
-        {/* ── Candidates Section ────────────────────────────────────────── */}
-        <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${openDropdownId !== null ? 'overflow-visible' : 'overflow-hidden'}`}>
-          {/* Section Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold text-gray-900">Candidates</h2>
-              <span className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-sm font-bold text-gray-600">
+        {/* ── Candidates card (scrollable) ──────────────────────────────── */}
+        <Card
+          className={`mx-6 mt-4 mb-4 flex-1 min-h-0 flex flex-col shadow-[0_4px_24px_rgb(0_0_0_/_0.06)] ${
+            openDropdownId !== null ? "overflow-visible" : "overflow-hidden"
+          }`}
+        >
+          <div className="shrink-0 flex items-center justify-between px-5 py-3.5 border-b border-[#f0f0f2]">
+            <div className="flex items-center gap-2.5">
+              <h2 className="m-0 text-base font-bold text-gray-900">Candidates</h2>
+              <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-brand-600/10 text-xs font-bold text-brand-700">
                 {totalCVs}
               </span>
             </div>
 
-            {/* Upload CVs Button */}
             <button
               onClick={handleUploadClick}
               disabled={uploading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-gray-700 border border-border rounded-[10px] hover:bg-gray-50 transition disabled:opacity-50"
             >
-              <FiUpload size={16} />
+              <FiUpload size={14} />
               {uploading ? "Uploading..." : "Upload CVs"}
             </button>
             <input
@@ -554,26 +541,38 @@ export default function RequisitionDetail() {
             />
           </div>
 
-          {/* Table */}
           {applications.length === 0 ? (
-            <div className="px-6 py-16 text-center text-gray-400">
-              <p className="text-lg font-medium mb-1">No candidates yet</p>
-              <p className="text-sm">Upload CVs to get started</p>
+            <div className="flex-1 flex items-center justify-center text-gray-400">
+              <div className="text-center">
+                <p className="text-base font-medium mb-1">No candidates yet</p>
+                <p className="text-sm">Upload CVs to get started</p>
+              </div>
             </div>
           ) : (
-            <div className={openDropdownId !== null ? 'overflow-visible' : 'overflow-x-auto'}>
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wider">
-                    <th className="px-6 py-3 font-semibold w-10">#</th>
-                    <th className="px-6 py-3 font-semibold">Candidate</th>
-                    <th className="px-6 py-3 font-semibold w-48">Score</th>
-                    <th className="px-6 py-3 font-semibold w-40">Status</th>
-                    <th className="px-6 py-3 font-semibold w-28 text-center">Actions</th>
-                    <th className="px-6 py-3 font-semibold w-44 text-center">
-                      Question Generation
-                    </th>
-                    <th className="px-6 py-3 font-semibold w-32 text-center">Interview</th>
+            <div
+              className={`flex-1 min-h-0 ${
+                openDropdownId !== null ? "overflow-visible" : "overflow-auto"
+              }`}
+            >
+              <table className="w-full table-auto border-collapse text-sm">
+                <colgroup>
+                  <col className="w-10" />
+                  <col />
+                  <col className="w-[7.5rem]" />
+                  <col className="w-[8.5rem]" />
+                  <col className="w-[6.5rem]" />
+                  <col className="w-[9.5rem]" />
+                  <col className="w-[6.5rem]" />
+                </colgroup>
+                <thead className="sticky top-0 z-10 bg-surface">
+                  <tr className="border-b border-border text-[10px] text-muted uppercase tracking-wider">
+                    <th className="px-3 py-2.5 font-semibold text-center">#</th>
+                    <th className="px-4 py-2.5 font-semibold text-left w-px whitespace-nowrap">Candidate</th>
+                    <th className="px-4 py-2.5 font-semibold text-left whitespace-nowrap">Score</th>
+                    <th className="px-4 py-2.5 font-semibold text-left whitespace-nowrap">Status</th>
+                    <th className="px-3 py-2.5 font-semibold text-center whitespace-nowrap">Actions</th>
+                    <th className="px-3 py-2.5 font-semibold text-center whitespace-nowrap">Questions</th>
+                    <th className="px-3 py-2.5 font-semibold text-center whitespace-nowrap">Interview</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -591,37 +590,38 @@ export default function RequisitionDetail() {
                         className="border-b border-gray-50 hover:bg-gray-50/60 transition group"
                       >
                         {/* # */}
-                        <td className="px-6 py-4 text-gray-400 font-medium">
+                        <td className="px-3 py-3 text-center text-gray-400 font-medium tabular-nums align-middle">
                           {index + 1}
                         </td>
 
                         {/* Candidate Name */}
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3 w-px max-w-[min(100%,18rem)] text-left align-middle">
                           <button
                             onClick={() => handleCandidateClick(app)}
-                            className="text-sm font-semibold text-gray-900 hover:text-blue-600 hover:underline transition text-left"
+                            title={candidate?.full_name || "Unknown Candidate"}
+                            className="text-sm font-semibold text-gray-900 hover:text-blue-600 hover:underline transition text-left truncate block max-w-[18rem]"
                           >
                             {candidate?.full_name || "Unknown Candidate"}
                           </button>
                         </td>
 
                         {/* Score */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-24 overflow-hidden rounded-full bg-gray-200 h-1.5">
+                        <td className="px-4 py-3 whitespace-nowrap text-left align-middle">
+                          <div className="inline-flex items-center gap-2.5">
+                            <div className="w-16 overflow-hidden rounded-full bg-gray-200 h-1.5 shrink-0">
                               <div
                                 className={`h-full rounded-full ${getScoreColor(score)} transition-all duration-500`}
                                 style={{ width: `${score}%` }}
                               />
                             </div>
-                            <span className="text-sm font-semibold text-gray-700 min-w-[30px]">
+                            <span className="text-sm font-semibold text-gray-700 tabular-nums">
                               {score}
                             </span>
                           </div>
                         </td>
 
                         {/* Status */}
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3 whitespace-nowrap text-left align-middle">
                           <span
                             className={`inline-flex items-center rounded-md ${statusStyle.bg} px-2.5 py-1 text-xs font-semibold ${statusStyle.text}`}
                           >
@@ -630,7 +630,7 @@ export default function RequisitionDetail() {
                         </td>
 
                         {/* Actions — Approve / Reject dropdown */}
-                        <td className="px-6 py-4">
+                        <td className="px-3 py-3 whitespace-nowrap text-center align-middle">
                           <div className="flex items-center justify-center gap-1.5 relative">
                             {/* Quick actions: Check / X */}
                             <button
@@ -667,7 +667,7 @@ export default function RequisitionDetail() {
                               </button>
 
                               {isDropdownOpen && (
-                                <div className="absolute right-0 top-10 z-30 w-52 bg-white border border-gray-200 rounded-xl shadow-xl py-1.5 animate-in fade-in slide-in-from-top-2">
+                                <div className="absolute right-0 top-10 z-30 w-52 bg-surface border border-border rounded-xl shadow-[0_8px_32px_rgb(0_0_0_/_0.12)] py-1.5">
                                   {STATUS_OPTIONS.map((opt) => (
                                     <button
                                       key={opt.value}
@@ -700,7 +700,7 @@ export default function RequisitionDetail() {
                         </td>
 
                         {/* Question Generation — Coming Soon */}
-                        <td className="px-6 py-4">
+                        <td className="px-3 py-3 whitespace-nowrap text-center align-middle">
                           <div className="flex items-center justify-center gap-2">
                             {app.tech_questions && app.tech_questions.length > 0 ? (
                               <button
@@ -742,7 +742,7 @@ export default function RequisitionDetail() {
                         </td>
 
                         {/* Interview */}
-                        <td className="px-6 py-4">
+                        <td className="px-3 py-3 whitespace-nowrap text-center align-middle">
                           <div className="flex justify-center">
                             <button
                               onClick={() => handleInterviewClick(app)}
@@ -760,7 +760,7 @@ export default function RequisitionDetail() {
               </table>
             </div>
           )}
-        </div>
+        </Card>
 
         {/* ── Candidate Detail Slide-Over ───────────────────────────────── */}
         <CandidateDetailsModal
@@ -789,14 +789,14 @@ export default function RequisitionDetail() {
         {/* ── View JD Modal ──────────────────────────────────────────── */}
         {isJdModalOpen && (
           <>
-            <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setIsJdModalOpen(false)} />
+            <div className="fixed inset-0 bg-black/45 z-50" onClick={() => setIsJdModalOpen(false)} />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden"
+                className="bg-surface rounded-xl shadow-[0_24px_80px_rgb(0_0_0_/_0.2)] w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-border">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">Job Description</h2>
                     <p className="text-sm text-gray-500 mt-0.5">{requisition?.title}</p>
@@ -835,7 +835,7 @@ export default function RequisitionDetail() {
                   </div>
 
                   {/* Description */}
-                  <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
                     {requisition?.description || "No description provided."}
                   </div>
                 </div>
@@ -876,16 +876,16 @@ export default function RequisitionDetail() {
         {isQuestionsModalOpen && (
           <>
             <div
-              className="fixed inset-0 bg-black/50 z-50"
+              className="fixed inset-0 bg-black/45 z-50"
               onClick={() => setIsQuestionsModalOpen(false)}
             />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden"
+                className="bg-surface rounded-xl shadow-[0_24px_80px_rgb(0_0_0_/_0.2)] w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-border">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">Technical Questions</h2>
                     <p className="text-sm text-gray-500 mt-0.5">{selectedQuestionsCandidate}</p>
@@ -954,7 +954,7 @@ export default function RequisitionDetail() {
         {/* ── Floating AI Copilot Button ────────────────────────────────── */}
         <button
           onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-8 right-8 flex items-center justify-center w-16 h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 hover:scale-110 active:scale-95 z-40 border-4 border-white"
+          className="fixed bottom-8 right-8 flex items-center justify-center w-16 h-16 bg-gradient-to-br from-brand-600 to-brand-800 hover:from-brand-700 hover:to-brand-800 text-white rounded-full shadow-[0_6px_22px_rgb(0_0_0_/_0.16)] hover:shadow-[0_8px_28px_rgb(0_0_0_/_0.2)] transition-all duration-300 hover:scale-105 active:scale-95 z-40 border-4 border-white"
           title="AI Recruiting Copilot"
         >
           <FiMessageSquare size={24} />

@@ -1,18 +1,78 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { FiX } from "react-icons/fi";
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";import { inputClasses } from "./inputField";
+import Button from "./button";
 
-export default function RequisitionModal({ isOpen, mode, requisition, onClose, onSubmit, loading = false }) {
-  const [formData, setFormData] = useState({
-    title: "",
+const fieldLabel =
+  "flex flex-col gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-gray-900";
+const fieldInput = `${inputClasses} text-sm py-2 px-3 bg-surface`;
+const fieldError = "text-red-600 text-xs mt-1";
+
+function WizardSteps({ step, isEditMode }) {
+  if (isEditMode) return null;
+
+  return (
+    <div className="flex items-center w-full pt-3.5 mt-3 border-t border-[#eee]">
+      <div
+        className={`flex items-center gap-2 px-3.5 text-[13px] whitespace-nowrap ${
+          step === 1 ? "font-semibold text-gray-900" : "font-medium text-emerald-600"
+        }`}
+      >
+        <span
+          className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold leading-none ${
+            step === 1
+              ? "bg-brand-600 text-white"
+              : "bg-emerald-500 text-white"
+          }`}
+        >
+          {step > 1 ? "✓" : "1"}
+        </span>
+        Details
+      </div>
+
+      <div className="flex-1 relative h-0.5 bg-[#d2d2d7] mx-0 rounded-sm">
+        <div
+          className="absolute inset-y-0 left-0 bg-brand-600 rounded-sm transition-all duration-300"
+          style={{ width: step >= 2 ? "100%" : "0%" }}
+        />
+      </div>
+
+      <div
+        className={`flex items-center gap-2 px-3.5 text-[13px] whitespace-nowrap ${
+          step === 2 ? "font-semibold text-gray-900" : "text-muted"
+        }`}
+      >
+        <span
+          className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold leading-none ${
+            step === 2 ? "bg-brand-600 text-white" : "bg-[#eee] text-gray-600"
+          }`}
+        >
+          2
+        </span>
+        Job Description
+      </div>
+    </div>
+  );
+}
+
+export default function RequisitionModal({
+  isOpen,
+  mode,
+  requisition,
+  onClose,
+  onSubmit,
+  loading = false,
+}) {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({    title: "",
     description: "",
     department: "",
     location: "",
   });
-
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState("");
 
-  // Update form data when requisition changes (for edit mode)
+  const isEditMode = mode === "edit";
   useEffect(() => {
     if (requisition && mode === "edit") {
       setFormData({
@@ -22,192 +82,234 @@ export default function RequisitionModal({ isOpen, mode, requisition, onClose, o
         location: requisition.location || "",
       });
       setErrors({});
-    } else if (mode === "create" && isOpen) {
-      // Reset form for create mode
-      setFormData({
+      setStep(1);
+    } else if (mode === "create" && isOpen) {      setFormData({
         title: "",
         description: "",
         department: "",
         location: "",
       });
       setErrors({});
-    }
+      setStep(1);
+    }    setSubmitError("");
   }, [requisition, mode, isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    // Clear error for this field when user starts typing
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
+    if (submitError) setSubmitError("");
   };
 
-  const validateForm = () => {
+  const validateStep1 = () => {
     const newErrors = {};
-    if (!formData.title.trim()) {
-      newErrors.title = "Job title is required";
-    }
+    if (!formData.title.trim()) newErrors.title = "Job title is required";
+    if (!formData.department.trim()) newErrors.department = "Department is required";
+    if (!formData.location.trim()) newErrors.location = "Location is required";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep2 = () => {
+    const newErrors = {};
     if (!formData.description.trim()) {
       newErrors.description = "Job description is required";
-    }
-    if (!formData.department.trim()) {
-      newErrors.department = "Department is required";
-    }
-    if (!formData.location.trim()) {
-      newErrors.location = "Location is required";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleNext = (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      onSubmit(formData);
+    if (validateStep1()) {
+      setSubmitError("");
+      setStep(2);
     }
   };
 
-  if (!isOpen) return null;
+  const handleBack = () => {
+    setSubmitError("");
+    setStep(1);
+  };
 
-  const isEditMode = mode === "edit";
-  const title = isEditMode ? "Edit Requisition" : "Post New Job";
+  const validateAll = () => {
+    const step1Ok = validateStep1();
+    const step2Ok = validateStep2();
+    return step1Ok && step2Ok;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!validateAll()) return;
+    onSubmit(formData);
+  };
+
+  if (!isOpen) return null;
+  const modalTitle = isEditMode
+    ? "Edit Requisition"
+    : step === 1
+    ? "New Requisition"
+    : "Add Job Description";
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 bg-black/45 flex items-center justify-center z-50 p-6"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="bg-surface rounded-xl shadow-[0_24px_80px_rgb(0_0_0_/_0.2)] max-w-[640px] w-full max-h-[90vh] overflow-y-auto p-6">
         {/* Header */}
-        <div className="sticky top-0 flex items-center justify-between p-6 border-b border-gray-200 bg-white">
-          <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-          <button
-            onClick={onClose}
-            disabled={loading}
-            className="text-gray-400 hover:text-gray-600 transition"
-          >
-            <FiX size={24} />
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Job Title */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Job Title *
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="e.g., Senior Software Engineer"
-              disabled={loading}
-              className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 transition ${
-                errors.title ? "border-red-500" : "border-gray-300"
-              }`}
-            />
-            {errors.title && (
-              <p className="text-red-500 text-sm mt-1">{errors.title}</p>
-            )}
-          </div>
-
-          {/* Job Description */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Job Description *
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Describe the role, responsibilities, and requirements..."
-              disabled={loading}
-              rows="5"
-              className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 transition resize-none ${
-                errors.description ? "border-red-500" : "border-gray-300"
-              }`}
-            />
-            {errors.description && (
-              <p className="text-red-500 text-sm mt-1">{errors.description}</p>
-            )}
-          </div>
-
-          {/* Department */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Department *
-            </label>
-            <input
-              type="text"
-              name="department"
-              value={formData.department}
-              onChange={handleChange}
-              placeholder="e.g., Engineering, Sales, Marketing"
-              disabled={loading}
-              className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 transition ${
-                errors.department ? "border-red-500" : "border-gray-300"
-              }`}
-            />
-            {errors.department && (
-              <p className="text-red-500 text-sm mt-1">{errors.department}</p>
-            )}
-          </div>
-
-          {/* Location */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Location *
-            </label>
-            <input
-              type="text"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              placeholder="e.g., Cairo, Egypt or Remote"
-              disabled={loading}
-              className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 transition ${
-                errors.location ? "border-red-500" : "border-gray-300"
-              }`}
-            />
-            {errors.location && (
-              <p className="text-red-500 text-sm mt-1">{errors.location}</p>
-            )}
-          </div>
-
-          {/* Buttons */}
-          <div className="flex gap-3 justify-end pt-6 border-t border-gray-200">
+        <div className="mb-1">
+          <div className="flex items-center justify-between gap-4 pb-3">
+            <h2 className="m-0 text-[1.15rem] font-bold text-gray-900">{modalTitle}</h2>
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition disabled:opacity-50"
+              aria-label="Close"
+              className="shrink-0 w-8 h-8 flex items-center justify-center rounded-md text-muted hover:text-gray-900 hover:bg-gray-100 transition disabled:opacity-50"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Saving...
-                </>
-              ) : isEditMode ? (
-                "Update Requisition"
-              ) : (
-                "Post Job"
-              )}
+              <FiX size={18} />
             </button>
           </div>
-        </form>
+          <WizardSteps step={step} isEditMode={isEditMode} />
+        </div>
+
+        {/* Step 1 — Details */}
+        {(step === 1 || isEditMode) && (
+          <form
+            onSubmit={isEditMode ? handleSubmit : handleNext}
+            className="flex flex-col gap-3.5 pt-1"
+          >
+            <label className={fieldLabel}>
+              Job Title *
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="e.g. Senior Software Engineer"
+                disabled={loading}
+                className={`${fieldInput} ${errors.title ? "border-red-500" : ""}`}
+              />
+              {errors.title && <span className={fieldError}>{errors.title}</span>}
+            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <label className={fieldLabel}>
+                Department *
+                <input
+                  type="text"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  placeholder="e.g. Engineering"
+                  disabled={loading}
+                  className={`${fieldInput} ${errors.department ? "border-red-500" : ""}`}
+                />
+                {errors.department && <span className={fieldError}>{errors.department}</span>}
+              </label>
+
+              <label className={fieldLabel}>
+                Location *
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  placeholder="e.g. Cairo, Egypt"
+                  disabled={loading}
+                  className={`${fieldInput} ${errors.location ? "border-red-500" : ""}`}
+                />
+                {errors.location && <span className={fieldError}>{errors.location}</span>}
+              </label>
+            </div>
+
+            {isEditMode && (
+              <label className={fieldLabel}>
+                Job Description *
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  placeholder="Describe the role, responsibilities, and requirements..."
+                  disabled={loading}
+                  rows={8}
+                  className={`${fieldInput} resize-y min-h-[160px] leading-relaxed ${
+                    errors.description ? "border-red-500" : ""
+                  }`}
+                />
+                {errors.description && (
+                  <span className={fieldError}>{errors.description}</span>
+                )}
+              </label>
+            )}
+
+            {submitError && <p className="text-red-600 text-sm m-0">{submitError}</p>}
+
+            <div className="flex items-center justify-end gap-2.5 pt-5 mt-1 border-t border-[#eee]">
+              <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={loading}>
+                Cancel
+              </Button>
+              {isEditMode ? (
+                <Button type="submit" size="sm" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Update Requisition"
+                  )}
+                </Button>
+              ) : (
+                <Button type="submit" size="sm" disabled={loading}>
+                  Next →
+                </Button>
+              )}
+            </div>
+          </form>
+        )}
+
+        {/* Step 2 — Job Description (create only) */}
+        {step === 2 && !isEditMode && (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 pt-1">
+            <label className={fieldLabel}>
+              Description *
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="External job description — responsibilities, requirements, and qualifications..."
+                disabled={loading}
+                rows={10}
+                className={`${fieldInput} resize-y min-h-[220px] leading-relaxed ${
+                  errors.description ? "border-red-500" : ""
+                }`}
+              />
+              {errors.description && (
+                <span className={fieldError}>{errors.description}</span>
+              )}
+            </label>
+
+            <div className="flex items-center justify-between gap-2.5 pt-5 mt-1 border-t border-[#eee]">              <Button type="button" variant="ghost" size="sm" onClick={handleBack} disabled={loading}>
+                ← Back
+              </Button>
+              <Button type="submit" size="sm" disabled={loading}>
+                {loading ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Requisition"
+                )}
+              </Button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

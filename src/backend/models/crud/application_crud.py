@@ -29,18 +29,19 @@ async def get_application_by_id(
     include_relations: bool = False
 ) -> Optional[ApplicationSchema]:
     """Get application by ID, optionally with related data."""
-    query = select(Application).where(Application.id == application_id)
-    
+    query = select(Application).where(Application.id == application_id).options(
+        joinedload(Application.screening_result),
+    )
+
     if include_relations:
         query = query.options(
             joinedload(Application.candidate),
-            joinedload(Application.screening_result),
             selectinload(Application.interview_sessions),
-            selectinload(Application.details)
+            selectinload(Application.details),
         )
-    
+
     result = await db.execute(query)
-    return result.scalar_one_or_none()
+    return result.unique().scalar_one_or_none()
 
 
 async def get_application_by_lever_opportunity_id(
@@ -71,15 +72,16 @@ async def get_applications_by_requisition(
     if min_score is not None:
         query = query.where(Application.combined_score >= min_score)
     
+    query = query.options(
+        joinedload(Application.screening_result),
+    )
+
     if include_relations:
-        query = query.options(
-            joinedload(Application.candidate),
-            joinedload(Application.screening_result)
-        )
-    
+        query = query.options(joinedload(Application.candidate))
+
     query = query.order_by(desc(Application.combined_score)).offset(skip).limit(limit)
     result = await db.execute(query)
-    return list(result.scalars().all())
+    return list(result.unique().scalars().all())
 
 
 async def update_application(
