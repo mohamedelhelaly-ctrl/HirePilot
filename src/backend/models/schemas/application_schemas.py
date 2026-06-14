@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Any
 from datetime import datetime
+from sqlalchemy import inspect as sa_inspect
 from models import ApplicationStatus
 from .candidate_schemas import Candidate
 from .screeningResult_schemas import ScreeningResult
@@ -51,12 +52,21 @@ class Application(ApplicationBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-def application_to_read(app) -> "Application":
-    """Map ORM application (+ optional screening_result) to API schema."""
-    data = Application.model_validate(app)
-    screening = getattr(app, "screening_result", None)
-    if screening is not None and screening.justification is not None:
-        return data.model_copy(update={"justification": screening.justification})
+def _relation_loaded(obj, name: str) -> bool:
+    """True if a relationship was eager-loaded (avoids async lazy-load)."""
+    return name not in sa_inspect(obj).unloaded
+
+
+def application_to_read(app) -> "Application | ApplicationWithCandidate":
+    """Map ORM application (+ optional screening_result, candidate) to API schema."""
+    if _relation_loaded(app, "candidate"):
+        data = ApplicationWithCandidate.model_validate(app)
+    else:
+        data = Application.model_validate(app)
+    if _relation_loaded(app, "screening_result"):
+        screening = app.screening_result
+        if screening is not None and screening.justification is not None:
+            return data.model_copy(update={"justification": screening.justification})
     return data
 
 

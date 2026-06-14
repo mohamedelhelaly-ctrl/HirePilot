@@ -23,3 +23,158 @@
     @apply bg-canvas text-gray-900 antialiased font-sans;
   }
 }
+
+/* ── List pages (talent-front pattern) ── */
+
+.page {
+  max-width: none;
+  margin: 0;
+  padding: 32px 40px 64px;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.page-desc {
+  margin: 8px 0 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.toolbar--with-action {
+  align-items: center;
+}
+
+.toolbar__search {
+  flex: 1 1 220px;
+  min-width: 200px;
+}
+
+.toolbar__select {
+  min-width: 140px;
+  padding-right: 32px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--color-surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.field-input {
+  font: inherit;
+  padding: 8px 12px;
+  border: 1px solid #d2d2d7;
+  border-radius: 10px;
+  background-color: var(--color-surface);
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--color-brand-600);
+  box-shadow: 0 0 0 3px rgb(29 78 216 / 0.18);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.candidate-directory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 0 8px;
+}
+
+.pagination__pages {
+  display: flex;
+  gap: 4px;
+}
+
+.pagination__page {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+
+.pagination__page:hover:not(:disabled) {
+  background: #f0f0f2;
+}
+
+.pagination__page--active {
+  background: var(--color-brand-600);
+  border-color: var(--color-brand-600);
+  color: #fff;
+}
+
+.pagination__page--active:hover {
+  background: var(--color-brand-600);
+}
+
+@media (max-width: 1200px) {
+  .candidate-directory-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .candidate-directory-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 24px 20px 48px;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .candidate-directory-grid {
+    grid-template-columns: 1fr;
+  }
+}

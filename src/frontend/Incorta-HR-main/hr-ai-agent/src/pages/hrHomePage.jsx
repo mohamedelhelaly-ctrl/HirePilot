@@ -4,10 +4,8 @@ import RequisitionModal from "../components/requisitionModal";
 import DeleteConfirmModal from "../components/deleteConfirmModal";
 import Toast from "../components/toast";
 import Button from "../components/button";
-import Card from "../components/Card";
-import PageHeader from "../components/PageHeader";
-import { inputClasses } from "../components/inputField";
-import { FiPlus, FiSearch, FiAlertCircle } from "react-icons/fi";
+import ListPagination from "../components/ListPagination";
+import { FiPlus, FiAlertCircle } from "react-icons/fi";
 import { useState, useEffect } from "react";
 import {
   fetchRequisitions,
@@ -15,6 +13,8 @@ import {
   updateRequisition,
   deleteRequisition,
 } from "../services/requisitionService";
+
+const PAGE_SIZE = 8;
 
 export default function HrDashboard() {
   const [requisitions, setRequisitions] = useState([]);
@@ -32,6 +32,7 @@ export default function HrDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
   const [departments, setDepartments] = useState(["All"]);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const loadRequisitions = async () => {
@@ -73,6 +74,13 @@ export default function HrDashboard() {
     }
     setFilteredRequisitions(filtered);
   }, [requisitions, selectedDept, searchTerm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, selectedDept]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRequisitions.length / PAGE_SIZE));
+  const pageItems = filteredRequisitions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handlePostJob = () => {
     setModalMode("create");
@@ -147,109 +155,82 @@ export default function HrDashboard() {
     }
   };
 
-  const activeDeptCount =
-    selectedDept === "All"
-      ? new Set(filteredRequisitions.map((r) => r.department).filter(Boolean)).size
-      : 1;
-
   return (
     <DashboardLayout>
-      <PageHeader
-        title="Requisitions"
-        description="Manage active job openings"
-        actions={
-          <Button size="sm" onClick={handlePostJob}>
-            <FiPlus size={14} />
-            Post New Job
-          </Button>
-        }
-      />
-
-      {/* Toolbar */}
-      <Card className="mb-4 shadow-[0_4px_24px_rgb(0_0_0_/_0.06)]">
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center px-5 py-3.5">
-          <div className="flex-1 relative">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-            <input
-              type="text"
-              placeholder="Search by job title, location, or keyword..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={`${inputClasses} pl-9 text-sm py-2`}
-            />
+      <div className="page page--list">
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Requisitions</h1>
+            <p className="page-desc">
+              {loading
+                ? "Loading…"
+                : `${filteredRequisitions.length} of ${requisitions.length} requisition${requisitions.length !== 1 ? "s" : ""}`}
+            </p>
           </div>
+        </div>
+
+        <div className="toolbar toolbar--with-action">
+          <input
+            type="text"
+            className="field-input toolbar__search"
+            placeholder="Search by title, location, or keyword…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
           <select
+            className="field-input toolbar__select"
             value={selectedDept}
             onChange={(e) => setSelectedDept(e.target.value)}
-            className={`${inputClasses} md:w-44 bg-white cursor-pointer text-sm font-medium py-2`}
+            aria-label="Filter by department"
           >
             {departments.map((dept, i) => (
               <option key={i} value={dept}>
-                {dept}
+                {dept === "All" ? "All departments" : dept}
               </option>
             ))}
           </select>
+          <Button onClick={handlePostJob}>
+            <FiPlus size={14} />
+            New Requisition
+          </Button>
         </div>
-      </Card>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2.5">
-          <FiAlertCircle className="text-red-600 shrink-0 mt-0.5" size={16} />
-          <div>
-            <h3 className="text-sm font-semibold text-red-900">Error Loading Requisitions</h3>
-            <p className="text-red-700 text-xs mt-0.5">{error}</p>
+        {error && (
+          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2.5">
+            <FiAlertCircle className="text-red-600 shrink-0 mt-0.5" size={16} />
+            <div>
+              <h3 className="text-sm font-semibold text-red-900">Error Loading Requisitions</h3>
+              <p className="text-red-700 text-xs mt-0.5">{error}</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-gray-200 rounded-xl h-64 animate-pulse" />
-          ))}
-        </div>
-      ) : filteredRequisitions.length > 0 ? (
-        <>
-          {/* Stats */}
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            {[
-              { label: "Total", value: filteredRequisitions.length },
-              { label: "Departments", value: activeDeptCount },
-            ].map(({ label, value }) => (
-              <div
-                key={label}
-                className="flex flex-col items-center px-3 py-1.5 min-w-[48px] rounded-lg border border-border bg-canvas"
-              >
-                <span className="text-base font-bold leading-none text-gray-900">{value}</span>
-                <span className="text-[9px] font-semibold uppercase tracking-[0.06em] text-muted mt-0.5 whitespace-nowrap">
-                  {label}
-                </span>
-              </div>
+        {loading ? (
+          <div className="card-grid">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-gray-200 rounded-xl h-52 animate-pulse" />
             ))}
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {filteredRequisitions.map((req) => (
-              <RequisitionCard
-                key={req.id}
-                requisition={req}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
-        </>
-      ) : (
-        <Card className="py-12 text-center shadow-[0_4px_24px_rgb(0_0_0_/_0.06)]">
-          <p className="text-sm font-medium text-muted">
-            No requisitions found for{" "}
-            {selectedDept === "All" ? "your filters" : `the ${selectedDept} department`}
+        ) : filteredRequisitions.length === 0 ? (
+          <p className="text-muted text-center mt-8">
+            No requisitions match your filters.
           </p>
-          {searchTerm && (
-            <p className="text-xs text-gray-400 mt-1.5">Try adjusting your search term or filters</p>
-          )}
-        </Card>
-      )}
+        ) : (
+          <>
+            <div className="card-grid">
+              {pageItems.map((req) => (
+                <RequisitionCard
+                  key={req.id}
+                  requisition={req}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+            <ListPagination page={page} totalPages={totalPages} onPageChange={setPage} />
+          </>
+        )}
+      </div>
 
       <RequisitionModal
         isOpen={isRequisitionModalOpen}

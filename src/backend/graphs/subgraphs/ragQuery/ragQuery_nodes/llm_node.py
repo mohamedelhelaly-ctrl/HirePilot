@@ -68,6 +68,19 @@ def _extract_final_answer(text: str) -> Optional[str]:
     return m.group(1).strip() if m else None
 
 
+_DETAIL_KEYWORDS = (
+    "tell me more", "more about", "application detail", "about him", "about her",
+    "about them", "his detail", "her detail", "their detail", "that candidate",
+    "screening", "justification", "skills", "education", "experience", "background",
+    "cv", "resume", "qualification", "why was", "why is",
+)
+
+
+def _needs_candidate_details(question: str) -> bool:
+    q = question.lower()
+    return any(kw in q for kw in _DETAIL_KEYWORDS)
+
+
 # ── Node factory ──────────────────────────────────────────────────────────────
 
 def make_llm_node(
@@ -117,6 +130,7 @@ def make_llm_node(
 
         final_answer: Optional[str] = None
         tools_used = False
+        tools_called: set[str] = set()
 
         for round_num in range(MAX_TOOL_ROUNDS):
             raw = await asyncio.to_thread(llm_rag.generate, running)
@@ -125,53 +139,60 @@ def make_llm_node(
             logger.info(f"[llm_node] round {round_num + 1} model output received")
             logger.debug(f"[llm_node] model output:\n{text[:800]}")
 
-            # Check for a final answer anywhere in what we have so far
-            final_answer = _extract_final_answer(text)
-            if final_answer and tools_used:
-                logger.info(
-                    f"[llm_node] final answer detected after tool use, breaking loop"
-                )
-                break
-
-            # Try to parse a tool call
             tool_name, args = _parse_action(text)
-            logger.info(f"[llm_node] parsed tool_name={tool_name!r} args={args}")
-            if tool_name is None:
-                logger.warning(
-                    "[RAG] Model output contained no tool action. "
-                    "Retrying with a stronger instruction to use one of the available tools."
-                )
-                running = (
-                    running
-                    + "\n"
-                    + text
-                    + "\nObservation: The model did not choose a tool. "
-                      "Please select one of the available tools and provide valid Action Input.\nThought:"
-                )
-                continue
+            final_answer = _extract_final_answer(text)
 
-            # Execute the tool
-            tool = tool_registry.get(tool_name)
-            if tool is None:
-                observation = (
-                    f"Error: unknown tool '{tool_name}'. "
-                    f"Available tools: {tool_names}"
-                )
-                logger.warning(f"[llm_node] Unknown tool requested: '{tool_name}'")
+            # Execute tool calls before accepting a Final Answer in the same turn
+            if tool_name is not None:
+                logger.info(f"[llm_node] parsed tool_name={tool_name!r} args={args}")
+                tool = tool_registry.get(tool_name)
+                if tool is None:
+                    observation = (
+                        f"Error: unknown tool '{tool_name}'. "
+                        f"Available tools: {tool_names}"
+                    )
+                    logger.warning(f"[llm_node] Unknown tool requested: '{tool_name}'")
+                else:
+                    try:
+                        observation = await tool.ainvoke(args)
+                        tools_used = True
+                        tools_called.add(tool_name)
+                        logger.info(f"[llm_node] tool '{tool_name}' invoked successfully")
+                        logger.debug(f"[llm_node] tool observation: {str(observation)[:800]}")
+                    except Exception as exc:
+                        observation = f"Tool error: {exc}"
+                        logger.exception(f"[llm_node] tool '{tool_name}' raised an exception")
+
                 running = running + "\n" + text + f"\nObservation: {observation}\nThought:"
                 continue
 
-            try:
-                observation = await tool.ainvoke(args)
-                tools_used = True
-                logger.info(f"[llm_node] tool '{tool_name}' invoked successfully")
-                logger.debug(f"[llm_node] tool observation: {str(observation)[:800]}")
-            except Exception as exc:
-                observation = f"Tool error: {exc}"
-                logger.exception(f"[llm_node] tool '{tool_name}' raised an exception")
+            if final_answer and tools_used:
+                if _needs_candidate_details(question) and "get_candidate_details" not in tools_called:
+                    logger.info(
+                        "[llm_node] detail question answered from summary only — "
+                        "nudging model to call get_candidate_details"
+                    )
+                    running = (
+                        running + "\n" + text
+                        + "\nObservation: The candidate list summary is not enough for this question. "
+                          "Call get_candidate_details with the relevant candidate_id "
+                          "(from the list above or prior conversation) before writing Final Answer.\nThought:"
+                    )
+                    continue
+                logger.info("[llm_node] final answer detected after tool use, breaking loop")
+                break
 
-            # Append result and prompt for next Thought
-            running = running + "\n" + text + f"\nObservation: {observation}\nThought:"
+            # No Action in this turn — nudge toward tool use or a proper Final Answer
+            logger.info(f"[llm_node] parsed tool_name={tool_name!r} args={args}")
+            nudge = (
+                "Please use a tool before answering."
+                if final_answer and not tools_used
+                else "The model did not choose a tool. "
+                     "Please select one of the available tools and provide valid Action Input."
+            )
+            logger.warning("[RAG] Model output contained no tool action — retrying")
+            running = running + "\n" + text + f"\nObservation: {nudge}\nThought:"
+            continue
 
         # If we exhausted rounds without a Final Answer, force one last generation
         if not final_answer:

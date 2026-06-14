@@ -28,10 +28,10 @@ def build_rag_tools(user_id: int, requisition_id: int):
     @tool
     async def get_requisition_candidates() -> str:
         """
-        Get all candidates for the current requisition.
-        Returns a list of candidates with their basic application information,
-        sorted by combined score descending.
-        Output is JSON and includes name, email, status, score, and applied_at.
+        Get a summary list of candidates for the current requisition (no CV/skills/education).
+        Returns candidates sorted by combined score descending.
+        Output is JSON with candidate_id, application_id, name, email, status, score, applied_at.
+        For skills, education, screening justification, or full application data, use get_candidate_details instead.
         """
         logger.info(
             f"[rag_tools] get_requisition_candidates called requisition_id={requisition_id} "
@@ -48,6 +48,7 @@ def build_rag_tools(user_id: int, requisition_id: int):
                     candidate = app.candidate
                     results.append({
                         "candidate_id": candidate.id,
+                        "application_id": app.id,
                         "name": candidate.full_name,
                         "email": candidate.email,
                         "status": app.status.value if app.status else None,
@@ -66,7 +67,7 @@ def build_rag_tools(user_id: int, requisition_id: int):
     get_requisition_candidates.name = "get_requisition_candidates"
 
     @tool
-    async def get_candidate_details(candidate_id: str) -> str:
+    async def get_candidate_details(candidate_id: int) -> str:
         """
         Get full profile details for a specific candidate.
 
@@ -79,7 +80,7 @@ def build_rag_tools(user_id: int, requisition_id: int):
         )
         try:
             async with AsyncSessionLocal() as db:
-                profile = await candidate_controller.get_candidate_full_profile(db, int(candidate_id), requisition_id)
+                profile = await candidate_controller.get_candidate_full_profile(db, candidate_id, requisition_id)
                 logger.debug("[rag_tools] get_candidate_details returning profile data")
                 return json.dumps(profile, ensure_ascii=False)
 
@@ -93,7 +94,7 @@ def build_rag_tools(user_id: int, requisition_id: int):
         """
         Get details of the current requisition.
 
-        Returns job title, description, requirements, and other requisition metadata.
+        Returns job title, description, department, location, and other requisition metadata.
         Output is JSON.
         """
         logger.info(
@@ -111,7 +112,8 @@ def build_rag_tools(user_id: int, requisition_id: int):
                     "id": requisition.id,
                     "title": requisition.title,
                     "description": requisition.description,
-                    "requirements": requisition.requirements,
+                    "department": requisition.department,
+                    "location": requisition.location,
                     "lever_id": requisition.lever_id,
                     "hiring_manager_id": requisition.hiring_manager_id,
                     "is_active": requisition.is_active,

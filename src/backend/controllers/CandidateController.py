@@ -22,6 +22,11 @@ from models.schemas.candidate_schemas import (
     CandidateCreate,
     CandidateUpdate,
 )
+from models.schemas.candidate_directory_schemas import (
+    CandidateDirectoryItem,
+    CandidateDirectoryApplication,
+    CandidatesDirectoryResponse,
+)
 from models.crud import (
     create_candidate,
     list_candidates,
@@ -30,6 +35,7 @@ from models.crud import (
     get_candidate_by_lever_id,
     get_or_create_candidate,
     get_candidates_by_requisition_id,
+    get_candidates_directory,
     increment_requisition_counter,
     get_applications_by_requisition,
     get_application_details,
@@ -62,6 +68,24 @@ class CandidateController(BaseController):
         limit: int = 100,
     ) -> list[Candidate]:
         return await list_candidates(db, skip=skip, limit=limit)
+
+    async def get_candidates_directory(
+        self,
+        db: AsyncSession,
+    ) -> CandidatesDirectoryResponse:
+        rows = await get_candidates_directory(db)
+        candidates = [
+            CandidateDirectoryItem(
+                candidate_id=row["candidate_id"],
+                name=row["name"],
+                email=row["email"],
+                phone_number=row["phone_number"],
+                linkedin_url=row["linkedin_url"],
+                applications=[CandidateDirectoryApplication(**app) for app in row["applications"]],
+            )
+            for row in rows
+        ]
+        return CandidatesDirectoryResponse(candidates=candidates, count=len(candidates))
 
     async def get_candidate(
         self,

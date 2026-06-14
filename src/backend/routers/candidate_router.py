@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from models.database import get_db
 from models.schemas.candidate_schemas import Candidate, CandidateCreate, CandidateUpdate
+from models.schemas.candidate_directory_schemas import CandidatesDirectoryResponse
 from models.schemas.application_schemas import Application, ApplicationCreate, ApplicationUpdate
 from models.schemas.applicationDetail_schemas import ApplicationDetail
 from models.tables_enums import ApplicationStatus
@@ -23,6 +24,14 @@ async def create_candidate(
 ):
     """Create a new candidate."""
     return await candidate_controller.create_candidate(request, db)
+
+
+@router.get("/directory", response_model=CandidatesDirectoryResponse)
+async def get_candidates_directory(
+    db: AsyncSession = Depends(get_db),
+):
+    """List all candidates grouped with their applications (immutable identity view)."""
+    return await candidate_controller.get_candidates_directory(db)
 
 
 @router.get("/{candidate_id}", response_model=Candidate)

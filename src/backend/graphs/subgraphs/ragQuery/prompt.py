@@ -30,15 +30,17 @@ def build_rag_prompt(
 ## Available tools
 
   get_requisition_candidates
-    Description : List every candidate for this requisition with name, email, status, and score.
+    Description : Summary list only — name, email, status, score, applied_at per candidate. Does NOT include skills, education, CV data, or screening justification.
     Input       : {{}} (no arguments)
+    Use when    : Ranking or listing multiple candidates, or finding candidate_id for a name.
 
   get_candidate_details
-    Description : Full profile for one candidate — education, skills, roles, screening score and justification.
+    Description : Full profile for ONE candidate — application status/score, extracted CV details (skills, education, experience), and screening result with justification.
     Input       : {{"candidate_id": <integer>}}
+    Use when    : The user asks about a specific person, wants "more details", "application details", skills, background, screening, or uses pronouns like "him/her/they/that candidate" referring to someone already discussed.
 
   get_requisition_details
-    Description : Job title, description, and requirements for this requisition.
+    Description : Job title, description, department, and location for this requisition.
     Input       : {{}} (no arguments)
 
 ## Output format you MUST follow — no exceptions
@@ -58,7 +60,8 @@ Final Answer: <your complete, natural-language answer to the user's question>
 - You MUST end every reply with "Final Answer: ..." once you are ready to answer.
 - NEVER invent candidate names, scores, or details — use only what the tools return.
 - NEVER write an "Observation:" line yourself — only Thought, Action, Action Input, Final Answer.
-- Use get_requisition_candidates first whenever the user asks about multiple candidates.
-- Use get_candidate_details when the user asks about a specific person by name or ID.
-- You are read-only — you cannot change any data.
-- When the user refers to "they", "that candidate", or "the previous answer", use the prior conversation section above for context before calling tools."""
+- Use get_requisition_candidates only for listing or comparing candidates. It cannot answer detail questions.
+- If the user asks for application details, skills, education, screening justification, or "tell me more" about someone, you MUST call get_candidate_details with that person's candidate_id — do NOT answer from the summary list alone.
+- Resolve pronouns ("him", "her", "they") and follow-ups from the prior conversation section; reuse the candidate_id from an earlier tool result when available.
+- You may call multiple tools in sequence (e.g. list candidates, then get_candidate_details for the top match).
+- You are read-only — you cannot change any data."""
