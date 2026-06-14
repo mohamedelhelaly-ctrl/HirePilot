@@ -227,6 +227,26 @@ export const updateApplicationStatus = async (applicationId, newStatus, userId =
   }
 };
 
+/**
+ * Generate technical questions for an application
+ * POST /api/candidates/applications/{application_id}/tech-questions
+ */
+export const generateTechQuestions = async (applicationId) => {
+  try {
+    const response = await fetch(
+      `${CANDIDATES_URL}/applications/${applicationId}/tech-questions`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse(response);
+  } catch (error) {
+    console.error(`Error generating tech questions for application ${applicationId}:`, error);
+    throw error;
+  }
+};
+
 // ============================================================================
 // CV Upload
 // ============================================================================
@@ -273,5 +293,6 @@ export default {
   fetchApplicationDetails,
   updateApplication,
   updateApplicationStatus,
+  generateTechQuestions,
   uploadCVs,
 };
