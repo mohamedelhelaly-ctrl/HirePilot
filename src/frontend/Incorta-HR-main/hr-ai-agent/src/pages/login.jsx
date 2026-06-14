@@ -1,4 +1,3 @@
-import illustration from "../assets/logo-width.jpg";
 import AuthLayout from "../layouts/AuthLayout";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -56,7 +55,11 @@ export default function Login() {
         <div className="flex w-full">
           {/* Left Image */}
           <div className="w-1/2 bg-white p-10 flex items-center justify-center">
-            <img src={illustration} className="rounded-xl w-full h-full" />
+            <img
+              src="/logo-width.svg"
+              alt="Incorta HR AI"
+              className="rounded-xl w-full h-full object-cover"
+            />
           </div>
 
           {/* Right Form */}

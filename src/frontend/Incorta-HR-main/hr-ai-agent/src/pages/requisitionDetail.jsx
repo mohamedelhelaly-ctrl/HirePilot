@@ -22,7 +22,6 @@ import {
   updateApplicationStatus,
   uploadCVs,
 } from "../services/candidateService";
-import { createInterviewSession } from "../services/interviewService";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -224,24 +223,14 @@ export default function RequisitionDetail() {
     setIsCandidateModalOpen(true);
   };
 
-  const handleInterviewClick = async (application) => {
-    try {
-      const candidate = candidateMap[application.candidate_id];
-      const session = await createInterviewSession(
-        application.id,
-        parseInt(id),
-        "hr_screen"
-      );
-      setInterviewTarget({
-        candidateName: candidate?.full_name || "Candidate",
-        applicationId: application.id,
-        requisitionId: parseInt(id),
-        sessionId: session.id,
-      });
-      setIsInterviewModalOpen(true);
-    } catch (err) {
-      showNotification("error", "Interview Error", err.message);
-    }
+  const handleInterviewClick = (application) => {
+    const candidate = candidateMap[application.candidate_id];
+    setInterviewTarget({
+      candidateName: candidate?.full_name || "Candidate",
+      applicationId: application.id,
+      requisitionId: parseInt(id),
+    });
+    setIsInterviewModalOpen(true);
   };
 
   const handleComingSoon = (featureName) => {
@@ -622,7 +611,6 @@ export default function RequisitionDetail() {
           candidateName={interviewTarget?.candidateName}
           applicationId={interviewTarget?.applicationId}
           requisitionId={interviewTarget?.requisitionId}
-          sessionId={interviewTarget?.sessionId}
         />
 
         {/* ── View JD Modal ──────────────────────────────────────────── */}

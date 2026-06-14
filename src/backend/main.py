@@ -107,7 +107,7 @@ app.include_router(auth_router, prefix="/api", tags=["authentication"])
 app.include_router(requisition_router, prefix="/api", tags=["requisitions"])
 app.include_router(candidate_router, prefix="/api/candidates", tags=["candidates"])
 app.include_router(maingraph_router, prefix="/api", tags=["main orchestrator graph"])
-app.include_router(interview_router, prefix="/api", tags=["interviews"])
+app.include_router(interview_router, prefix="/api/interview", tags=["interviews"])
 
 
 @app.get("/")
