@@ -116,7 +116,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }) {
         {/* Email */}
         <InputField
           label="Email Address"
-          placeholder="john.doe@company.com"
+          placeholder="Enter user's email address"
           type="email"
           icon={<FiMail size={16} />}
           value={email}
@@ -129,7 +129,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }) {
         {/* Full Name */}
         <InputField
           label="Full Name"
-          placeholder="John Doe"
+          placeholder="First and last name"
           icon={<FiUser size={16} />}
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
