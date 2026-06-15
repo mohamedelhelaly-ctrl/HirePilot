@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FiBriefcase, FiUsers, FiChevronLeft, FiChevronRight, FiUserPlus } from "react-icons/fi";
+import { FiBriefcase, FiUsers, FiChevronLeft, FiChevronRight, FiUserPlus, FiSettings } from "react-icons/fi";
 import Navbar from "../components/navBar";
 import CreateUserModal from "../components/createUserModal";
 import Toast from "../components/toast";
@@ -9,6 +9,7 @@ import { getUser } from "../services/authService";
 const NAV_ITEMS = [
   { to: "/hr", label: "Requisitions", icon: FiBriefcase, match: (path) => path === "/hr" || path.startsWith("/requisition/") },
   { to: "/candidates", label: "Candidates", icon: FiUsers, match: (path) => path === "/candidates" },
+  { to: "/users", label: "User Management", icon: FiSettings, match: (path) => path === "/users", hrOnly: true },
 ];
 
 const SIDEBAR_KEY = "incorta_hr_sidebar_collapsed";
@@ -62,7 +63,9 @@ export default function HrShellLayout({ children, fullHeight = false, hideSideba
             )}
 
             <nav className="flex flex-col gap-1 flex-1">
-              {NAV_ITEMS.map(({ to, label, icon: Icon, match }) => {
+              {NAV_ITEMS
+                .filter(({ hrOnly }) => !hrOnly || isHrManager)
+                .map(({ to, label, icon: Icon, match }) => {
                 const active = match(location.pathname);
                 return (
                   <Link
