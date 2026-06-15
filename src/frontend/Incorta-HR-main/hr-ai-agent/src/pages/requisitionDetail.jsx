@@ -18,6 +18,7 @@ import {
   FiMessageSquare,
   FiLoader,
   FiAlertTriangle,
+  FiUser,
 } from "react-icons/fi";
 import { MdMic } from "react-icons/md";
 import { fetchRequisitionById, updateRequisition } from "../services/requisitionService";
@@ -29,6 +30,7 @@ import {
   uploadCVs,
 } from "../services/candidateService";
 import { executeGraph } from "../services/graphService";
+import { fetchUserById } from "../services/userService";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -78,6 +80,7 @@ export default function RequisitionDetail() {
 
   // Data states
   const [requisition, setRequisition] = useState(null);
+  const [assignedUser, setAssignedUser] = useState(null);
   const [applications, setApplications] = useState([]);
   const [candidateMap, setCandidateMap] = useState({}); // candidateId → candidate data
   const [loading, setLoading] = useState(true);
@@ -131,6 +134,16 @@ export default function RequisitionDetail() {
       // 1. Fetch requisition details
       const reqData = await fetchRequisitionById(id);
       setRequisition(reqData);
+
+      // Fetch assigned user
+      if (reqData.hiring_manager_id) {
+        try {
+          const user = await fetchUserById(reqData.hiring_manager_id);
+          setAssignedUser(user);
+        } catch (err) {
+          console.error("Failed to fetch assigned user", err);
+        }
+      }
 
       // 2. Fetch applications for this requisition
       const apps = await fetchApplicationsByRequisition(id);
@@ -336,6 +349,20 @@ export default function RequisitionDetail() {
       setIsSubmitting(true);
       const updated = await updateRequisition(id, formData);
       setRequisition(updated);
+      
+      // Update assigned user
+      if (updated.hiring_manager_id) {
+        try {
+          const user = await fetchUserById(updated.hiring_manager_id);
+          setAssignedUser(user);
+        } catch (err) {
+          console.error("Failed to fetch assigned user", err);
+          setAssignedUser(null);
+        }
+      } else {
+        setAssignedUser(null);
+      }
+
       setIsEditModalOpen(false);
       showNotification("success", "Requisition Updated", `"${formData.title}" has been updated.`);
     } catch (err) {
@@ -408,6 +435,15 @@ export default function RequisitionDetail() {
                   <span className="text-[0.85rem] text-muted select-none leading-none">·</span>
                   <span className="text-[0.9rem] text-muted whitespace-nowrap">
                     {[requisition?.department, requisition?.location].filter(Boolean).join(" · ")}
+                  </span>
+                </>
+              )}
+              {assignedUser && (
+                <>
+                  <span className="text-[0.85rem] text-muted select-none leading-none">·</span>
+                  <span className="text-[0.9rem] text-muted whitespace-nowrap flex items-center gap-1.5">
+                    <FiUser size={12} className="text-gray-400" />
+                    Assigned: <span className="font-medium text-gray-700">{assignedUser.full_name}</span>
                   </span>
                 </>
               )}
