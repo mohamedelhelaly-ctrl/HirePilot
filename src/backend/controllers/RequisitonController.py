@@ -34,7 +34,7 @@ class RequisitionController(BaseController):
             description=request.description,
             department=request.department,
             location=request.location,
-            hiring_manager_id=None  # Bypassing validation for testing
+            hiring_manager_id=request.hiring_manager_id
         )
         # Create requisition in database
         try:

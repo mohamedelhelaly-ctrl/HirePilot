@@ -1,7 +1,9 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { FiX } from "react-icons/fi";
-import { useState, useEffect } from "react";import { inputClasses } from "./inputField";
+import { useState, useEffect } from "react";
+import { inputClasses } from "./inputField";
 import Button from "./button";
+import { fetchUsers } from "../services/userService";
 
 const fieldLabel =
   "flex flex-col gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-gray-900";
@@ -20,9 +22,7 @@ function WizardSteps({ step, isEditMode }) {
       >
         <span
           className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold leading-none ${
-            step === 1
-              ? "bg-brand-600 text-white"
-              : "bg-emerald-500 text-white"
+            step === 1 ? "bg-brand-600 text-white" : "bg-emerald-500 text-white"
           }`}
         >
           {step > 1 ? "✓" : "1"}
@@ -39,17 +39,39 @@ function WizardSteps({ step, isEditMode }) {
 
       <div
         className={`flex items-center gap-2 px-3.5 text-[13px] whitespace-nowrap ${
-          step === 2 ? "font-semibold text-gray-900" : "text-muted"
+          step === 2 ? "font-semibold text-gray-900" : step > 2 ? "font-medium text-emerald-600" : "text-muted"
         }`}
       >
         <span
           className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold leading-none ${
-            step === 2 ? "bg-brand-600 text-white" : "bg-[#eee] text-gray-600"
+            step === 2 ? "bg-brand-600 text-white" : step > 2 ? "bg-emerald-500 text-white" : "bg-[#eee] text-gray-600"
           }`}
         >
-          2
+          {step > 2 ? "✓" : "2"}
         </span>
         Job Description
+      </div>
+
+      <div className="flex-1 relative h-0.5 bg-[#d2d2d7] mx-0 rounded-sm">
+        <div
+          className="absolute inset-y-0 left-0 bg-brand-600 rounded-sm transition-all duration-300"
+          style={{ width: step >= 3 ? "100%" : "0%" }}
+        />
+      </div>
+
+      <div
+        className={`flex items-center gap-2 px-3.5 text-[13px] whitespace-nowrap ${
+          step === 3 ? "font-semibold text-gray-900" : "text-muted"
+        }`}
+      >
+        <span
+          className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold leading-none ${
+            step === 3 ? "bg-brand-600 text-white" : "bg-[#eee] text-gray-600"
+          }`}
+        >
+          3
+        </span>
+        Assign
       </div>
     </div>
   );
@@ -64,15 +86,23 @@ export default function RequisitionModal({
   loading = false,
 }) {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({    title: "",
+  const [formData, setFormData] = useState({
+    title: "",
     description: "",
     department: "",
     location: "",
+    hiring_manager_id: "",
   });
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
+  const [users, setUsers] = useState([]);
 
   const isEditMode = mode === "edit";
+
+  useEffect(() => {
+    fetchUsers().then(setUsers).catch(console.error);
+  }, []);
+
   useEffect(() => {
     if (requisition && mode === "edit") {
       setFormData({
@@ -80,18 +110,22 @@ export default function RequisitionModal({
         description: requisition.description || "",
         department: requisition.department || "",
         location: requisition.location || "",
+        hiring_manager_id: requisition.hiring_manager_id || "",
       });
       setErrors({});
       setStep(1);
-    } else if (mode === "create" && isOpen) {      setFormData({
+    } else if (mode === "create" && isOpen) {
+      setFormData({
         title: "",
         description: "",
         department: "",
         location: "",
+        hiring_manager_id: "",
       });
       setErrors({});
       setStep(1);
-    }    setSubmitError("");
+    }
+    setSubmitError("");
   }, [requisition, mode, isOpen]);
 
   const handleChange = (e) => {
@@ -123,15 +157,18 @@ export default function RequisitionModal({
 
   const handleNext = (e) => {
     e.preventDefault();
-    if (validateStep1()) {
+    if (step === 1 && validateStep1()) {
       setSubmitError("");
       setStep(2);
+    } else if (step === 2 && validateStep2()) {
+      setSubmitError("");
+      setStep(3);
     }
   };
 
   const handleBack = () => {
     setSubmitError("");
-    setStep(1);
+    setStep((prev) => prev - 1);
   };
 
   const validateAll = () => {
@@ -143,7 +180,10 @@ export default function RequisitionModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateAll()) return;
-    onSubmit(formData);
+    onSubmit({
+      ...formData,
+      hiring_manager_id: formData.hiring_manager_id ? Number(formData.hiring_manager_id) : null,
+    });
   };
 
   if (!isOpen) return null;
@@ -151,7 +191,9 @@ export default function RequisitionModal({
     ? "Edit Requisition"
     : step === 1
     ? "New Requisition"
-    : "Add Job Description";
+    : step === 2
+    ? "Add Job Description"
+    : "Assign Hiring Manager";
 
   return (
     <div
@@ -228,23 +270,43 @@ export default function RequisitionModal({
             </div>
 
             {isEditMode && (
-              <label className={fieldLabel}>
-                Job Description *
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  placeholder="Describe the role, responsibilities, and requirements..."
-                  disabled={loading}
-                  rows={8}
-                  className={`${fieldInput} resize-y min-h-[160px] leading-relaxed ${
-                    errors.description ? "border-red-500" : ""
-                  }`}
-                />
-                {errors.description && (
-                  <span className={fieldError}>{errors.description}</span>
-                )}
-              </label>
+              <>
+                <label className={fieldLabel}>
+                  Assign User (HR / Hiring Manager)
+                  <select
+                    name="hiring_manager_id"
+                    value={formData.hiring_manager_id}
+                    onChange={handleChange}
+                    disabled={loading}
+                    className={`${fieldInput} cursor-pointer bg-white`}
+                  >
+                    <option value="">Unassigned</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name} ({u.role === "hr_manager" ? "HR" : "Hiring Manager"})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className={fieldLabel}>
+                  Job Description *
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    placeholder="Describe the role, responsibilities, and requirements..."
+                    disabled={loading}
+                    rows={8}
+                    className={`${fieldInput} resize-y min-h-[160px] leading-relaxed ${
+                      errors.description ? "border-red-500" : ""
+                    }`}
+                  />
+                  {errors.description && (
+                    <span className={fieldError}>{errors.description}</span>
+                  )}
+                </label>
+              </>
             )}
 
             {submitError && <p className="text-red-600 text-sm m-0">{submitError}</p>}
@@ -275,7 +337,7 @@ export default function RequisitionModal({
 
         {/* Step 2 — Job Description (create only) */}
         {step === 2 && !isEditMode && (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 pt-1">
+          <form onSubmit={handleNext} className="flex flex-col gap-3.5 pt-1">
             <label className={fieldLabel}>
               Description *
               <textarea
@@ -294,7 +356,40 @@ export default function RequisitionModal({
               )}
             </label>
 
-            <div className="flex items-center justify-between gap-2.5 pt-5 mt-1 border-t border-[#eee]">              <Button type="button" variant="ghost" size="sm" onClick={handleBack} disabled={loading}>
+            <div className="flex items-center justify-between gap-2.5 pt-5 mt-1 border-t border-[#eee]">
+              <Button type="button" variant="ghost" size="sm" onClick={handleBack} disabled={loading}>
+                ← Back
+              </Button>
+              <Button type="submit" size="sm" disabled={loading}>
+                Next →
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {/* Step 3 — Assign User (create only) */}
+        {step === 3 && !isEditMode && (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 pt-1">
+            <label className={fieldLabel}>
+              Assign User (HR / Hiring Manager)
+              <select
+                name="hiring_manager_id"
+                value={formData.hiring_manager_id}
+                onChange={handleChange}
+                disabled={loading}
+                className={`${fieldInput} cursor-pointer bg-white`}
+              >
+                <option value="">Unassigned</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.full_name} ({u.role === "hr_manager" ? "HR" : "Hiring Manager"})
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="flex items-center justify-between gap-2.5 pt-5 mt-1 border-t border-[#eee]">
+              <Button type="button" variant="ghost" size="sm" onClick={handleBack} disabled={loading}>
                 ← Back
               </Button>
               <Button type="submit" size="sm" disabled={loading}>

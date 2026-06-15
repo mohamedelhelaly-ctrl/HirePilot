@@ -13,10 +13,12 @@ import {
   updateRequisition,
   deleteRequisition,
 } from "../services/requisitionService";
+import { getUser } from "../services/authService";
 
 const PAGE_SIZE = 8;
 
 export default function HrDashboard() {
+  const currentUser = getUser();
   const [requisitions, setRequisitions] = useState([]);
   const [filteredRequisitions, setFilteredRequisitions] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,7 +41,13 @@ export default function HrDashboard() {
       try {
         setLoading(true);
         setError(null);
-        const data = await fetchRequisitions({ is_active: true });
+        
+        const params = { is_active: true };
+        if (currentUser?.role === "hiring_manager") {
+          params.hiring_manager_id = currentUser.id;
+        }
+        
+        const data = await fetchRequisitions(params);
         setRequisitions(data);
         const uniqueDepts = ["All", ...new Set(data.map((r) => r.department).filter(Boolean))];
         setDepartments(uniqueDepts);

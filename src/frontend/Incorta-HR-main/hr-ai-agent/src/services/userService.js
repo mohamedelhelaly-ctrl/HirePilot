@@ -124,10 +124,24 @@ export const activateUser = async (userId) => {
   });
 };
 
+/**
+ * Get requisitions assigned to a user (as hiring manager)
+ * GET /?hiring_manager_id=:id
+ *
+ * @param {number} userId
+ * @returns {Promise<Array>} - Array of requisition objects
+ */
+export const fetchUserRequisitions = async (userId) => {
+  return apiCall(`/?hiring_manager_id=${userId}`, {
+    method: "GET",
+  });
+};
+
 export default {
   fetchUsers,
   fetchUserById,
   updateUser,
   deactivateUser,
   activateUser,
+  fetchUserRequisitions,
 };

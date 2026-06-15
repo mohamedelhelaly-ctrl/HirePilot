@@ -24,10 +24,8 @@ export default function Login() {
       await authService.googleLogin(idToken);
       const user = authService.getUser();
 
-      if (user.role === "hr_manager") {
+      if (user.role === "hr_manager" || user.role === "hiring_manager") {
         navigate("/hr");
-      } else if (user.role === "hiring_manager") {
-        navigate("/hiring-manager");
       } else {
         navigate("/");
       }

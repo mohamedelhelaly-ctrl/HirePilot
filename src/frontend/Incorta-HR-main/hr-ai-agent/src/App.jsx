@@ -4,7 +4,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import './App.css';
 import HrDashboard from "./pages/hrHomePage";
 import JobPipeline from "./pages/jobPipeline";
-import HiringManagerDashboard from "./pages/hiringManagerDashboard";
 import RequisitionDetail from "./pages/requisitionDetail";
 import CandidatesPage from "./pages/candidatesPage";
 import UsersPage from "./pages/usersPage";
@@ -17,11 +16,11 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Login />} />
 
-        {/* Protected routes - HR Manager only */}
+        {/* Protected routes - HR Manager and Hiring Manager */}
         <Route
           path="/hr"
           element={
-            <ProtectedRoute requiredRole="hr_manager">
+            <ProtectedRoute>
               <HrDashboard />
             </ProtectedRoute>
           }
@@ -66,15 +65,7 @@ export default function App() {
           }
         />
 
-        {/* Protected routes - Hiring Manager only */}
-        <Route
-          path="/hiring-manager"
-          element={
-            <ProtectedRoute requiredRole="hiring_manager">
-              <HiringManagerDashboard />
-            </ProtectedRoute>
-          }
-        />
+
       </Routes>
     </BrowserRouter>
   );
