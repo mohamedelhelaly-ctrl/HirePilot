@@ -4,3 +4,4 @@ from .candidate_router import router as candidate_router
 from .maingraph_router import router as maingraph_router
 from .interview_router import router as interview_router
 from .chat_router import router as chat_router
+from .user_router import router as user_router
