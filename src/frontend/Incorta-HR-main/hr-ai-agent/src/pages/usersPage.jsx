@@ -22,11 +22,10 @@ function RoleBadge({ role }) {
   const isHr = role === "hr_manager";
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-        isHr
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isHr
           ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
           : "bg-amber-50 text-amber-700 border border-amber-200"
-      }`}
+        }`}
     >
       <FiShield size={12} />
       {isHr ? "HR Manager" : "Hiring Manager"}
@@ -37,11 +36,10 @@ function RoleBadge({ role }) {
 function StatusBadge({ isActive }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-        isActive
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isActive
           ? "bg-green-50 text-green-700 border border-green-200"
           : "bg-red-50 text-red-700 border border-red-200"
-      }`}
+        }`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-green-500" : "bg-red-500"}`} />
       {isActive ? "Active" : "Inactive"}
@@ -227,7 +225,7 @@ export default function UsersPage() {
             <input
               type="text"
               className="field-input toolbar__search pl-10"
-              placeholder="Search by name or email…"
+              placeholder="Search by name"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               id="users-search"
@@ -299,11 +297,11 @@ export default function UsersPage() {
                     const isSelf = u.id === currentUser?.id;
                     const initials = u.full_name
                       ? u.full_name
-                          .split(" ")
-                          .map((w) => w[0])
-                          .join("")
-                          .substring(0, 2)
-                          .toUpperCase()
+                        .split(" ")
+                        .map((w) => w[0])
+                        .join("")
+                        .substring(0, 2)
+                        .toUpperCase()
                       : "?";
                     return (
                       <tr
@@ -366,11 +364,10 @@ export default function UsersPage() {
                               <button
                                 onClick={() => handleToggleActive(u)}
                                 title={u.is_active ? "Deactivate user" : "Activate user"}
-                                className={`p-2 rounded-lg transition ${
-                                  u.is_active
+                                className={`p-2 rounded-lg transition ${u.is_active
                                     ? "text-gray-400 hover:text-red-600 hover:bg-red-50"
                                     : "text-gray-400 hover:text-green-600 hover:bg-green-50"
-                                }`}
+                                  }`}
                                 id={`toggle-user-${u.id}`}
                               >
                                 {u.is_active ? <FiUserX size={15} /> : <FiUserCheck size={15} />}
