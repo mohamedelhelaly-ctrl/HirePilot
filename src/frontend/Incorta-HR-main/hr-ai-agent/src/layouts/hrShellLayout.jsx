@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FiBriefcase, FiUsers, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiBriefcase, FiUsers, FiChevronLeft, FiChevronRight, FiUserPlus, FiSettings } from "react-icons/fi";
 import Navbar from "../components/navBar";
+import CreateUserModal from "../components/createUserModal";
+import Toast from "../components/toast";
+import { getUser } from "../services/authService";
 
 const NAV_ITEMS = [
   { to: "/hr", label: "Requisitions", icon: FiBriefcase, match: (path) => path === "/hr" || path.startsWith("/requisition/") },
   { to: "/candidates", label: "Candidates", icon: FiUsers, match: (path) => path === "/candidates" },
+  { to: "/users", label: "User Management", icon: FiSettings, match: (path) => path === "/users", hrOnly: true },
 ];
 
 const SIDEBAR_KEY = "incorta_hr_sidebar_collapsed";
@@ -19,6 +23,11 @@ export default function HrShellLayout({ children, fullHeight = false, hideSideba
       return false;
     }
   });
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [notification, setNotification] = useState(null);
+
+  const user = getUser();
+  const isHrManager = user?.role === "hr_manager";
 
   useEffect(() => {
     try {
@@ -27,6 +36,14 @@ export default function HrShellLayout({ children, fullHeight = false, hideSideba
       /* ignore */
     }
   }, [collapsed]);
+
+  const handleUserCreated = useCallback((newUser) => {
+    setNotification({
+      type: "success",
+      title: "User Created",
+      message: `${newUser.full_name} (${newUser.email}) has been added as ${newUser.role === "hr_manager" ? "HR Manager" : "Hiring Manager"}.`,
+    });
+  }, []);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-canvas">
@@ -46,7 +63,9 @@ export default function HrShellLayout({ children, fullHeight = false, hideSideba
             )}
 
             <nav className="flex flex-col gap-1 flex-1">
-              {NAV_ITEMS.map(({ to, label, icon: Icon, match }) => {
+              {NAV_ITEMS
+                .filter(({ hrOnly }) => !hrOnly || isHrManager)
+                .map(({ to, label, icon: Icon, match }) => {
                 const active = match(location.pathname);
                 return (
                   <Link
@@ -69,6 +88,22 @@ export default function HrShellLayout({ children, fullHeight = false, hideSideba
                 );
               })}
             </nav>
+
+            {/* Create User button — only for HR Managers */}
+            {isHrManager && (
+              <button
+                type="button"
+                id="create-user-btn"
+                onClick={() => setShowCreateUser(true)}
+                title={collapsed ? "Create User" : undefined}
+                className={`mb-2 flex items-center rounded-[10px] bg-brand-600 text-white hover:bg-brand-700 shadow-sm transition font-semibold ${
+                  collapsed ? "justify-center p-2.5 mx-auto" : "gap-2.5 px-3 py-2.5 text-sm w-full"
+                }`}
+              >
+                <FiUserPlus size={16} className="shrink-0" />
+                {!collapsed && <span>Create User</span>}
+              </button>
+            )}
 
             <button
               type="button"
@@ -94,6 +129,19 @@ export default function HrShellLayout({ children, fullHeight = false, hideSideba
           {children}
         </main>
       </div>
+
+      {/* Create User Modal */}
+      <CreateUserModal
+        isOpen={showCreateUser}
+        onClose={() => setShowCreateUser(false)}
+        onSuccess={handleUserCreated}
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        notification={notification}
+        onClose={() => setNotification(null)}
+      />
     </div>
   );
 }
