@@ -315,6 +315,7 @@ export default function UsersPage() {
                     <th className="text-left px-5 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Role</th>
                     <th className="text-left px-5 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Status</th>
                     <th className="text-left px-5 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Created</th>
+                    <th className="text-left px-5 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Requisitions</th>
                     <th className="text-right px-5 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -375,36 +376,52 @@ export default function UsersPage() {
                           </span>
                         </td>
 
+                        {/* Requisitions */}
+                        <td className="px-5 py-4">
+                          <button
+                            onClick={() => handleViewRequisitions(u)}
+                            title="View assigned requisitions"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 transition whitespace-nowrap"
+                            id={`view-requisitions-${u.id}`}
+                          >
+                            <FiBriefcase size={14} />
+                            View Requisitions
+                          </button>
+                        </td>
+
                         {/* Actions */}
                         <td className="px-5 py-4">
                           <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => handleViewRequisitions(u)}
-                              title="View assigned requisitions"
-                              className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition"
-                              id={`view-requisitions-${u.id}`}
-                            >
-                              <FiBriefcase size={15} />
-                            </button>
-                            <button
                               onClick={() => handleEdit(u)}
                               title="Edit user"
-                              className="p-2 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-600/10 transition"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:text-brand-700 hover:bg-brand-50 transition"
                               id={`edit-user-${u.id}`}
                             >
-                              <FiEdit2 size={15} />
+                              <FiEdit2 size={14} />
+                              Edit
                             </button>
                             {!isSelf && (
                               <button
                                 onClick={() => handleToggleActive(u)}
                                 title={u.is_active ? "Deactivate user" : "Activate user"}
-                                className={`p-2 rounded-lg transition ${u.is_active
-                                    ? "text-gray-400 hover:text-red-600 hover:bg-red-50"
-                                    : "text-gray-400 hover:text-green-600 hover:bg-green-50"
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${u.is_active
+                                    ? "text-gray-600 hover:text-red-700 hover:bg-red-50"
+                                    : "text-gray-600 hover:text-green-700 hover:bg-green-50"
                                   }`}
                                 id={`toggle-user-${u.id}`}
                               >
-                                {u.is_active ? <FiUserX size={15} /> : <FiUserCheck size={15} />}
+                                {u.is_active ? (
+                                  <>
+                                    <FiUserX size={14} />
+                                    Deactivate
+                                  </>
+                                ) : (
+                                  <>
+                                    <FiUserCheck size={14} />
+                                    Activate
+                                  </>
+                                )}
                               </button>
                             )}
                           </div>
