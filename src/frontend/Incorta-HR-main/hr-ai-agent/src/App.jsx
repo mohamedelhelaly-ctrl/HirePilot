@@ -7,6 +7,7 @@ import JobPipeline from "./pages/jobPipeline";
 import HiringManagerDashboard from "./pages/hiringManagerDashboard";
 import RequisitionDetail from "./pages/requisitionDetail";
 import CandidatesPage from "./pages/candidatesPage";
+import UsersPage from "./pages/usersPage";
 
 export default function App() {
   return (
@@ -31,6 +32,16 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="hr_manager">
               <CandidatesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected routes - HR Manager: User Management */}
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute requiredRole="hr_manager">
+              <UsersPage />
             </ProtectedRoute>
           }
         />
