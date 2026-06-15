@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from stores.llm.whisper_service import load_whisper
 from models.database import get_db, engine
-from routers import auth_router, requisition_router, candidate_router, maingraph_router, interview_router, chat_router
+from routers import auth_router, requisition_router, candidate_router, maingraph_router, interview_router, chat_router, user_router
 from stores.vectordb.load_model import download_model
 from stores.vectordb.embedding_model import get_embedding_model
 from stores.llm.whisper_service import load_whisper
@@ -103,7 +103,10 @@ app.add_middleware(
 )
 
 # Include routers
+# NOTE: user_router must come BEFORE requisition_router because requisition_router
+# has a catch-all /{requisition_id} path at /api that would match /api/users first.
 app.include_router(auth_router, prefix="/api", tags=["authentication"])
+app.include_router(user_router, prefix="/api", tags=["user-management"])
 app.include_router(requisition_router, prefix="/api", tags=["requisitions"])
 app.include_router(candidate_router, prefix="/api/candidates", tags=["candidates"])
 app.include_router(maingraph_router, prefix="/api", tags=["main orchestrator graph"])
