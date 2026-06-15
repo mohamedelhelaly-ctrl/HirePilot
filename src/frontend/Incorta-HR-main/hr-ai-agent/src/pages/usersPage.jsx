@@ -4,7 +4,7 @@ import Toast from "../components/toast";
 import Button from "../components/button";
 import EditUserModal from "../components/editUserModal";
 import Modal from "../components/Modal";
-import { fetchUsers, deactivateUser, activateUser } from "../services/userService";
+import { fetchUsers, deactivateUser, activateUser, fetchUserRequisitions } from "../services/userService";
 import { getUser } from "../services/authService";
 import {
   FiSearch,
@@ -16,6 +16,9 @@ import {
   FiUser,
   FiMail,
   FiCalendar,
+  FiBriefcase,
+  FiX,
+  FiLoader,
 } from "react-icons/fi";
 
 function RoleBadge({ role }) {
@@ -65,6 +68,13 @@ export default function UsersPage() {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null); // { userId, action: 'deactivate' | 'activate', userName }
   const [confirmLoading, setConfirmLoading] = useState(false);
+
+  // Requisitions modal
+  const [requisitionsModalOpen, setRequisitionsModalOpen] = useState(false);
+  const [selectedUserForRequisitions, setSelectedUserForRequisitions] = useState(null);
+  const [userRequisitions, setUserRequisitions] = useState([]);
+  const [requisitionsLoading, setRequisitionsLoading] = useState(false);
+  const [requisitionsError, setRequisitionsError] = useState(null);
 
   const currentUser = getUser();
 
@@ -135,6 +145,22 @@ export default function UsersPage() {
       userName: user.full_name,
     });
     setConfirmModalOpen(true);
+  };
+
+  const handleViewRequisitions = async (user) => {
+    setSelectedUserForRequisitions(user);
+    setRequisitionsModalOpen(true);
+    setRequisitionsLoading(true);
+    setRequisitionsError(null);
+    try {
+      const data = await fetchUserRequisitions(user.id);
+      setUserRequisitions(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setRequisitionsError(err.message || "Failed to load requisitions");
+      setUserRequisitions([]);
+    } finally {
+      setRequisitionsLoading(false);
+    }
   };
 
   const handleConfirmToggle = async () => {
@@ -353,6 +379,14 @@ export default function UsersPage() {
                         <td className="px-5 py-4">
                           <div className="flex items-center justify-end gap-2">
                             <button
+                              onClick={() => handleViewRequisitions(u)}
+                              title="View assigned requisitions"
+                              className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                              id={`view-requisitions-${u.id}`}
+                            >
+                              <FiBriefcase size={15} />
+                            </button>
+                            <button
                               onClick={() => handleEdit(u)}
                               title="Edit user"
                               className="p-2 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-600/10 transition"
@@ -464,6 +498,92 @@ export default function UsersPage() {
 
       {/* Toast */}
       <Toast notification={notification} onClose={() => setNotification(null)} />
+
+      {/* Requisitions Modal */}
+      <Modal
+        isOpen={requisitionsModalOpen}
+        onClose={() => {
+          setRequisitionsModalOpen(false);
+          setSelectedUserForRequisitions(null);
+          setUserRequisitions([]);
+          setRequisitionsError(null);
+        }}
+        title={`Assigned Requisitions - ${selectedUserForRequisitions?.full_name}`}
+        footer={
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setRequisitionsModalOpen(false);
+              setSelectedUserForRequisitions(null);
+              setUserRequisitions([]);
+              setRequisitionsError(null);
+            }}
+          >
+            Close
+          </Button>
+        }
+      >
+        <div className="p-6">
+          {requisitionsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <FiLoader className="animate-spin text-brand-600 mr-2" size={20} />
+              <span className="text-gray-600">Loading requisitions...</span>
+            </div>
+          ) : requisitionsError ? (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2.5">
+              <FiAlertCircle className="text-red-600 shrink-0 mt-0.5" size={16} />
+              <div>
+                <h3 className="text-sm font-semibold text-red-900">Error</h3>
+                <p className="text-red-700 text-xs mt-0.5">{requisitionsError}</p>
+              </div>
+            </div>
+          ) : userRequisitions.length === 0 ? (
+            <div className="text-center py-12">
+              <FiBriefcase size={40} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-muted text-sm">No requisitions assigned yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[500px] overflow-y-auto">
+              {userRequisitions.map((req) => (
+                <div
+                  key={req.id}
+                  className="p-4 border border-border rounded-lg hover:border-brand-300 hover:bg-brand-50/30 transition group"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-gray-900 group-hover:text-brand-700 transition truncate">
+                        {req.title}
+                      </h4>
+                      <p className="text-xs text-muted mt-1 line-clamp-2">{req.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border text-xs text-muted">
+                    {req.department && (
+                      <span className="flex items-center gap-1">
+                        <FiBriefcase size={12} />
+                        {req.department}
+                      </span>
+                    )}
+                    {req.location && (
+                      <span className="flex items-center gap-1">
+                        <FiUser size={12} />
+                        {req.location}
+                      </span>
+                    )}
+                    <span className={`ml-auto px-2 py-1 rounded-full text-[10px] font-semibold ${
+                      req.is_active
+                        ? "bg-green-50 text-green-700"
+                        : "bg-gray-100 text-gray-600"
+                    }`}>
+                      {req.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
     </HrShellLayout>
   );
 }
