@@ -17,7 +17,7 @@ auth_controller = AuthController()
 from models.database import get_db
 from controllers.services.auth_dependencies import get_current_user, require_hr_manager
 from models.tables.user import User
-from models.schemas.auth_schemas import LoginRequest, Token
+from models.schemas.auth_schemas import LoginRequest, Token, AuthorizationCodeRequest
 from models.schemas.user_schemas import User as UserSchema, AdminUserCreate
 from models.schemas.request_schemas import GoogleLoginRequest,TokenRefreshRequest,LogoutRequest, LogoutResponse
 
@@ -86,6 +86,60 @@ async def google_auth(
         request=request,
         db = db
     )
+
+
+################################ Google OAuth Code Flow Endpoint ##############################################
+@router.post(
+    "/google/callback",
+    response_model=Token,
+    status_code=status.HTTP_200_OK,
+    summary="Google OAuth Authorization Code Exchange",
+    description="Exchange authorization code for tokens (OAuth 2.0 Code Flow)"
+)
+async def google_auth_callback(
+    request: AuthorizationCodeRequest,
+    db: AsyncSession = Depends(get_db)
+) -> Token:
+    """
+    Exchange Google authorization code for application tokens.
+    
+    This endpoint implements OAuth 2.0 Authorization Code Flow:
+    
+    1. Receives authorization code from frontend (from Google consent screen)
+    2. Exchanges code for Google access token and refresh token
+    3. Retrieves user profile from Google using access token
+    4. Finds existing user in database (pre-registration required)
+    5. Stores encrypted Google credentials for offline calendar access
+    6. Generates JWT access token (30 minute expiration)
+    7. Generates refresh token (7 day expiration)
+    8. Returns JWT tokens to frontend
+    
+    This flow is more secure than ID token flow as:
+    - Client secret is never exposed to frontend
+    - Tokens are exchanged on backend only
+    - Frontend only handles authorization code
+    
+    Request body:
+    - authorization_code: Code from Google OAuth consent screen
+    
+    Response:
+    - access_token: JWT token for authenticating API requests
+    - refresh_token: Token for obtaining new access tokens
+    - token_type: Always "bearer"
+    
+    Important:
+        Users must be pre-registered in the database.
+        This endpoint does NOT auto-create new users.
+        Google credentials are encrypted and stored for calendar access.
+    
+    Raises:
+        HTTPException(400): Invalid or expired authorization code
+        HTTPException(403): User not found in database or domain not allowed
+        HTTPException(401): Failed to verify Google tokens
+        HTTPException(500): Database error
+    """
+    from controllers.services.auth_service import google_login_code_flow
+    return await google_login_code_flow(db, request.authorization_code)
 
 
 ############################## Refresh Token Endpoint ################################################

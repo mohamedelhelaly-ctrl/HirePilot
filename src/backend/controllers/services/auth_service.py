@@ -43,6 +43,11 @@ from .security import (
     hash_token,
     GOOGLE_CLIENT_ID,
 )
+from .google_oauth_service import (
+    exchange_authorization_code_for_tokens,
+    verify_google_access_token,
+)
+from models.crud.google_oauth_crud import store_google_oauth_credentials
 
 
 # --- Constants ---
@@ -160,6 +165,83 @@ async def google_login(db: AsyncSession, id_token_str: str) -> Token:
         )
 
     ensure_user_active(user)
+    return await generate_auth_tokens(db, user)
+
+
+async def google_login_code_flow(db: AsyncSession, auth_code: str) -> Token:
+    """
+    Authenticate user using Google OAuth Authorization Code Flow.
+    
+    This is the OAuth 2.0 Authorization Code Flow:
+    1. Frontend sends authorization code (received from Google consent screen)
+    2. Backend exchanges code for access/refresh tokens using client secret
+    3. Backend retrieves user profile from Google using access token
+    4. Backend creates/updates user and stores encrypted credentials
+    5. Backend returns JWT tokens to frontend
+    
+    This flow is more secure than ID token flow as tokens never reach frontend.
+    
+    Args:
+        db: Database session
+        auth_code: Authorization code from Google OAuth consent screen
+        
+    Returns:
+        Token object with JWT access/refresh tokens
+        
+    Raises:
+        HTTPException: If authentication fails
+    """
+    # Step 1: Exchange authorization code for Google tokens
+    token_response = await exchange_authorization_code_for_tokens(auth_code)
+    access_token = token_response.get("access_token")
+    refresh_token = token_response.get("refresh_token")
+    expires_in = token_response.get("expires_in", 3600)
+    
+    if not access_token or not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to obtain tokens from Google"
+        )
+    
+    # Step 2: Verify access token and get user profile
+    profile = await verify_google_access_token(access_token)
+    google_email = profile.get("email")
+    
+    if not google_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email not found in Google profile"
+        )
+    
+    # Step 3: Domain restriction check
+    if not is_email_allowed(google_email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Email domain not allowed. Allowed domains: {ALLOWED_EMAIL_DOMAINS}"
+        )
+    
+    # Step 4: Check user exists (pre-registration required)
+    user = await get_user_by_email(db, google_email)
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User not found. Please register before logging in."
+        )
+    
+    ensure_user_active(user)
+    
+    # Step 5: Store encrypted Google credentials
+    await store_google_oauth_credentials(
+        db=db,
+        user_id=user.id,
+        google_account_email=google_email,
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=expires_in
+    )
+    
+    # Step 6: Generate and return JWT tokens
     return await generate_auth_tokens(db, user)
 
 

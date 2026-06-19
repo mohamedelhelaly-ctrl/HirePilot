@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from stores.llm.whisper_service import load_whisper
 from models.database import get_db, engine
-from routers import auth_router, requisition_router, candidate_router, maingraph_router, interview_router, chat_router, user_router
+from routers import auth_router, requisition_router, candidate_router, maingraph_router, interview_router, chat_router, user_router, calendar_router
 from stores.vectordb.load_model import download_model
 from stores.vectordb.embedding_model import get_embedding_model
 from stores.llm.whisper_service import load_whisper
@@ -112,6 +112,7 @@ app.include_router(candidate_router, prefix="/api/candidates", tags=["candidates
 app.include_router(maingraph_router, prefix="/api", tags=["main orchestrator graph"])
 app.include_router(interview_router, prefix="/api/interview", tags=["interviews"])
 app.include_router(chat_router, prefix="/api", tags=["chat"])
+app.include_router(calendar_router, tags=["calendar"])
 
 
 @app.get("/")

@@ -542,6 +542,9 @@ async def list_sessions(application_id: int):
                 "status":              s.status,
                 "scheduled_start_time": s.scheduled_start_time.isoformat()
                     if s.scheduled_start_time else None,
+                "scheduled_end_time":  s.scheduled_end_time.isoformat()
+                    if s.scheduled_end_time else None,
+                "google_meet_link":    s.google_meet_link,
                 "candidate_name":      candidate_name,
                 "questions":           s.questions or [],
             }

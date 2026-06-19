@@ -1,6 +1,7 @@
 import DashboardLayout from "../layouts/hrHomePageLayout";
 import Toast from "../components/toast";
 import InterviewModal from "../components/interviewModal";
+import InterviewSchedulingModal from "../components/scheduleInterviewModal";
 import CandidateDetailsModal from "../components/candidateDetailsModal";
 import RequisitionModal from "../components/requisitionModal";
 import ChatDrawer from "../components/chatDrawer";
@@ -31,6 +32,8 @@ import {
 } from "../services/candidateService";
 import { executeGraph } from "../services/graphService";
 import { fetchUserById } from "../services/userService";
+import * as calendarService from "../services/calendarService";
+import { fetchInterviewSessions } from "../services/interviewService";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -100,6 +103,17 @@ export default function RequisitionDetail() {
   // Interview modal states
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
   const [interviewTarget, setInterviewTarget] = useState(null);
+
+  // Schedule Interview modal states
+  const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
+  const [scheduleInterviewTarget, setScheduleInterviewTarget] = useState(null);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+
+  // Manage Interview modal states
+  const [isManageInterviewOpen, setIsManageInterviewOpen] = useState(false);
+  const [manageInterviewTarget, setManageInterviewTarget] = useState(null);
+  const [manageInterviewSession, setManageInterviewSession] = useState(null);
 
   // JD viewer modal state
   const [isJdModalOpen, setIsJdModalOpen] = useState(false);
@@ -268,6 +282,125 @@ export default function RequisitionDetail() {
       requisitionId: parseInt(id),
     });
     setIsInterviewModalOpen(true);
+  };
+
+  const handleScheduleInterviewClick = async (application) => {
+    const candidate = candidateMap[application.candidate_id];
+    setScheduleInterviewTarget({
+      candidateName: candidate?.full_name || "Candidate",
+      candidateEmail: candidate?.email || "candidate@example.com",
+      applicationId: application.id,
+      requisitionId: application.requisition_id,
+    });
+    setIsScheduleInterviewOpen(true);
+
+    await handleFetchAvailableSlots("hr_screen");
+  };
+
+  const getDefaultDateRange = () => {
+    const today = new Date();
+    const dateFrom = today.toISOString().split("T")[0];
+    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const dateTo = nextWeek.toISOString().split("T")[0];
+    return { dateFrom, dateTo };
+  };
+
+  const handleScheduleInterviewSubmit = async (scheduleData) => {
+    try {
+      const data = {
+        candidateEmail: scheduleInterviewTarget.candidateEmail,
+        candidateName: scheduleInterviewTarget.candidateName,
+        applicationId: scheduleInterviewTarget.applicationId,
+        requisitionId: scheduleInterviewTarget.requisitionId,
+        interviewType: scheduleData.interviewType,
+        startTime: scheduleData.startTime,
+        endTime: scheduleData.endTime,
+      };
+      await calendarService.scheduleInterview(data);
+      showNotification(
+        "success",
+        "Interview Scheduled",
+        `Interview scheduled with ${scheduleInterviewTarget.candidateName}`
+      );
+      setIsScheduleInterviewOpen(false);
+      // Update application status
+      await handleStatusChange(scheduleInterviewTarget.applicationId, "interview_scheduled");
+    } catch (err) {
+      showNotification("error", "Scheduling Failed", err.message);
+    }
+  };
+
+  const handleManageInterviewClick = async (application) => {
+    const candidate = candidateMap[application.candidate_id];
+    setManageInterviewTarget({
+      candidateName: candidate?.full_name || "Candidate",
+      applicationId: application.id,
+    });
+    
+    try {
+      // Fetch sessions and find the active scheduled one
+      const sessions = await fetchInterviewSessions(application.id);
+      const scheduledSession = sessions.find(s => s.status === "scheduled" || s.status === "in_progress");
+      
+      if (scheduledSession) {
+        setManageInterviewSession(scheduledSession);
+        setIsManageInterviewOpen(true);
+      } else {
+        showNotification("error", "No Session Found", "Could not find an active scheduled interview for this candidate.");
+        // Revert status to screening_passed since no session exists
+        await handleStatusChange(application.id, "screening_passed");
+      }
+    } catch (err) {
+      showNotification("error", "Failed to Load Interview", err.message);
+    }
+  };
+
+  const handleFetchAvailableSlots = async (type) => {
+    try {
+      setIsLoadingSlots(true);
+      const { dateFrom, dateTo } = getDefaultDateRange();
+      
+      let fetchType = "hr_screen";
+      if (typeof type === "string") {
+        fetchType = type;
+      } else if (manageInterviewSession?.interview_type) {
+        fetchType = manageInterviewSession.interview_type;
+      }
+
+      const slots = await calendarService.getAvailableSlots(
+        dateFrom,
+        dateTo,
+        fetchType
+      );
+      setAvailableSlots(slots.available_slots || []);
+    } catch (err) {
+      showNotification("error", "Failed to Load Slots", err.message);
+      setAvailableSlots([]);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  };
+
+  const handleRescheduleSubmit = async (interviewId, rescheduleData) => {
+    try {
+      await calendarService.rescheduleInterview(interviewId, rescheduleData);
+      showNotification("success", "Interview Rescheduled", `Interview with ${manageInterviewTarget.candidateName} has been rescheduled.`);
+      setIsManageInterviewOpen(false);
+    } catch (err) {
+      showNotification("error", "Rescheduling Failed", err.message);
+    }
+  };
+
+  const handleCancelInterviewSubmit = async (interviewId) => {
+    try {
+      await calendarService.cancelInterview(interviewId);
+      showNotification("success", "Interview Cancelled", `Interview with ${manageInterviewTarget.candidateName} has been cancelled.`);
+      setIsManageInterviewOpen(false);
+      // Update status to screening_passed as a safe fallback
+      await handleStatusChange(manageInterviewTarget.applicationId, "screening_passed");
+    } catch (err) {
+      showNotification("error", "Cancellation Failed", err.message);
+    }
   };
 
   const handleComingSoon = (featureName) => {
@@ -598,7 +731,7 @@ export default function RequisitionDetail() {
                   <col className="w-[8.5rem]" />
                   <col className="w-[6.5rem]" />
                   <col className="w-[9.5rem]" />
-                  <col className="w-[6.5rem]" />
+                  <col className="w-[9.5rem]" />
                 </colgroup>
                 <thead className="sticky top-0 z-10 bg-surface">
                   <tr className="border-b border-border text-[10px] text-muted uppercase tracking-wider">
@@ -609,6 +742,7 @@ export default function RequisitionDetail() {
                     <th className="px-3 py-2.5 font-semibold text-center whitespace-nowrap">Actions</th>
                     <th className="px-3 py-2.5 font-semibold text-center whitespace-nowrap">Questions</th>
                     <th className="px-3 py-2.5 font-semibold text-center whitespace-nowrap">Interview</th>
+                    <th className="px-3 py-2.5 font-semibold text-center whitespace-nowrap">Schedule</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -789,6 +923,27 @@ export default function RequisitionDetail() {
                             </button>
                           </div>
                         </td>
+
+                        {/* Schedule Interview */}
+                        <td className="px-3 py-3 whitespace-nowrap text-center align-middle">
+                          <div className="flex justify-center">
+                            {app.status === "interview_scheduled" ? (
+                              <button
+                                onClick={() => handleManageInterviewClick(app)}
+                                className="px-3 py-1.5 text-xs font-semibold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
+                              >
+                                Manage
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleScheduleInterviewClick(app)}
+                                className="px-3 py-1.5 text-xs font-semibold text-green-600 border border-green-200 rounded-lg hover:bg-green-50 transition"
+                              >
+                                Schedule
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -820,6 +975,44 @@ export default function RequisitionDetail() {
           candidateName={interviewTarget?.candidateName}
           applicationId={interviewTarget?.applicationId}
           requisitionId={interviewTarget?.requisitionId}
+        />
+
+        {/* ── Schedule Interview Modal ─────────────────────────────────── */}
+        {isScheduleInterviewOpen && scheduleInterviewTarget && (
+          <InterviewSchedulingModal
+            isOpen={isScheduleInterviewOpen}
+            mode="create"
+            onClose={() => {
+              setIsScheduleInterviewOpen(false);
+              setScheduleInterviewTarget(null);
+              setAvailableSlots([]);
+            }}
+            candidateName={scheduleInterviewTarget.candidateName}
+            candidateEmail={scheduleInterviewTarget.candidateEmail}
+            availableSlots={availableSlots}
+            isLoadingSlots={isLoadingSlots}
+            onFetchSlots={handleFetchAvailableSlots}
+            onSubmitSchedule={handleScheduleInterviewSubmit}
+          />
+        )}
+
+        {/* ── Manage Interview Modal ─────────────────────────────────── */}
+        <InterviewSchedulingModal
+          isOpen={isManageInterviewOpen}
+          mode="manage"
+          onClose={() => {
+            setIsManageInterviewOpen(false);
+            setManageInterviewTarget(null);
+            setManageInterviewSession(null);
+            setAvailableSlots([]);
+          }}
+          candidateName={manageInterviewTarget?.candidateName}
+          interviewSession={manageInterviewSession}
+          availableSlots={availableSlots}
+          isLoadingSlots={isLoadingSlots}
+          onFetchSlots={handleFetchAvailableSlots}
+          onReschedule={handleRescheduleSubmit}
+          onCancel={handleCancelInterviewSubmit}
         />
 
         {/* ── View JD Modal ──────────────────────────────────────────── */}

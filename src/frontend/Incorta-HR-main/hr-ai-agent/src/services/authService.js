@@ -126,17 +126,20 @@ const apiCall = async (endpoint, options = {}) => {
 // ============================================================================
 
 /**
- * Google OAuth Login
- * POST /auth/google
+ * Google OAuth Login - Authorization Code Flow
+ * POST /auth/google/callback
  * 
- * @param {string} idToken - Google ID token from frontend
+ * Exchanges authorization code for application tokens.
+ * This implements OAuth 2.0 Authorization Code Flow for secure offline access.
+ * 
+ * @param {string} authCode - Authorization code from Google OAuth consent screen
  * @returns {Promise} - { access_token, refresh_token, token_type }
  */
-export const googleLogin = async (idToken) => {
+export const googleLogin = async (authCode) => {
   try {
-    const response = await apiCall("/auth/google", {
+    const response = await apiCall("/auth/google/callback", {
       method: "POST",
-      body: JSON.stringify({ id_token: idToken }),
+      body: JSON.stringify({ authorization_code: authCode }),
     });
 
     // Store tokens and user info

@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from jose import JWTError
 import os
+from cryptography.fernet import Fernet
 
 
 # ============================================================================
@@ -24,6 +25,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
 
 
 
@@ -198,3 +200,52 @@ def hash_token(token: str) -> str:
         # token_hash = "a1b2c3d4e5f6..."
     """
     return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+
+# ============================================================================
+# Google OAuth Token Encryption/Decryption
+# ============================================================================
+
+def encrypt_token(token: str) -> str:
+    """
+    Encrypt a Google OAuth token using Fernet symmetric encryption.
+    
+    Args:
+        token: The plaintext token to encrypt
+        
+    Returns:
+        Encrypted token as a URL-safe base64 encoded string
+        
+    Raises:
+        ValueError: If ENCRYPTION_KEY is not set
+    """
+    if not ENCRYPTION_KEY:
+        raise ValueError("ENCRYPTION_KEY environment variable not set")
+    
+    f = Fernet(ENCRYPTION_KEY.encode())
+    encrypted = f.encrypt(token.encode())
+    return encrypted.decode()
+
+
+def decrypt_token(encrypted_token: str) -> str:
+    """
+    Decrypt a Google OAuth token using Fernet symmetric decryption.
+    
+    Args:
+        encrypted_token: The encrypted token string
+        
+    Returns:
+        Decrypted plaintext token
+        
+    Raises:
+        ValueError: If ENCRYPTION_KEY is not set or decryption fails
+    """
+    if not ENCRYPTION_KEY:
+        raise ValueError("ENCRYPTION_KEY environment variable not set")
+    
+    try:
+        f = Fernet(ENCRYPTION_KEY.encode())
+        decrypted = f.decrypt(encrypted_token.encode())
+        return decrypted.decode()
+    except Exception as e:
+        raise ValueError(f"Failed to decrypt token: {str(e)}")
