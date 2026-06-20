@@ -117,6 +117,77 @@ def _interview_type_str(value) -> str:
     return value.value if hasattr(value, "value") else str(value)
 
 
+def _status_str(value) -> str:
+    """Normalize InterviewStatus enum or string to a plain string value."""
+    return value.value if hasattr(value, "value") else str(value)
+
+
+def _iso(dt: datetime | None) -> str | None:
+    return dt.isoformat() if dt else None
+
+
+def _session_list_item(session, candidate_name: str) -> dict[str, Any]:
+    """Serialize a session for the list endpoint."""
+    status = _status_str(session.status)
+    item: dict[str, Any] = {
+        "id": session.id,
+        "application_id": session.application_id,
+        "interview_type": _interview_type_str(session.interview_type),
+        "status": status,
+        "scheduled_start_time": _iso(session.scheduled_start_time),
+        "scheduled_end_time": _iso(session.scheduled_end_time),
+        "actual_start_time": _iso(session.actual_start_time),
+        "actual_end_time": _iso(session.actual_end_time),
+        "google_meet_link": session.google_meet_link,
+        "candidate_name": candidate_name,
+        "questions": session.questions or [],
+    }
+    if status == "completed":
+        item.update(
+            {
+                "summary": session.summary,
+                "overall_assessment": session.overall_assessment,
+                "key_strengths": session.key_strengths or [],
+                "key_concerns": session.key_concerns or [],
+                "recommendation_score": session.recommendation_score,
+                "technical_depth_score": session.technical_depth_score,
+            }
+        )
+    return item
+
+
+def _session_detail_payload(session, chunks) -> dict[str, Any]:
+    """Serialize a completed session with structured transcript chunks."""
+    return {
+        "id": session.id,
+        "application_id": session.application_id,
+        "interview_type": _interview_type_str(session.interview_type),
+        "status": _status_str(session.status),
+        "scheduled_start_time": _iso(session.scheduled_start_time),
+        "scheduled_end_time": _iso(session.scheduled_end_time),
+        "actual_start_time": _iso(session.actual_start_time),
+        "actual_end_time": _iso(session.actual_end_time),
+        "summary": session.summary,
+        "overall_assessment": session.overall_assessment,
+        "key_strengths": session.key_strengths or [],
+        "key_concerns": session.key_concerns or [],
+        "recommendation_score": session.recommendation_score,
+        "technical_depth_score": session.technical_depth_score,
+        "full_transcript": session.full_transcript,
+        "transcript_chunks": [
+            {
+                "id": chunk.id,
+                "text": chunk.text,
+                "speaker": chunk.speaker,
+                "sequence_number": chunk.sequence_number,
+                "offset_seconds": chunk.offset_seconds,
+                "timestamp": _iso(chunk.timestamp),
+            }
+            for chunk in chunks
+        ],
+    }
+
+
 async def _send(ws: WebSocket, msg: dict) -> None:
     """Send a JSON message to the frontend. Silently ignores closed connections."""
     try:
@@ -515,14 +586,42 @@ class CreateSessionRequest(_BaseModel):
 
 
 @router.get(
+    "/sessions/{session_id}/detail",
+    summary="Get completed interview session with structured transcript",
+)
+async def get_session_detail(session_id: int):
+    """
+    Return evaluation fields and ordered transcript chunks for a completed session.
+    """
+    try:
+        async with AsyncSessionLocal() as db:
+            session = await interview_controller.get_interview_session_by_id(session_id, db)
+            if _status_str(session.status) != "completed":
+                raise HTTPException(
+                    status_code=http_status.HTTP_404_NOT_FOUND,
+                    detail="Interview session not found or not completed",
+                )
+            chunks = await interview_controller.get_transcript_chunks_by_session(session_id, db)
+            return _session_detail_payload(session, chunks)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"[GET /sessions/{session_id}/detail] {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        )
+
+
+@router.get(
     "/sessions/{application_id}",
     summary="List interview sessions for an application",
 )
 async def list_sessions(application_id: int):
     """
     Return all InterviewSession rows for a given application,
-    ordered by scheduled_start_time descending.
-    Includes candidate_name for display convenience.
+    ordered by most recent activity first.
+    Completed sessions include evaluation summary fields.
     """
     try:
         async with AsyncSessionLocal() as db:
@@ -534,22 +633,14 @@ async def list_sessions(application_id: int):
                 else "Unknown"
             )
 
-        return [
-            {
-                "id":                  s.id,
-                "application_id":      s.application_id,
-                "interview_type":      _interview_type_str(s.interview_type),
-                "status":              s.status,
-                "scheduled_start_time": s.scheduled_start_time.isoformat()
-                    if s.scheduled_start_time else None,
-                "scheduled_end_time":  s.scheduled_end_time.isoformat()
-                    if s.scheduled_end_time else None,
-                "google_meet_link":    s.google_meet_link,
-                "candidate_name":      candidate_name,
-                "questions":           s.questions or [],
-            }
-            for s in sessions
-        ]
+        sessions_sorted = sorted(
+            sessions,
+            key=lambda s: (
+                s.actual_end_time or s.scheduled_start_time or s.created_at
+            ),
+            reverse=True,
+        )
+        return [_session_list_item(s, candidate_name) for s in sessions_sorted]
     except Exception as exc:
         logger.error(f"[GET /sessions/{application_id}] {exc}", exc_info=True)
         raise HTTPException(

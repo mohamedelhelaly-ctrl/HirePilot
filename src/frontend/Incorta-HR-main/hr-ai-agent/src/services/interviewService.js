@@ -76,6 +76,23 @@ export const fetchInterviewSessions = async (applicationId) => {
 };
 
 /**
+ * Get completed interview detail with structured transcript chunks
+ * GET /api/interview/sessions/{sessionId}/detail
+ */
+export const fetchInterviewSessionDetail = async (sessionId) => {
+  try {
+    const response = await fetch(`${INTERVIEW_BASE_URL}/sessions/${sessionId}/detail`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    return await handleResponse(response);
+  } catch (error) {
+    console.error(`Error fetching interview session detail ${sessionId}:`, error);
+    throw error;
+  }
+};
+
+/**
  * Create a new interview session
  * POST /api/interview/sessions
  *
@@ -261,6 +278,7 @@ export default {
   INTERVIEW_TYPE_OPTIONS,
   getInterviewTypeLabel,
   fetchInterviewSessions,
+  fetchInterviewSessionDetail,
   createInterviewSession,
   getOrCreateInterviewSession,
   executeGraph,

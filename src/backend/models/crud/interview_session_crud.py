@@ -13,8 +13,8 @@ from models.tables_enums import InterviewType, InterviewStatus
 
 async def create_interview_session(
     db: AsyncSession,
-    application_id: int,
-    interview_type: str,
+    application_id: Optional[int] = None,
+    interview_type: Optional[str | InterviewType] = None,
     interviewer_id: Optional[int] = None,
     scheduled_start_time: Optional[datetime] = None,
     scheduled_end_time: Optional[datetime] = None,
@@ -25,14 +25,16 @@ async def create_interview_session(
 ) -> InterviewSession:
     """
     Create a new interview session.
-    Can accept either individual parameters or an InterviewSessionCreate schema object.
+    Pass either a session schema or application_id + interview_type.
     """
     if session:
-        # Use schema object
         db_session = InterviewSession(**session.model_dump())
-    else:
-        # Use individual parameters
-        interview_type_enum = InterviewType(interview_type) if isinstance(interview_type, str) else interview_type
+    elif application_id is not None and interview_type is not None:
+        interview_type_enum = (
+            InterviewType(interview_type)
+            if isinstance(interview_type, str)
+            else interview_type
+        )
         db_session = InterviewSession(
             application_id=application_id,
             interview_type=interview_type_enum,
@@ -47,6 +49,8 @@ async def create_interview_session(
             # Store calendar_status in summary or another field if available
             # For now, we'll rely on the status field
             pass
+    else:
+        raise ValueError("Either session or application_id and interview_type must be provided")
     
     db.add(db_session)
     await db.commit()

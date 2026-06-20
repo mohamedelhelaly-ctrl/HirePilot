@@ -11,3 +11,4 @@ from .transcript_chunk import TranscriptChunk
 from .user import User
 from .chat_thread import ChatThread
 from .chat_message import ChatMessage
+from .google_oauth_credential import GoogleOAuthCredential

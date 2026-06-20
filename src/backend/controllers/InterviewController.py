@@ -14,7 +14,8 @@ from models.crud import(
     get_interview_session_by_id,
     get_interview_sessions_by_application,
     update_interview_session,
-    create_transcript_chunk
+    create_transcript_chunk,
+    get_transcript_chunks_by_session,
 )
 
 class InterviewController(BaseController):
@@ -22,7 +23,7 @@ class InterviewController(BaseController):
         super().__init__()
 
     async def create_interview_session(self, session: InterviewSessionCreate, db: AsyncSession) -> InterviewSession:
-        return await create_interview_session(db, session)
+        return await create_interview_session(db, session=session)
     
     async def get_interview_session_by_id(self, session_id: int, db: AsyncSession) -> InterviewSession:
         session = await get_interview_session_by_id(db, session_id)
@@ -41,4 +42,6 @@ class InterviewController(BaseController):
     
     async def create_transcript_chunk(self, db: AsyncSession, chunk: TranscriptChunkCreate):
         return await create_transcript_chunk(db, chunk)
-    
+
+    async def get_transcript_chunks_by_session(self, session_id: int, db: AsyncSession):
+        return await get_transcript_chunks_by_session(db, session_id)

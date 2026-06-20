@@ -1,6 +1,10 @@
-import { FiX, FiExternalLink } from "react-icons/fi";
-import { useState, useEffect, useMemo } from "react";
+import { FiX, FiExternalLink, FiChevronDown } from "react-icons/fi";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { fetchApplicationDetails } from "../services/candidateService";
+import {
+  fetchInterviewSessions,
+  getInterviewTypeLabel,
+} from "../services/interviewService";
 import Badge from "./badge";
 
 function scoreBarColor(score) {
@@ -144,10 +148,75 @@ function statusBadgeColor(status) {
   return "bg-gray-100 text-gray-700";
 }
 
+function formatSessionDate(session) {
+  const raw = session.actual_end_time || session.scheduled_start_time || session.scheduled_end_time;
+  if (!raw) return "Date unknown";
+  return new Date(raw).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatSessionLabel(session) {
+  return `${getInterviewTypeLabel(session.interview_type)} · ${formatSessionDate(session)}`;
+}
+
+function InterviewEvaluation({ session }) {
+  if (!session) return null;
+
+  const hasEvaluation =
+    session.summary ||
+    session.overall_assessment ||
+    session.recommendation_score != null ||
+    session.key_strengths?.length ||
+    session.key_concerns?.length;
+
+  if (!hasEvaluation) {
+    return (
+      <div className="py-8 text-center rounded-xl border border-border bg-surface">
+        <p className="text-sm font-medium text-muted">No evaluation recorded for this interview.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 space-y-3">
+      {session.summary && <p className="text-sm text-gray-700 leading-relaxed">{session.summary}</p>}
+      {session.overall_assessment && (
+        <p className="text-sm text-gray-600 leading-relaxed">{session.overall_assessment}</p>
+      )}
+      {(session.recommendation_score != null || session.technical_depth_score != null) && (
+        <p className="text-sm font-medium text-gray-800">
+          {session.recommendation_score != null && `Recommendation: ${session.recommendation_score}/10`}
+          {session.technical_depth_score != null &&
+            ` · Technical depth: ${session.technical_depth_score}/10`}
+        </p>
+      )}
+      {session.key_strengths?.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Strengths</p>
+          <p className="text-sm text-gray-700">{session.key_strengths.join(", ")}</p>
+        </div>
+      )}
+      {session.key_concerns?.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Concerns</p>
+          <p className="text-sm text-gray-700">{session.key_concerns.join(", ")}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CandidateDetailsModal({ candidate, application, isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [cvDetails, setCvDetails] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [completedSessions, setCompletedSessions] = useState([]);
+  const [selectedSessionId, setSelectedSessionId] = useState(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
 
   useEffect(() => {
     if (isOpen && application?.id) {
@@ -159,8 +228,45 @@ export default function CandidateDetailsModal({ candidate, application, isOpen, 
     if (isOpen) {
       setActiveTab("overview");
       setCvDetails([]);
+      setCompletedSessions([]);
+      setSelectedSessionId(null);
+      setHistoryError(null);
     }
   }, [isOpen, application?.id]);
+
+  const loadInterviewHistory = useCallback(async () => {
+    if (!application?.id) return;
+
+    try {
+      setLoadingHistory(true);
+      setHistoryError(null);
+      const sessions = await fetchInterviewSessions(application.id);
+      const completed = (sessions || []).filter((s) => s.status === "completed");
+      setCompletedSessions(completed);
+      setSelectedSessionId((prev) => {
+        if (prev && completed.some((s) => s.id === prev)) return prev;
+        return completed[0]?.id ?? null;
+      });
+    } catch (err) {
+      console.error("Error loading interview history:", err);
+      setHistoryError(err.message || "Failed to load interview history");
+      setCompletedSessions([]);
+      setSelectedSessionId(null);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [application?.id]);
+
+  useEffect(() => {
+    if (isOpen && activeTab === "interviews" && application?.id) {
+      loadInterviewHistory();
+    }
+  }, [isOpen, activeTab, application?.id, loadInterviewHistory]);
+
+  const selectedSession = useMemo(
+    () => completedSessions.find((s) => s.id === selectedSessionId) ?? null,
+    [completedSessions, selectedSessionId]
+  );
 
   const loadCvDetails = async () => {
     try {
@@ -201,6 +307,7 @@ export default function CandidateDetailsModal({ candidate, application, isOpen, 
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "cv", label: "Profile & skills" },
+    { id: "interviews", label: "Interview history" },
   ];
 
   const renderDetailBlock = (detail) => {
@@ -362,6 +469,60 @@ export default function CandidateDetailsModal({ candidate, application, isOpen, 
                       {groupedDetails.skills.map(renderDetailBlock)}
                     </SectionCard>
                   )}
+                </>
+              )}
+            </div>
+          )}
+
+          {activeTab === "interviews" && (
+            <div className="flex flex-col gap-4">
+              {loadingHistory ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />
+                  ))}
+                </div>
+              ) : completedSessions.length === 0 ? (
+                <div className="py-12 text-center rounded-xl border border-border bg-surface">
+                  <p className="text-sm font-medium text-muted mb-1">No interview history yet</p>
+                  <p className="text-xs text-gray-400">
+                    Completed interviews will appear here with evaluation details.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <SectionCard title="Session">
+                    <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted mb-2">
+                      Select interview
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={selectedSessionId ?? ""}
+                        onChange={(e) => setSelectedSessionId(Number(e.target.value))}
+                        className="w-full appearance-none rounded-xl border border-border bg-surface px-3 py-2.5 pr-9 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600"
+                      >
+                        {completedSessions.map((session) => (
+                          <option key={session.id} value={session.id}>
+                            {formatSessionLabel(session)}
+                          </option>
+                        ))}
+                      </select>
+                      <FiChevronDown
+                        size={16}
+                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted"
+                      />
+                    </div>
+                  </SectionCard>
+
+                  {historyError && (
+                    <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-sm text-red-700">
+                      {historyError}
+                    </div>
+                  )}
+
+                  <SectionCard title="Evaluation">
+                    <InterviewEvaluation session={selectedSession} />
+                  </SectionCard>
                 </>
               )}
             </div>

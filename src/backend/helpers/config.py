@@ -11,6 +11,11 @@ class Settings(BaseSettings):
     DB_NAME: str
     DB_URL: str
 
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = ""
+    ENCRYPTION_KEY: str = ""
 
     class Config:
         env_file = ".env"
