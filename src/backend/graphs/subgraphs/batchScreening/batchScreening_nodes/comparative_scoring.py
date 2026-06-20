@@ -79,6 +79,54 @@ Be specific — reference actual data from the CV (years, tools, titles, compani
 Do NOT use vague phrases like "shows potential" or "decent background".
 Do NOT repeat the same justification across candidates."""
 
+_SYSTEM_PROMPT_INTERVIEW = """\
+You are a senior technical recruiter performing comparative candidate evaluation.
+
+Given a job description, structured CV profiles, and interview performance data where
+available, score ALL candidates COMPARATIVELY — reflecting each candidate's standing
+RELATIVE TO THE REST OF THE POOL and the job requirements.
+
+When interview data is present for a candidate, incorporate demonstrated performance,
+technical depth, strengths, and concerns from interviews into the score and justification.
+Candidates without interviews should be scored on CV fit only — note the absence in the
+justification and do not penalize unfairly versus interviewed peers unless CV gaps are clear.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Return ONLY a valid JSON array (no markdown, no commentary) in the SAME ORDER
+candidates were provided:
+[
+  {
+    "source": "<original CV filename>",
+    "overall_score": <float 0-10>,
+    "justification": "<see requirements below>"
+  }
+]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SCORING SCALE (comparative, not absolute)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  8-10  Strongest candidates in the pool — clear match to role must-haves,
+        ahead of peers on CV and/or interview performance
+  5-7   Competitive but with meaningful gaps versus higher-ranked candidates
+  3-4   Partial match; noticeable gaps on core requirements compared to the pool
+  0-2   Poor fit relative to the pool
+
+Calibration rule: scores must spread across the pool — avoid clustering
+everyone at the same band.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+JUSTIFICATION REQUIREMENTS (3-5 sentences per candidate)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Each justification MUST:
+  1. State where this candidate ranks relative to the pool
+  2. Cite specific CV strengths and, when available, interview performance
+  3. Cite specific gaps or concerns (from CV and/or interviews)
+  4. Conclude with a concise fit statement referencing the job description
+
+Be specific. Do NOT repeat the same justification across candidates."""
+
 # Helpers
 def _clean_json_response(raw: str) -> str:
     clean = raw.strip()
@@ -134,22 +182,27 @@ async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreening
         return state
 
     # ── Serialise candidate pool for the prompt ───────────────────────────────
-    candidates_payload = json.dumps(
-        [
-            {
-                "source":                 cv.source,
-                "skills":                 cv.skills,
-                "total_years_experience": cv.total_years_experience,
-                "education":              cv.education,
-                "previous_roles":         cv.previous_roles,
-                "certifications":         cv.certifications,
-                "projects":               cv.projects,
-                "summary":                cv.summary,
-            }
-            for cv in state.extracted_cv_data
-        ],
-        indent=2,
-    )
+    use_interview_prompt = state.screening_mode == "interview_rescreen"
+
+    candidate_entries = []
+    for cv in state.extracted_cv_data:
+        entry = {
+            "source":                 cv.source,
+            "skills":                 cv.skills,
+            "total_years_experience": cv.total_years_experience,
+            "education":              cv.education,
+            "previous_roles":         cv.previous_roles,
+            "certifications":         cv.certifications,
+            "projects":               cv.projects,
+            "summary":                cv.summary,
+        }
+        if use_interview_prompt:
+            entry["interviews"] = state.interview_context_by_source.get(cv.source)
+        candidate_entries.append(entry)
+
+    candidates_payload = json.dumps(candidate_entries, indent=2)
+
+    system_prompt = _SYSTEM_PROMPT_INTERVIEW if use_interview_prompt else _SYSTEM_PROMPT
 
     prompt = (
         f"JOB DESCRIPTION:\n{state.job_description}\n\n"
@@ -161,12 +214,12 @@ async def comparative_scoring_node(state: BatchScreeningState) -> BatchScreening
         f"[Node 3: comparative_scoring] Scoring {len(state.extracted_cv_data)} candidates "
         f"({len(state.existing_candidate_sources)} existing + "
         f"{len(state.extracted_cv_data) - len(state.existing_candidate_sources)} new) "
-        f"via UnifiedLLM (model={llm_generic.model_name})"
+        f"mode={state.screening_mode} via UnifiedLLM (model={llm_generic.model_name})"
     )
 
     # ── Single LLM call ───────────────────────────────────────────────────────
     try:
-        full_prompt = f"SYSTEM:\n{_SYSTEM_PROMPT}\n\nUSER:\n{prompt}"
+        full_prompt = f"SYSTEM:\n{system_prompt}\n\nUSER:\n{prompt}"
         result = await asyncio.to_thread(llm_generic.generate, full_prompt)
         raw = result["results"][0]["generated_text"]
         logger.debug("[Node 3] raw LLM output (truncated): %s", raw[:1000])

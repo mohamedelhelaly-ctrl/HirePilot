@@ -23,28 +23,25 @@ const SUGGESTIONS = [
   "Compare the top 3 candidates",
 ];
 
-const containsTable = (text) => {
-  return (
-    /\|.*\|/.test(text) &&
-    (/\|-+\|/.test(text) || text.split("\n").filter((line) => line.includes("|")).length >= 3)
-  );
-};
+const TABLE_SEPARATOR_RE = /^\s*\|?[\s:-]+\|[\s|:-]*\|?\s*$/;
 
-const parseTable = (text) => {
-  const lines = text.split("\n");
-  const tableLines = lines.filter((line) => line.includes("|"));
-  if (tableLines.length < 2) return null;
+const isTableRow = (line) => line.includes("|");
 
-  const headerLine = tableLines[0];
+const isTableSeparator = (line) => TABLE_SEPARATOR_RE.test(line);
+
+const parseTableBlock = (lines) => {
+  if (lines.length < 2) return null;
+
+  const headerLine = lines[0];
   const headers = headerLine
     .split("|")
     .map((h) => h.trim())
     .filter((h) => h && h !== "");
 
   let dataStartIndex = 1;
-  if (tableLines[1].includes("-")) dataStartIndex = 2;
+  if (lines[1] && isTableSeparator(lines[1])) dataStartIndex = 2;
 
-  const rows = tableLines.slice(dataStartIndex).map((line) =>
+  const rows = lines.slice(dataStartIndex).map((line) =>
     line
       .split("|")
       .map((cell) => cell.trim())
@@ -54,13 +51,9 @@ const parseTable = (text) => {
   return { headers, rows };
 };
 
-function TableMessage({ text }) {
-  const table = parseTable(text);
-  if (!table) return <div className="whitespace-pre-wrap">{text}</div>;
-
-  const { headers, rows } = table;
+function MarkdownTable({ headers, rows }) {
   return (
-    <div className="max-w-full">
+    <div className="max-w-full my-2">
       <div className="max-h-64 overflow-y-auto rounded-lg border border-border">
         <table className="w-full border-collapse text-xs">
           <thead className="sticky top-0 z-10">
@@ -88,7 +81,7 @@ function TableMessage({ text }) {
                     key={cellIdx}
                     className="px-2 py-2 text-gray-700 border-r border-border last:border-r-0 break-words"
                   >
-                    {cell}
+                    <InlineMarkdown text={cell} />
                   </td>
                 ))}
               </tr>
@@ -96,6 +89,165 @@ function TableMessage({ text }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function InlineMarkdown({ text }) {
+  if (!text) return null;
+
+  const parts = [];
+  const re = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    const token = match[0];
+    if (token.startsWith("**")) {
+      parts.push(
+        <strong key={`${match.index}-b`} className="font-semibold text-gray-900">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    } else {
+      parts.push(
+        <em key={`${match.index}-i`} className="italic">
+          {token.slice(1, -1)}
+        </em>
+      );
+    }
+    lastIndex = match.index + token.length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length ? <>{parts}</> : text;
+}
+
+function parseMarkdownBlocks(text) {
+  const lines = text.split("\n");
+  const blocks = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (!line.trim()) {
+      i += 1;
+      continue;
+    }
+
+    // Markdown table
+    if (
+      isTableRow(line) &&
+      i + 1 < lines.length &&
+      (isTableSeparator(lines[i + 1]) || isTableRow(lines[i + 1]))
+    ) {
+      const tableLines = [line];
+      i += 1;
+      while (i < lines.length && isTableRow(lines[i])) {
+        tableLines.push(lines[i]);
+        i += 1;
+      }
+      const table = parseTableBlock(tableLines);
+      if (table) {
+        blocks.push({ type: "table", ...table });
+        continue;
+      }
+      blocks.push({ type: "paragraph", text: tableLines.join("\n") });
+      continue;
+    }
+
+    // Bullet list
+    if (/^\s*[-*]\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*[-*]\s+/, ""));
+        i += 1;
+      }
+      blocks.push({ type: "ul", items });
+      continue;
+    }
+
+    // Numbered list
+    if (/^\s*\d+\.\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*\d+\.\s+/, ""));
+        i += 1;
+      }
+      blocks.push({ type: "ol", items });
+      continue;
+    }
+
+    // Paragraph (collect until blank line or structural block)
+    const paraLines = [line];
+    i += 1;
+    while (i < lines.length) {
+      const next = lines[i];
+      if (
+        !next.trim() ||
+        isTableRow(next) ||
+        /^\s*[-*]\s+/.test(next) ||
+        /^\s*\d+\.\s+/.test(next)
+      ) {
+        break;
+      }
+      paraLines.push(next);
+      i += 1;
+    }
+    blocks.push({ type: "paragraph", text: paraLines.join("\n") });
+  }
+
+  return blocks;
+}
+
+function BotMessageContent({ text }) {
+  const blocks = parseMarkdownBlocks(text);
+
+  if (!blocks.length) {
+    return <div className="whitespace-pre-wrap">{text}</div>;
+  }
+
+  return (
+    <div className="chat-drawer__markdown space-y-2">
+      {blocks.map((block, idx) => {
+        if (block.type === "table") {
+          return <MarkdownTable key={idx} headers={block.headers} rows={block.rows} />;
+        }
+        if (block.type === "ul") {
+          return (
+            <ul key={idx} className="chat-drawer__list list-disc pl-5 space-y-1">
+              {block.items.map((item, itemIdx) => (
+                <li key={itemIdx}>
+                  <InlineMarkdown text={item} />
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        if (block.type === "ol") {
+          return (
+            <ol key={idx} className="chat-drawer__list list-decimal pl-5 space-y-1">
+              {block.items.map((item, itemIdx) => (
+                <li key={itemIdx}>
+                  <InlineMarkdown text={item} />
+                </li>
+              ))}
+            </ol>
+          );
+        }
+        return (
+          <p key={idx} className="whitespace-pre-wrap">
+            <InlineMarkdown text={block.text} />
+          </p>
+        );
+      })}
     </div>
   );
 }
@@ -457,8 +609,8 @@ export default function ChatDrawer({ isOpen, onClose, requisitionId, requisition
                               : "chat-drawer__bubble--user whitespace-pre-wrap"
                           }`}
                         >
-                          {isBot && containsTable(msg.text) ? (
-                            <TableMessage text={msg.text} />
+                          {isBot ? (
+                            <BotMessageContent text={msg.text} />
                           ) : (
                             <div className="whitespace-pre-wrap">{msg.text}</div>
                           )}

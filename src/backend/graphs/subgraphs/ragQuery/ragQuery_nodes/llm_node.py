@@ -25,6 +25,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 
 from ..ragQuery_state import RAGQueryState
 from ..rag_history import format_conversation_history
+from ..response_formatting import humanize_final_answer
 
 
 logger = logging.getLogger(__name__)
@@ -201,11 +202,16 @@ def make_llm_node(
         if not final_answer:
             nudge = (
                 running
-                + "\nI now have enough information to answer using only the observed tool outputs.\nFinal Answer:"
+                + "\nI now have enough information to answer using only the observed tool outputs.\n"
+                "Write Final Answer in recruiter-friendly Markdown (tables and bullet lists). "
+                "Do NOT paste raw JSON.\nFinal Answer:"
             )
             raw = await asyncio.to_thread(llm_rag.generate, nudge)
             final_answer = raw["results"][0]["generated_text"].strip()
             final_answer = _extract_final_answer("Final Answer: " + final_answer) or final_answer
+
+        if final_answer:
+            final_answer = humanize_final_answer(final_answer)
 
         response_msg = AIMessage(content=final_answer)
         return {

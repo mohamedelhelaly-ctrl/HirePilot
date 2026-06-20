@@ -33,6 +33,7 @@ class OrchestratorState(BaseModel):
         "batch_screening"      # Score and rank all candidates for a requisition
     ]] = None 
     requisition_id: Optional[int] = None
+    screening_mode: Optional[Literal["new_candidates", "interview_rescreen"]] = "new_candidates"
     query: Optional[str] = None
     chat_thread_id: Optional[str] = None  # Persistent RAG chat thread external_id
     user_id: Optional[int] = None # Which HR/Hiring Manager triggered this (for auth/audit)

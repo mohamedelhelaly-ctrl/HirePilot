@@ -11,6 +11,8 @@ Triggered by:
 """
 from ..state import OrchestratorState  # Import state schema
 from ..subgraphs.batchScreening import batch_screening_subgraph, BatchScreeningState
+from models.database import AsyncSessionLocal
+from models.crud.requisition_crud import get_requisition_by_id, set_screening_in_progress
 import logging  # For debug/info logging
 
 # Create a logger instance for this module
@@ -44,7 +46,7 @@ async def batch_screening_node(state: OrchestratorState) -> OrchestratorState:
     """
     logger.info(
         f"Batch screening node triggered — requisition_id={state.requisition_id}, "
-        f"manual_trigger={state.manual_trigger}"
+        f"manual_trigger={state.manual_trigger}, mode={state.screening_mode}"
     )
 
     # ── Input validation ──────────────────────────────────────────────────────
@@ -53,13 +55,26 @@ async def batch_screening_node(state: OrchestratorState) -> OrchestratorState:
         state.error = "Missing requisition_id for batch screening"
         return state
 
+    # ── Lock for manual runs (background runner acquires lock before invoke) ───
+    lock_owned = False
+    if state.intent != "background_job":
+        async with AsyncSessionLocal() as db:
+            requisition = await get_requisition_by_id(db, state.requisition_id)
+            if requisition and requisition.screening_in_progress:
+                state.error = "Screening already in progress for this requisition"
+                logger.warning(state.error)
+                return state
+            if requisition:
+                await set_screening_in_progress(db, state.requisition_id, value=True)
+                lock_owned = True
+
     # ── Invoke the subgraph ───────────────────────────────────────────────────
     try:
-        subgraph_input = BatchScreeningState(requisition_id=state.requisition_id)
+        subgraph_input = BatchScreeningState(
+            requisition_id=state.requisition_id,
+            screening_mode=state.screening_mode or "new_candidates",
+        )
 
-        # ainvoke is the async variant — required because subgraph nodes are async
-        # LangGraph ainvoke returns the final state as a plain dict, not a Pydantic
-        # model instance, so we reconstruct BatchScreeningState from it.
         raw_result = await batch_screening_subgraph.ainvoke(subgraph_input)
         final = (
             raw_result
@@ -70,6 +85,19 @@ async def batch_screening_node(state: OrchestratorState) -> OrchestratorState:
     except Exception as exc:
         logger.error(f"Batch screening subgraph raised an unexpected exception: {exc}")
         state.error = f"Batch screening failed: {exc}"
+        final = None
+    finally:
+        if lock_owned:
+            async with AsyncSessionLocal() as db:
+                try:
+                    await set_screening_in_progress(db, state.requisition_id, value=False)
+                except Exception as exc:
+                    logger.error(
+                        f"Failed to clear screening_in_progress for "
+                        f"requisition_id={state.requisition_id}: {exc}"
+                    )
+
+    if final is None:
         return state
 
     # ── Map subgraph result back to orchestrator state ────────────────────────

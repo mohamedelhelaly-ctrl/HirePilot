@@ -5,7 +5,7 @@ Data flows sequentially through 4 nodes:
 Each node reads fields from previous nodes and writes its own output fields.
 """
 
-from typing import Optional, List, Dict, Set
+from typing import Optional, List, Dict, Set, Literal
 from pydantic import BaseModel, Field
 from models.schemas import (
     CandidateDoc,
@@ -28,6 +28,7 @@ class BatchScreeningState(BaseModel):
 
     # Input
     requisition_id: int
+    screening_mode: Literal["new_candidates", "interview_rescreen"] = "new_candidates"
 
     # Node 1 Output
     job_description: Optional[str] = None
@@ -37,6 +38,7 @@ class BatchScreeningState(BaseModel):
     extracted_cv_data: List[ExtractedCV] = Field(default_factory=list)
     existing_candidate_sources: Set[str] = Field(default_factory=set)
     email_to_candidate_id: Dict[str, int] = Field(default_factory=dict)
+    interview_context_by_source: Dict[str, dict] = Field(default_factory=dict)
 
     # Node 3 Output
     comparative_scores: List[ScoredCandidate] = Field(default_factory=list)

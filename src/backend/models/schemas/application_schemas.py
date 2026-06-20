@@ -26,8 +26,10 @@ class ApplicationUpdate(BaseModel):
     combined_score: Optional[float] = None
     assessment_score: Optional[float] = None
     overall_interview_score: Optional[float] = None
+    last_interview_completed_at: Optional[datetime] = None
     years_of_experience: Optional[float] = None
     tech_questions: Optional[List[dict[str, str]]] = None
+    cbi_questions: Optional[List[dict[str, str]]] = None
 
 
 class Application(ApplicationBase):
@@ -40,6 +42,7 @@ class Application(ApplicationBase):
     combined_score: Optional[float]
     years_of_experience: Optional[float]
     tech_questions: Optional[List[dict[str, str]]] = None
+    cbi_questions: Optional[List[dict[str, str]]] = None
     interview_scheduled_at: Optional[datetime]
     last_interview_completed_at: Optional[datetime]
     overall_interview_score: Optional[float]

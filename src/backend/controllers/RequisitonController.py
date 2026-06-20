@@ -107,6 +107,15 @@ class RequisitionController(BaseController):
             db, requisition_id, counter_type
         )
     
-    async def set_screening_in_progress(self, db: AsyncSession, requisition_id: int, value: bool, reset_counter: bool = False):
-        return await set_screening_in_progress(db, requisition_id, value, reset_counter)
+    async def set_screening_in_progress(
+        self,
+        db: AsyncSession,
+        requisition_id: int,
+        value: bool,
+        reset_counter: bool = False,
+        counter_type: str | None = None,
+    ):
+        return await set_screening_in_progress(
+            db, requisition_id, value, reset_counter, counter_type
+        )
     

@@ -18,7 +18,13 @@ import logging
 from langgraph.graph import StateGraph, END
 
 from .batchScreening_state import BatchScreeningState
-from .batchScreening_nodes  import similarity_search_node, cv_extraction_node, comparative_scoring_node, save_results_node
+from .batchScreening_nodes  import (
+    similarity_search_node,
+    cv_extraction_node,
+    interview_enrichment_node,
+    comparative_scoring_node,
+    save_results_node,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +45,7 @@ def create_batch_screening_subgraph():
     # ── Register nodes ────────────────────────────────────────────────────────
     workflow.add_node("similarity_search",    similarity_search_node)
     workflow.add_node("cv_extraction",         cv_extraction_node)
+    workflow.add_node("interview_enrichment",  interview_enrichment_node)
     workflow.add_node("comparative_scoring",   comparative_scoring_node)
     workflow.add_node("save_results",          save_results_node)
 
@@ -54,6 +61,11 @@ def create_batch_screening_subgraph():
     )
     workflow.add_conditional_edges(
         "cv_extraction",
+        _route_on_error,
+        {"error": END, "continue": "interview_enrichment"},
+    )
+    workflow.add_conditional_edges(
+        "interview_enrichment",
         _route_on_error,
         {"error": END, "continue": "comparative_scoring"},
     )

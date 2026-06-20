@@ -16,6 +16,7 @@ from pathlib import Path
 from controllers.RequisitonController import RequisitionController
 from ..batchScreening_state import BatchScreeningState, CandidateDoc
 from models.database import AsyncSessionLocal
+from models.crud.application_crud import get_screened_applications_for_requisition
 from stores.vectordb.load_vectordb import get_cv_vector_index
 
 # from db import crud                              # noqa: E402
@@ -46,12 +47,14 @@ async def similarity_search_node(state: BatchScreeningState) -> BatchScreeningSt
         - ChromaDB search failure
         - Zero results returned
     """
-    logger.info(f"[Node 1: similarity_search] requisition_id={state.requisition_id}")
+    logger.info(
+        f"[Node 1: similarity_search] requisition_id={state.requisition_id} "
+        f"mode={state.screening_mode}"
+    )
 
     # ── 1. Fetch job description from PostgreSQL ──────────────────────────────
     try:
         async with AsyncSessionLocal() as db:
-            # requisition = await crud.get_requisition_by_id(db, state.requisition_id)
             requisition = await req_controller.get_requisition(state.requisition_id, db)
     except Exception as exc:
         state.error = f"[Node 1] DB fetch failed: {exc}"
@@ -69,7 +72,46 @@ async def similarity_search_node(state: BatchScreeningState) -> BatchScreeningSt
         f"({len(state.job_description)} chars)"
     )
 
-    # ── 2. Similarity search in ChromaDB ──────────────────────────────────────
+    # ── Interview rescreen: load all previously screened applications ─────────
+    if state.screening_mode == "interview_rescreen":
+        try:
+            async with AsyncSessionLocal() as db:
+                applications = await get_screened_applications_for_requisition(
+                    db, state.requisition_id
+                )
+        except Exception as exc:
+            state.error = f"[Node 1] Failed to load screened applications: {exc}"
+            logger.error(state.error)
+            return state
+
+        prefix = f"screening_{state.requisition_id}_"
+        candidates: list[CandidateDoc] = []
+        for app in applications:
+            lever_id = app.lever_opportunity_id or ""
+            if not lever_id.startswith(prefix):
+                continue
+            source = lever_id[len(prefix):]
+            if not source:
+                continue
+            candidates.append(
+                CandidateDoc(source=source, cv_text="", cosine_score=0.0)
+            )
+
+        if not candidates:
+            state.error = (
+                f"[Node 1] No screened candidates found for requisition "
+                f"{state.requisition_id} — nothing to rescreen"
+            )
+            logger.warning(state.error)
+            return state
+
+        state.top_candidates = candidates
+        logger.info(
+            f"[Node 1] Interview rescreen pool: {len(candidates)} screened candidates"
+        )
+        return state
+
+    # ── 2. New-CV mode: similarity search in ChromaDB ─────────────────────────
     try:
         index = get_cv_vector_index()
 

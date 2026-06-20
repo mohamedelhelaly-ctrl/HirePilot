@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,8 +19,14 @@ class Settings(BaseSettings):
     GOOGLE_REDIRECT_URI: str = ""
     ENCRYPTION_KEY: str = ""
 
-    class Config:
-        env_file = ".env"
+    # Batch screening scheduler
+    SCREENING_POLL_INTERVAL_MINUTES: int = 15
+    NEW_CANDIDATE_THRESHOLD: int = 10
+    NEW_ASSESSMENT_THRESHOLD: int = 5
 
-def get_settings():
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
+@lru_cache
+def get_settings() -> Settings:
     return Settings()

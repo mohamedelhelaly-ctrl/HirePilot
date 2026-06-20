@@ -84,6 +84,20 @@ async def get_applications_by_requisition(
     return list(result.unique().scalars().all())
 
 
+async def get_screened_applications_for_requisition(
+    db: AsyncSession,
+    requisition_id: int,
+) -> List[Application]:
+    """Return applications on a requisition that have been screened (have a score)."""
+    result = await db.execute(
+        select(Application).where(
+            Application.requisition_id == requisition_id,
+            Application.combined_score.isnot(None),
+        )
+    )
+    return list(result.scalars().all())
+
+
 async def update_application(
     db: AsyncSession,
     application_id: int,

@@ -322,20 +322,20 @@ async def save_results_node(state: BatchScreeningState) -> BatchScreeningState:
                 logger.error(state.error)
                 return state
 
-    # ── Reset the new_candidate_counter so the frontend knows all CVs
-    #    have been screened (banner hides, button grays out). ─────────────────
+    # ── Reset counter / last_screening_at so rescreen is not re-triggered ──────
+    counter_type = (
+        "interview" if state.screening_mode == "interview_rescreen" else "candidate"
+    )
     async with AsyncSessionLocal() as db:
         try:
-            await reset_requisition_counter(db, state.requisition_id, "candidate")
+            await reset_requisition_counter(db, state.requisition_id, counter_type)
             logger.info(
-                f"[Node 4] Reset new_candidate_counter for "
+                f"[Node 4] Reset new_{counter_type}_counter for "
                 f"requisition_id={state.requisition_id}"
             )
         except Exception as exc:
-            # Non-fatal: screening data is saved; counter miss will self-correct
-            # on the next upload or manual trigger.
             logger.warning(
-                f"[Node 4] Failed to reset new_candidate_counter for "
+                f"[Node 4] Failed to reset new_{counter_type}_counter for "
                 f"requisition_id={state.requisition_id}: {exc}"
             )
 

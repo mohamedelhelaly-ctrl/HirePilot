@@ -18,10 +18,10 @@ from routers import auth_router, requisition_router, candidate_router, maingraph
 from stores.vectordb.load_model import download_model
 from stores.vectordb.embedding_model import get_embedding_model
 from stores.llm.whisper_service import load_whisper
+from scheduler import scheduler
 # from api.routers import requisitions, cv_upload, screening, auth_router
 # from api.routers.interview import router as interview_router
 # from api.routers.rag_router import router as rag_router
-# from scheduler import scheduler
 # from services.whisper_service import load_whisper, unload_whisper
 
 # ── Logging configuration ─────────────────────────────────────────────────────
@@ -60,15 +60,14 @@ async def lifespan(app: FastAPI):
     # app.db = get_db()
     
 
-    # scheduler.start()
-    # logger.info("Screening scheduler started")
+    # scheduler
+    scheduler.start()
+    logger.info("Screening scheduler started")
 
     yield
 
-    # # ── Shutdown ──────────────────────────────────────────────────────────────
-    # scheduler.shutdown(wait=False)
-    # logger.info("Screening scheduler stopped")
-    # unload_whisper()
+    scheduler.shutdown(wait=False)
+    logger.info("Screening scheduler stopped")
     await engine.dispose()
 
 

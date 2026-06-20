@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, status, UploadFile, File, Form, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
@@ -84,10 +84,25 @@ async def get_application(
 @router.post("/applications/{application_id}/tech-questions", response_model=List[dict], status_code=status.HTTP_200_OK)
 async def generate_application_tech_questions(
     application_id: int,
+    force: bool = Query(False, description="Regenerate even if questions already exist for this application"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Generate tailored technical questions and answers for an application."""
-    return await candidate_controller.generate_application_tech_questions(db, application_id)
+    """Generate tailored technical questions for this application (CV + JD)."""
+    return await candidate_controller.generate_application_tech_questions(
+        db, application_id, force=force
+    )
+
+
+@router.post("/applications/{application_id}/cbi-questions", response_model=List[dict], status_code=status.HTTP_200_OK)
+async def generate_application_cbi_questions(
+    application_id: int,
+    force: bool = Query(False, description="Regenerate even if questions already exist for this application"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return static STAR-method CBI questions for this application."""
+    return await candidate_controller.generate_application_cbi_questions(
+        db, application_id, force=force
+    )
 
 
 @router.patch("/applications/{application_id}", response_model=Application)

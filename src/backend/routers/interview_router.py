@@ -78,12 +78,15 @@ class _Session:
         "session_id", "application_id", "requisition_id",
         "interview_type", "job_description", "candidate_name",
         "pre_generated_questions",
+        "tech_questions",
+        "cbi_questions",
         "transcript_chunks",        # list[str] — raw text of each chunk
         "followup_questions_log",   # list[{question, timestamp}]
         "chunk_sequence",
         "last_followup_time",       # unix timestamp
         "last_followup_question",   # str | None
         "transcript_at_last_followup",  # how many chars were in transcript when we last fired
+        "followup_in_flight",       # True while an LLM follow-up call is running
         "interview_start_time",     # datetime
         "pending_db_tasks",         # asyncio.Task — in-flight transcript chunk writes
     )
@@ -96,12 +99,15 @@ class _Session:
         self.job_description: str = ""
         self.candidate_name: str = ""
         self.pre_generated_questions: list[str] = []
+        self.tech_questions: list[dict] = []
+        self.cbi_questions: list[dict] = []
         self.transcript_chunks: list[str] = []
         self.followup_questions_log: list[dict] = []
         self.chunk_sequence: int = 0
         self.last_followup_time: float = 0.0
         self.last_followup_question: str | None = None
         self.transcript_at_last_followup: int = 0
+        self.followup_in_flight: bool = False
         self.interview_start_time: datetime = datetime.now(timezone.utc)
         self.pending_db_tasks: list[asyncio.Task] = []
 
@@ -243,6 +249,8 @@ async def _load_session_context(
                 if application.candidate else "Candidate"
             )
             sess.pre_generated_questions = db_session.questions or []
+            sess.tech_questions = application.tech_questions or []
+            sess.cbi_questions = application.cbi_questions or []
 
             # Mark session as in_progress
             from models.tables_enums import InterviewStatus
@@ -261,6 +269,38 @@ async def _load_session_context(
         return f"DB context load failed: {exc}"
 
 
+def _tailored_interview_questions(sess: _Session) -> list[str]:
+    """Candidate-specific prepared questions for follow-up generation."""
+    questions: list[str] = []
+
+    if sess.interview_type == "technical":
+        for item in sess.tech_questions:
+            if isinstance(item, dict) and item.get("question"):
+                questions.append(str(item["question"]))
+    else:
+        for item in sess.cbi_questions:
+            if isinstance(item, dict) and item.get("question"):
+                questions.append(str(item["question"]))
+
+    for q in sess.pre_generated_questions:
+        if q and str(q).strip():
+            questions.append(str(q).strip())
+
+    return questions
+
+
+def _normalize_followup_text(text: str) -> str:
+    return " ".join(text.strip().lower().split())
+
+
+def _prior_followup_questions(sess: _Session) -> list[str]:
+    return [
+        str(entry["question"])
+        for entry in sess.followup_questions_log
+        if isinstance(entry, dict) and entry.get("question")
+    ]
+
+
 async def _generate_followup(sess: _Session, ws: WebSocket) -> None:
     """
     Fire an async LLM call to generate one follow-up question.
@@ -271,9 +311,9 @@ async def _generate_followup(sess: _Session, ws: WebSocket) -> None:
         prompt = build_followup_prompt(
             interview_type=sess.interview_type,
             job_description=sess.job_description,
-            pre_generated_questions=sess.pre_generated_questions,
+            pre_generated_questions=_tailored_interview_questions(sess),
             transcript_so_far=sess.full_transcript,
-            last_followup=sess.last_followup_question,
+            previous_followups=_prior_followup_questions(sess),
         )
 
         result = await asyncio.to_thread(llm_generic.generate, prompt)
@@ -285,10 +325,20 @@ async def _generate_followup(sess: _Session, ws: WebSocket) -> None:
         # Strip any accidental quotes the LLM may have added
         question = question.strip('"\'')
 
+        normalized = _normalize_followup_text(question)
+        if any(
+            _normalize_followup_text(str(entry.get("question", ""))) == normalized
+            for entry in sess.followup_questions_log
+            if isinstance(entry, dict)
+        ):
+            logger.info(
+                f"[Interview {sess.session_id}] Duplicate follow-up suppressed: "
+                f"{question[:80]}"
+            )
+            return
+
         ts = time.time()
-        sess.last_followup_question        = question
-        sess.last_followup_time            = ts
-        sess.transcript_at_last_followup   = len(sess.full_transcript)
+        sess.last_followup_question = question
         sess.followup_questions_log.append({"question": question, "timestamp": ts})
 
         await _send(ws, {
@@ -305,6 +355,8 @@ async def _generate_followup(sess: _Session, ws: WebSocket) -> None:
         logger.warning(
             f"[Interview {sess.session_id}] Follow-up generation failed: {exc}"
         )
+    finally:
+        sess.followup_in_flight = False
 
 
 def _should_generate_followup(sess: _Session) -> bool:
@@ -312,9 +364,19 @@ def _should_generate_followup(sess: _Session) -> bool:
     True if enough time has passed AND enough new content exists
     since the last follow-up question was generated.
     """
-    elapsed      = time.time() - sess.last_followup_time
-    new_chars    = len(sess.full_transcript) - sess.transcript_at_last_followup
+    if sess.followup_in_flight:
+        return False
+
+    elapsed = time.time() - sess.last_followup_time
+    new_chars = len(sess.full_transcript) - sess.transcript_at_last_followup
     return elapsed >= FOLLOWUP_INTERVAL_SECONDS and new_chars >= MIN_NEW_CHARS_FOR_FOLLOWUP
+
+
+def _reserve_followup_slot(sess: _Session) -> None:
+    """Mark a follow-up as in-flight and reset the timer immediately."""
+    sess.followup_in_flight = True
+    sess.last_followup_time = time.time()
+    sess.transcript_at_last_followup = len(sess.full_transcript)
 
 
 # ── WebSocket endpoint ────────────────────────────────────────────────────────
@@ -375,6 +437,8 @@ async def interview_stream(websocket: WebSocket):
                     "type":           "init_ok",
                     "candidate_name": sess.candidate_name,
                     "questions":      sess.pre_generated_questions,
+                    "tech_questions": sess.tech_questions,
+                    "cbi_questions":  sess.cbi_questions,
                     "interview_type": sess.interview_type,
                 })
                 logger.info(
@@ -460,6 +524,7 @@ async def interview_stream(websocket: WebSocket):
 
                 # ── Follow-up timer check ─────────────────────────────────────
                 if _should_generate_followup(sess):
+                    _reserve_followup_slot(sess)
                     asyncio.create_task(_generate_followup(sess, websocket))
 
                 continue

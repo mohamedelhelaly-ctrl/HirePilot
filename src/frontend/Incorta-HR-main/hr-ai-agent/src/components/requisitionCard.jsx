@@ -8,7 +8,19 @@ const JD_SNIPPET_LEN = 220;
 
 export default function RequisitionCard({ requisition, onEdit, onDelete }) {
   const navigate = useNavigate();
-  const { id, title, description, department, location, created_at } = requisition;
+  const {
+    id,
+    title,
+    description,
+    department,
+    location,
+    created_at,
+    screening_in_progress,
+    new_candidate_counter,
+  } = requisition;
+
+  const showActivityBadge =
+    screening_in_progress || (new_candidate_counter ?? 0) > 0;
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
@@ -30,7 +42,25 @@ export default function RequisitionCard({ requisition, onEdit, onDelete }) {
       <div className="px-5 py-4 flex flex-col gap-2.5 flex-1">
         {/* Top row: badge + actions */}
         <div className="flex items-start justify-between gap-3">
-          {department ? <Badge text={department} /> : <span />}
+          <div className="flex items-center gap-2">
+            {department ? <Badge text={department} /> : <span />}
+            {showActivityBadge && (
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                  screening_in_progress
+                    ? "bg-indigo-100 text-indigo-700"
+                    : "bg-amber-100 text-amber-700"
+                }`}
+                title={
+                  screening_in_progress
+                    ? "Screening in progress"
+                    : `${new_candidate_counter} new CV(s) awaiting screening`
+                }
+              >
+                {screening_in_progress ? "Screening" : `${new_candidate_counter} new`}
+              </span>
+            )}
+          </div>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={(e) => {

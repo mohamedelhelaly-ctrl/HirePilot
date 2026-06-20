@@ -231,10 +231,11 @@ export const updateApplicationStatus = async (applicationId, newStatus, userId =
  * Generate technical questions for an application
  * POST /api/candidates/applications/{application_id}/tech-questions
  */
-export const generateTechQuestions = async (applicationId) => {
+export const generateTechQuestions = async (applicationId, { force = false } = {}) => {
   try {
+    const params = force ? "?force=true" : "";
     const response = await fetch(
-      `${CANDIDATES_URL}/applications/${applicationId}/tech-questions`,
+      `${CANDIDATES_URL}/applications/${applicationId}/tech-questions${params}`,
       {
         method: "POST",
         headers: getAuthHeaders(),
@@ -243,6 +244,27 @@ export const generateTechQuestions = async (applicationId) => {
     return await handleResponse(response);
   } catch (error) {
     console.error(`Error generating tech questions for application ${applicationId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Load static STAR-method CBI questions for an application (8 standard questions)
+ * POST /api/candidates/applications/{application_id}/cbi-questions
+ */
+export const generateCBIQuestions = async (applicationId, { force = false } = {}) => {
+  try {
+    const params = force ? "?force=true" : "";
+    const response = await fetch(
+      `${CANDIDATES_URL}/applications/${applicationId}/cbi-questions${params}`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse(response);
+  } catch (error) {
+    console.error(`Error generating CBI questions for application ${applicationId}:`, error);
     throw error;
   }
 };
@@ -294,5 +316,6 @@ export default {
   updateApplication,
   updateApplicationStatus,
   generateTechQuestions,
+  generateCBIQuestions,
   uploadCVs,
 };
