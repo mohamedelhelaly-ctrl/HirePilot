@@ -46,13 +46,16 @@ function LoginForm() {
       <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[520px]">
         {/* Form side */}
         <div className="p-8 lg:p-12 flex flex-col justify-center">
+          <div className="mb-10">
+            <img src="/hirepilot-logo.png" alt="HirePilot" className="h-32 w-auto object-contain" />
+          </div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted mb-2">
             Welcome back
           </p>
           <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
             Sign in to your account
           </h2>
-          <p className="text-muted mb-8">Access the Incorta AI HR Agent dashboard.</p>
+          <p className="text-muted mb-8">Access the HirePilot AI HR Agent dashboard.</p>
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm">
@@ -104,7 +107,7 @@ function LoginForm() {
           <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-white/5 translate-y-1/3 -translate-x-1/4" />
           <div className="relative z-10">
             <img src="/favicon.svg" alt="" className="h-14 w-14 rounded-xl mb-6" />
-            <h3 className="text-3xl font-bold mb-3 tracking-tight">Incorta HR</h3>
+            <h3 className="text-3xl font-bold mb-3 tracking-tight">HirePilot</h3>
             <p className="text-blue-100 text-lg mb-6">AI Recruitment Assistant</p>
             <p className="text-blue-200/90 text-sm leading-relaxed max-w-sm">
               Screen, interview, and hire smarter with AI-powered candidate insights and

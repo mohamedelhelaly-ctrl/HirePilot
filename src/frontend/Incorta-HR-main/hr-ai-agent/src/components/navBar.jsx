@@ -37,7 +37,7 @@ export default function Navbar({ compact = false }) {
         <img src="/favicon.svg" alt="" className={compact ? "h-7 w-7 rounded-md" : "h-9 w-9 rounded-lg"} />
         <div>
           <h1 className={`font-bold text-gray-900 leading-tight ${compact ? "text-base" : "text-lg"}`}>
-            Incorta HR
+            HirePilot
           </h1>
           {!compact && (
             <p className="text-[11px] text-muted font-medium">AI Recruitment Assistant</p>
