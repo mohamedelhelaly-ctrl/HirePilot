@@ -113,7 +113,7 @@ export default function HrDashboard() {
       setIsSubmitting(true);
       if (modalMode === "create") {
         const newRequisition = await createRequisition(formData);
-        setRequisitions([...requisitions, newRequisition]);
+        setRequisitions([newRequisition, ...requisitions]);
         if (formData.department && !departments.includes(formData.department)) {
           setDepartments([...departments, formData.department]);
         }

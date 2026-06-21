@@ -8,7 +8,7 @@ import { getUser } from "../services/authService";
 
 const NAV_ITEMS = [
   { to: "/hr", label: "Requisitions", icon: FiBriefcase, match: (path) => path === "/hr" || path.startsWith("/requisition/") },
-  { to: "/candidates", label: "Candidates", icon: FiUsers, match: (path) => path === "/candidates" },
+  { to: "/candidates", label: "Candidates", icon: FiUsers, match: (path) => path === "/candidates", hrOnly: true },
   { to: "/users", label: "User Management", icon: FiSettings, match: (path) => path === "/users", hrOnly: true },
 ];
 

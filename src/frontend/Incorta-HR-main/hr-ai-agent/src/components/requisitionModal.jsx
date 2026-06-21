@@ -100,7 +100,9 @@ export default function RequisitionModal({
   const isEditMode = mode === "edit";
 
   useEffect(() => {
-    fetchUsers().then(setUsers).catch(console.error);
+    fetchUsers()
+      .then((data) => setUsers(data.filter((u) => u.is_active)))
+      .catch(console.error);
   }, []);
 
   useEffect(() => {
