@@ -1,136 +1,93 @@
-# FastAPI Setup Complete ✅
+# HirePilot Setup Guide
 
-## What Was Created
+This document reflects the current repository layout and provides a practical setup path for local development.
 
-### 1. Main Application Files
-- **[backend/app/main.py](backend/app/main.py)** - FastAPI app initialization with:
-  - CORS middleware
-  - Database lifecycle management
-  - Router registration
-  - Health check endpoints
+## 1. Prerequisites
 
-### 2. API Router Structure
-- **[backend/app/api/routers/requisitions.py](backend/app/api/routers/requisitions.py)** - Complete CRUD for requisitions:
-  - `POST /api/requisitions/` - Create (auto-generates `lever_id` as UUID)
-  - `GET /api/requisitions/` - List with filters
-  - `GET /api/requisitions/{id}` - Get by ID
-  - `PATCH /api/requisitions/{id}` - Update
-  - `DELETE /api/requisitions/{id}` - Soft delete
+- Python 3.11+
+- PostgreSQL 14+
+- Node.js 20+
+- A working terminal with access to the repository
 
-### 3. Support Files
-- **[backend/run.sh](backend/run.sh)** - Server startup script
-- **[backend/test_create_requisition.py](backend/test_create_requisition.py)** - API test script
-- **[backend/README.md](backend/README.md)** - Backend documentation
+## 2. Backend environment
 
-### 4. Documentation
-- **[README.md](README.md)** - Updated main README with quick start guide
+Create a `.env` file in the backend working directory before starting the API server. The backend reads environment variables through the configuration layer in [src/backend/helpers/config.py](src/backend/helpers/config.py).
 
-## How to Run
-
-### 1. Ensure your `.env` file is configured:
-```bash
+```env
 DB_USER=postgres
-DB_PASSWORD=your_password
+DB_PASSWORD=postgres
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=incorta_hr
+DB_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/incorta_hr
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=
+ENCRYPTION_KEY=replace-me-with-a-strong-secret
+SCREENING_POLL_INTERVAL_MINUTES=15
+NEW_CANDIDATE_THRESHOLD=10
+NEW_ASSESSMENT_THRESHOLD=5
 ```
 
-### 2. Start the server:
+## 3. Install dependencies
+
 ```bash
-cd backend
-uvicorn app.main:app --reload
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-Or use the script:
+## 4. Prepare the database
+
+Create a PostgreSQL database named `incorta_hr`, then run:
+
 ```bash
-chmod +x run.sh
-./run.sh
+alembic upgrade head
 ```
 
-### 3. Test the API:
-Open http://localhost:8000/docs to see the interactive Swagger UI
+## 5. Start the backend
 
-Or run the test script:
 ```bash
-python test_create_requisition.py
+cd src/backend
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## Example API Call
+Useful endpoints:
+- http://localhost:8000/health
+- http://localhost:8000/docs
 
-### Create a Requisition
+## 6. Start the frontend
+
 ```bash
-curl -X POST http://localhost:8000/api/requisitions/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Senior Backend Engineer",
-    "description": "We need an experienced Python developer with FastAPI knowledge",
-    "department": "Engineering",
-    "location": "Remote - USA"
-  }'
+cd <frontend-app-directory>
+npm install
+npm run dev
 ```
 
-### Response
-```json
-{
-  "id": 1,
-  "lever_id": "lever_a1b2c3d4e5f6g7h8",
-  "title": "Senior Backend Engineer",
-  "description": "We need an experienced Python developer with FastAPI knowledge",
-  "department": "Engineering",
-  "location": "Remote - USA",
-  "hiring_manager_id": null,
-  "is_active": true,
-  "new_candidate_counter": 0,
-  "new_candidate_threshold": 10,
-  "new_assessment_counter": 0,
-  "new_assessment_threshold": 5,
-  "new_interview_counter": 0,
-  "new_interview_threshold": 3,
-  "last_screening_at": null,
-  "created_at": "2026-02-16T10:30:00.000Z",
-  "updated_at": "2026-02-16T10:30:00.000Z"
-}
-```
+The Vite app will usually be available at http://localhost:5173.
 
-## Key Features
+## 7. Main API areas
 
-✅ **Auto-generated IDs**
-- Database `id`: Auto-incremented by PostgreSQL
-- `lever_id`: Random UUID (e.g., "lever_a1b2c3d4e5f6g7h8")
+| Area | Base path |
+|---|---|
+| Authentication | `/api/auth` |
+| Requisitions | `/api/requisitions` |
+| Candidates and applications | `/api/candidates` |
+| Interviews | `/api/interview` |
+| Chat | `/api/chat` |
+| Calendar | `/api/calendar` |
 
-✅ **Manual Input Fields**
-- `title` (required)
-- `description` (required)
-- `department` (optional)
-- `location` (optional)
-- `hiring_manager_id` (optional)
+## 8. What is already present
 
-✅ **Default Values**
-- `is_active`: true
-- Batch counters: 0
-- Batch thresholds: 10/5/3
-- Timestamps: Auto-generated
+- Authentication and role-aware dependencies
+- Requisition CRUD operations
+- Candidate and application management endpoints
+- Interview and chat routers
+- Google Calendar integration services
+- LangGraph orchestration modules for AI-driven flows
 
-## Available Endpoints
+## 9. Notes
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Health check |
-| GET | `/health` | Detailed health status |
-| POST | `/api/requisitions/` | Create requisition |
-| GET | `/api/requisitions/` | List requisitions |
-| GET | `/api/requisitions/{id}` | Get requisition |
-| PATCH | `/api/requisitions/{id}` | Update requisition |
-| DELETE | `/api/requisitions/{id}` | Soft delete |
-
-## Next Steps
-
-1. ✅ Database layer complete
-2. ✅ Requisitions API complete
-3. 🔲 Add authentication (JWT)
-4. 🔲 Add candidates/applications routers
-5. 🔲 Implement LangGraph orchestration
-6. 🔲 Connect external services
-
-The foundation is ready for building out the rest of the system!
+- Full Google OAuth and calendar workflows require valid credentials.
+- Some AI-driven modules may download or initialize local models on startup.
+- For the broader product story and architecture context, refer to [mds/HirePilot_Thesis.md](mds/HirePilot_Thesis.md).
