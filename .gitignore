@@ -208,3 +208,6 @@ __marimo__/
 
 
 /node_modules
+alembic.ini
+src/backend/stores/vectordb/
+assets/
