@@ -1,0 +1,43 @@
+maingraph:
+Input:
+    intent: Optional[Literal[
+        "background_job",      # Scheduled task (e.g., 24-hour batch screening)
+        "live_interview",      # Start real-time interview transcription
+        "rag_query",           # Answer question about candidates
+        "batch_screening"      # Score and rank all candidates for a requisition
+    ]] = None 
+    requisition_id: int
+    query: str
+    requisition_id: int
+    user_id: Optional[int]
+    messages: List[BaseMessage]
+
+Output:
+    saved_count: int = 0
+    updated_count: int = 0
+    response: str
+
+
+============================================
+============================================
+batchscreening:
+Input:
+    requisition_id: int
+Output:
+    saved_count: int = 0
+    updated_count: int = 0
+============================================
+============================================
+ragquery:
+Input:
+    query: str
+    requisition_id: int
+    user_id: Optional[int]
+    messages: List[BaseMessage]
+
+Output:
+    response: str
+============================================
+============================================
+
+

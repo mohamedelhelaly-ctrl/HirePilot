@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-11-14T19:42:54.046201",
+  "summary": {
+    "postings_access": true,
+    "postings_count": 62,
+    "opportunities_access": false,
+    "candidates_direct_access": true,
+    "stages_access": true
+  },
+  "details": {
+    "postings": 62,
+    "opportunities": {
+      "status": "ERROR_404"
+    },
+    "candidates": {
+      "/opportunities": {
+        "status": "FORBIDDEN"
+      },
+      "/candidates": {
+        "status": "SUCCESS",
+        "count": 50
+      },
+      "/candidates?limit=5": {
+        "status": "SUCCESS",
+        "count": 5
+      }
+    },
+    "stages": {
+      "status": "SUCCESS",
+      "count": 11
+    }
+  }
+}

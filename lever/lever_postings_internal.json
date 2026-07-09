@@ -1,0 +1,584 @@
+{
+  "metadata": {
+    "fetched_at": "2025-12-10T14:22:29.939024",
+    "total_postings": 11,
+    "source": "Lever API v1"
+  },
+  "postings": [
+    {
+      "id": "39fb034b-82b4-4951-88fd-adfd13215881",
+      "text": "Marketing Graduate Intern / Marketing Support",
+      "state": "internal",
+      "distributionChannels": null,
+      "user": "be4f052d-29b2-4ab9-873c-623a823da54f",
+      "owner": "be4f052d-29b2-4ab9-873c-623a823da54f",
+      "hiringManager": null,
+      "categories": {
+        "commitment": "Graduate Internship",
+        "department": "Marketing",
+        "level": null,
+        "location": "San Mateo",
+        "team": "Field Marketing",
+        "allLocations": [
+          "San Mateo"
+        ]
+      },
+      "tags": [],
+      "content": {
+        "description": "",
+        "descriptionHtml": "",
+        "lists": [],
+        "closing": "",
+        "closingHtml": ""
+      },
+      "country": "US",
+      "followers": [
+        "be4f052d-29b2-4ab9-873c-623a823da54f"
+      ],
+      "reqCode": null,
+      "requisitionCodes": [
+        "289"
+      ],
+      "urls": {
+        "list": "https://jobs.lever.co/incorta",
+        "show": "https://jobs.lever.co/incorta/39fb034b-82b4-4951-88fd-adfd13215881",
+        "apply": "https://jobs.lever.co/incorta/39fb034b-82b4-4951-88fd-adfd13215881/apply"
+      },
+      "confidentiality": "non-confidential",
+      "createdAt": 1764884937066,
+      "updatedAt": 1764884937066,
+      "workplaceType": "onsite",
+      "screening": {
+        "enabled": false
+      },
+      "createdAt_readable": "2025-12-04T21:48:57.066000+00:00",
+      "updatedAt_readable": "2025-12-04T21:48:57.066000+00:00"
+    },
+    {
+      "id": "0e3483d6-3edd-48c4-8dcc-92da86d627f8",
+      "text": "Public Relations Officer - Dubai",
+      "state": "internal",
+      "distributionChannels": null,
+      "user": "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+      "owner": "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+      "hiringManager": "a146d258-f6c0-419d-9178-346cf5dbd36f",
+      "categories": {
+        "commitment": "Full-time",
+        "department": "General & Administrative",
+        "level": null,
+        "location": "Dubai",
+        "team": "People Success",
+        "allLocations": [
+          "Dubai"
+        ]
+      },
+      "tags": [],
+      "content": {
+        "description": "",
+        "descriptionHtml": "",
+        "lists": [],
+        "closing": "",
+        "closingHtml": ""
+      },
+      "country": "AE",
+      "followers": [
+        "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+        "a146d258-f6c0-419d-9178-346cf5dbd36f"
+      ],
+      "reqCode": "",
+      "requisitionCodes": [
+        "290"
+      ],
+      "urls": {
+        "list": "https://jobs.lever.co/incorta",
+        "show": "https://jobs.lever.co/incorta/0e3483d6-3edd-48c4-8dcc-92da86d627f8",
+        "apply": "https://jobs.lever.co/incorta/0e3483d6-3edd-48c4-8dcc-92da86d627f8/apply"
+      },
+      "confidentiality": "non-confidential",
+      "createdAt": 1763883925481,
+      "updatedAt": 1763883933122,
+      "workplaceType": "onsite",
+      "screening": {
+        "enabled": false
+      },
+      "createdAt_readable": "2025-11-23T07:45:25.481000+00:00",
+      "updatedAt_readable": "2025-11-23T07:45:33.122000+00:00"
+    },
+    {
+      "id": "ed14bd44-bff8-4abd-bcd9-7e38825a4ad8",
+      "text": "Automation / Demand Generation Manager",
+      "state": "internal",
+      "distributionChannels": null,
+      "user": "794fbe58-4fdd-4525-9fe8-15c55522d95b",
+      "owner": "794fbe58-4fdd-4525-9fe8-15c55522d95b",
+      "hiringManager": "de02725d-9b4c-4f43-a8b9-2aa936e70c3c",
+      "categories": {
+        "commitment": "Full-time",
+        "department": "Marketing",
+        "level": null,
+        "location": "Remote",
+        "team": "Field Marketing",
+        "allLocations": [
+          "Remote"
+        ]
+      },
+      "tags": [],
+      "content": {
+        "description": "Incorta is seeking a data-driven and creative Demand Generation Manager to accelerate pipeline growth and improve the quality of our marketing funnel. This role is perfect for someone who thrives at the intersection of strategy and execution, designing experiments, running campaigns, and optimizing every stage of the buyer journey.The ideal candidate has proven experience generating sourced pipeline in a B2B SaaS environment, a strong grasp of A/B testing and funnel optimization, and a relentless curiosity for what messaging, channels, and campaigns convert best.\n\nLead Generation & Funnel GrowthBuild and execute multi-channel demand generation campaigns (email, paid, social, webinars, content syndication, events) to generate high-quality leads.Manage and optimize the marketing funnel to increase conversion rates at every stage (Lead → MQL → SQL → Opportunity).Partner with sales and marketing ops to align lead scoring, routing, and qualification criteria.Testing & OptimizationDesign and run A/B and multivariate tests across ads, emails, landing pages, and nurture flows.Use data to evaluate campaign performance and identify opportunities for funnel optimization.Continuously refine messaging, CTAs, and offers to maximize engagement and conversion.Campaign Strategy & ExecutionDevelop integrated campaigns around priority verticals, personas, and use cases.Collaborate with product marketing to tailor messaging for specific buyer segments.Own budget allocation across demand channels to balance volume and quality.Analytics & ReportingTrack, analyze, and report on campaign performance and ROI.Provide insights into pipeline contribution and CAC payback.Share learnings across the marketing team to inform broader strategy.Qualifications7+ years of B2B SaaS demand generation or growth marketing experience.Strong understanding of marketing funnels, lead scoring, and pipeline contribution metrics.Hands-on experience with A/B testing, campaign optimization, and marketing automation tools (HubSpot, Marketo, Pardot, etc.).Familiarity with Salesforce or other CRMs for lead and pipeline tracking.Analytical mindset with the ability to translate data into actionable insights.Excellent copywriting and messaging skills; comfortable experimenting with creative approaches.Self-starter who thrives in fast-paced, high-growth environments.\n",
+        "descriptionHtml": "<div><span style=\"font-size:11pt\">Incorta is seeking a data-driven and creative </span><b style=\"font-size:11pt\">Demand Generation Manager</b><span style=\"font-size:11pt\"> to accelerate pipeline growth and improve the quality of our marketing funnel. This role is perfect for someone who thrives at the intersection of strategy and execution, designing experiments, running campaigns, and optimizing every stage of the buyer <a href=\"http://journey.The\">journey.The</a> ideal candidate has proven experience generating sourced pipeline in a B2B SaaS environment, a strong grasp of A/B testing and funnel optimization, and a relentless curiosity for what messaging, channels, and campaigns convert best.</span></div><div><br /></div><div><b style=\"font-size:11pt\">Lead Generation &amp; Funnel Growth</b><span style=\"font-size:11pt\">Build and execute multi-channel demand generation campaigns (email, paid, social, webinars, content syndication, events) to generate high-quality <a href=\"http://leads.Manage\">leads.Manage</a> and optimize the marketing funnel to increase conversion rates at every stage (Lead → MQL → SQL → Opportunity).Partner with sales and marketing ops to align lead scoring, routing, and qualification <a href=\"http://criteria.Testing\">criteria.</a></span><b style=\"font-size:11pt\"><a href=\"http://criteria.Testing\">Testing</a> &amp; Optimization</b><span style=\"font-size:11pt\">Design and run A/B and multivariate tests across ads, emails, landing pages, and nurture <a href=\"http://flows.Use\">flows.Use</a> data to evaluate campaign performance and identify opportunities for funnel <a href=\"http://optimization.Continuously\">optimization.Continuously</a> refine messaging, CTAs, and offers to maximize engagement and <a href=\"http://conversion.Campaign\">conversion.</a></span><b style=\"font-size:11pt\"><a href=\"http://conversion.Campaign\">Campaign</a> Strategy &amp; Execution</b><span style=\"font-size:11pt\">Develop integrated campaigns around priority verticals, personas, and use <a href=\"http://cases.Collaborate\">cases.Collaborate</a> with product marketing to tailor messaging for specific buyer <a href=\"http://segments.Own\">segments.Own</a> budget allocation across demand channels to balance volume and <a href=\"http://quality.Analytics\">quality.</a></span><b style=\"font-size:11pt\"><a href=\"http://quality.Analytics\">Analytics</a> &amp; Reporting</b><span style=\"font-size:11pt\">Track, analyze, and report on campaign performance and <a href=\"http://ROI.Provide\">ROI.Provide</a> insights into pipeline contribution and CAC <a href=\"http://payback.Share\">payback.Share</a> learnings across the marketing team to inform broader <a href=\"http://strategy.Qualifications7\">strategy.</a></span><span style=\"font-size:13pt\"><a href=\"http://strategy.Qualifications7\">Qualifications</a></span><span style=\"font-size:11pt\"><a href=\"http://strategy.Qualifications7\">7</a>+ years of B2B SaaS demand generation or growth marketing <a href=\"http://experience.Strong\">experience.Strong</a> understanding of marketing funnels, lead scoring, and pipeline contribution <a href=\"http://metrics.Hands-on\">metrics.Hands-on</a> experience with A/B testing, campaign optimization, and marketing automation tools (HubSpot, Marketo, Pardot, etc.).Familiarity with Salesforce or other CRMs for lead and pipeline <a href=\"http://tracking.Analytical\">tracking.Analytical</a> mindset with the ability to translate data into actionable <a href=\"http://insights.Excellent\">insights.Excellent</a> copywriting and messaging skills; comfortable experimenting with creative <a href=\"http://approaches.Self-starter\">approaches.Self-starter</a> who thrives in fast-paced, high-growth environments.</span></div>",
+        "lists": [],
+        "closing": "",
+        "closingHtml": ""
+      },
+      "country": "US",
+      "followers": [
+        "794fbe58-4fdd-4525-9fe8-15c55522d95b",
+        "de02725d-9b4c-4f43-a8b9-2aa936e70c3c"
+      ],
+      "reqCode": null,
+      "requisitionCodes": [],
+      "urls": {
+        "list": "https://jobs.lever.co/incorta",
+        "show": "https://jobs.lever.co/incorta/ed14bd44-bff8-4abd-bcd9-7e38825a4ad8",
+        "apply": "https://jobs.lever.co/incorta/ed14bd44-bff8-4abd-bcd9-7e38825a4ad8/apply"
+      },
+      "confidentiality": "non-confidential",
+      "createdAt": 1763768615197,
+      "updatedAt": 1763768615197,
+      "workplaceType": "remote",
+      "salaryDescription": "SF Bay/NYC:  109k-121k // Non Metro 97k-109k\n\n",
+      "salaryDescriptionHtml": "<div>SF Bay/NYC:&nbsp; 109k-121k // Non Metro 97k-109k</div><div><br></div>",
+      "salaryRange": {
+        "min": 97000,
+        "max": 121000,
+        "currency": "USD",
+        "interval": "per-year-salary"
+      },
+      "screening": {
+        "enabled": false
+      },
+      "createdAt_readable": "2025-11-21T23:43:35.197000+00:00",
+      "updatedAt_readable": "2025-11-21T23:43:35.197000+00:00"
+    },
+    {
+      "id": "23837a1d-741b-4822-ac25-d16bca7be1f2",
+      "text": "VP of Sales, EMEA",
+      "state": "internal",
+      "distributionChannels": null,
+      "user": "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+      "owner": "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+      "hiringManager": "d45032c6-5df4-40bc-817f-9bcefd2cdc77",
+      "categories": {
+        "commitment": "Full-time",
+        "department": "Sales & Marketing",
+        "level": null,
+        "location": "Riyadh",
+        "team": "Sales Management",
+        "allLocations": [
+          "Riyadh"
+        ]
+      },
+      "tags": [],
+      "content": {
+        "description": "",
+        "descriptionHtml": "",
+        "lists": [],
+        "closing": "",
+        "closingHtml": ""
+      },
+      "country": "SA",
+      "followers": [
+        "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+        "d45032c6-5df4-40bc-817f-9bcefd2cdc77"
+      ],
+      "reqCode": null,
+      "requisitionCodes": [
+        "288"
+      ],
+      "urls": {
+        "list": "https://jobs.lever.co/incorta",
+        "show": "https://jobs.lever.co/incorta/23837a1d-741b-4822-ac25-d16bca7be1f2",
+        "apply": "https://jobs.lever.co/incorta/23837a1d-741b-4822-ac25-d16bca7be1f2/apply"
+      },
+      "confidentiality": "non-confidential",
+      "createdAt": 1763535068116,
+      "updatedAt": 1763535497318,
+      "workplaceType": "onsite",
+      "screening": {
+        "enabled": false
+      },
+      "createdAt_readable": "2025-11-19T06:51:08.116000+00:00",
+      "updatedAt_readable": "2025-11-19T06:58:17.318000+00:00"
+    },
+    {
+      "id": "a60f4c01-0b78-417f-936b-04d67d95ea8c",
+      "text": "Enterprise Account Executive",
+      "state": "internal",
+      "distributionChannels": null,
+      "user": "be4f052d-29b2-4ab9-873c-623a823da54f",
+      "owner": "be4f052d-29b2-4ab9-873c-623a823da54f",
+      "hiringManager": null,
+      "categories": {
+        "commitment": "Full-time",
+        "department": "Sales & Marketing",
+        "level": null,
+        "location": "Remote",
+        "team": "Enterprise AE",
+        "allLocations": [
+          "Remote"
+        ]
+      },
+      "tags": [],
+      "content": {
+        "description": "",
+        "descriptionHtml": "",
+        "lists": [],
+        "closing": "",
+        "closingHtml": ""
+      },
+      "country": "US",
+      "followers": [
+        "be4f052d-29b2-4ab9-873c-623a823da54f"
+      ],
+      "reqCode": null,
+      "requisitionCodes": [
+        "284"
+      ],
+      "urls": {
+        "list": "https://jobs.lever.co/incorta",
+        "show": "https://jobs.lever.co/incorta/a60f4c01-0b78-417f-936b-04d67d95ea8c",
+        "apply": "https://jobs.lever.co/incorta/a60f4c01-0b78-417f-936b-04d67d95ea8c/apply"
+      },
+      "confidentiality": "non-confidential",
+      "createdAt": 1763163878064,
+      "updatedAt": 1763163878064,
+      "workplaceType": "remote",
+      "screening": {
+        "enabled": false
+      },
+      "createdAt_readable": "2025-11-14T23:44:38.064000+00:00",
+      "updatedAt_readable": "2025-11-14T23:44:38.064000+00:00"
+    },
+    {
+      "id": "97086bc6-6b08-4aff-96c5-6b9ef4eb237e",
+      "text": "Test - Trial",
+      "state": "internal",
+      "distributionChannels": null,
+      "user": "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+      "owner": "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+      "hiringManager": "de7f1232-5870-4d8a-bfb3-bb28a1eee01e",
+      "categories": {
+        "commitment": "Full-time",
+        "department": "Research & Development",
+        "level": null,
+        "location": "Cairo",
+        "team": "Product",
+        "allLocations": [
+          "Cairo"
+        ]
+      },
+      "tags": [],
+      "content": {
+        "description": "",
+        "descriptionHtml": "",
+        "lists": [],
+        "closing": "",
+        "closingHtml": ""
+      },
+      "country": "EG",
+      "followers": [
+        "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+        "de7f1232-5870-4d8a-bfb3-bb28a1eee01e"
+      ],
+      "reqCode": "",
+      "requisitionCodes": [],
+      "urls": {
+        "list": "https://jobs.lever.co/incorta",
+        "show": "https://jobs.lever.co/incorta/97086bc6-6b08-4aff-96c5-6b9ef4eb237e",
+        "apply": "https://jobs.lever.co/incorta/97086bc6-6b08-4aff-96c5-6b9ef4eb237e/apply"
+      },
+      "confidentiality": "non-confidential",
+      "createdAt": 1762338314251,
+      "updatedAt": 1765369172747,
+      "workplaceType": "onsite",
+      "screening": {
+        "enabled": false
+      },
+      "createdAt_readable": "2025-11-05T10:25:14.251000+00:00",
+      "updatedAt_readable": "2025-12-10T12:19:32.747000+00:00"
+    },
+    {
+      "id": "79568a3a-1d9e-4a71-88fc-6bde1d81ab97",
+      "text": "Marketing Operations Manager",
+      "state": "internal",
+      "distributionChannels": null,
+      "user": "794fbe58-4fdd-4525-9fe8-15c55522d95b",
+      "owner": "794fbe58-4fdd-4525-9fe8-15c55522d95b",
+      "hiringManager": "de02725d-9b4c-4f43-a8b9-2aa936e70c3c",
+      "categories": {
+        "commitment": "Full-time",
+        "department": "Marketing",
+        "level": null,
+        "location": "Remote",
+        "team": "Field Marketing",
+        "allLocations": [
+          "Remote"
+        ]
+      },
+      "tags": [],
+      "content": {
+        "description": "We are seeking a hands-on, detail-oriented Marketing Operations Manager to own and\noptimize our marketing technology stack, data flow, and reporting. This person will be the bridge\nbetween marketing, sales, and leadership, ensuring that Salesforce, HubSpot, and related tools\nare seamlessly connected and delivering actionable insights.\nThe ideal candidate has deep experience managing CRM and marketing automation platforms,\nthrives in data-driven environments, and can translate complex reporting into clear\nrecommendations that drive growth.\n\nKey Responsibilities\nSystems & Platform Management\n● Own day-to-day administration of Salesforce and HubSpot, ensuring data integrity,\naccurate tracking, and smooth integrations.\n● Manage lead lifecycle, including routing, scoring, nurturing, and MQL/SQL handoff\nprocesses.\n● Optimize and troubleshoot workflows, automation, and campaigns.\nData & Reporting\n● Build and maintain dashboards and reports across Salesforce, HubSpot, and BI tools.\n● Track and analyze marketing funnel metrics (Lead → MQL → SQL → Opportunity →\nClosed/Won).\n● Provide actionable insights on campaign performance, pipeline contribution, and ROI.\n● Partner with Finance and Sales Ops on forecasting, attribution, and revenue analytics.\nProcess & Enablement\n● Define and document lead management processes, ensuring alignment with sales.\n● Conduct regular audits to ensure consistent data quality\n● Train marketing and sales teams on tool usage, best practices, and new features.\n● Partner with campaign and demand gen teams to design experiments and measure\nimpact.\n\nQualifications\n● 5+ years of experience in marketing operations or revenue operations.\n● Hands-on expertise with Salesforce CRM and HubSpot Marketing Hub.\n● Strong analytical skills, with proven ability to design dashboards and extract insights.\n● Experience with marketing attribution models and pipeline reporting.\n● Familiarity with data visualization (Tableau, Power BI, Looker) a plus.\n● Process-oriented mindset with excellent communication skills.\n● Ability to balance strategic thinking with tactical execution.\n",
+        "descriptionHtml": "<div>We are seeking a hands-on, detail-oriented Marketing Operations Manager to own and</div><div>optimize our marketing technology stack, data flow, and reporting. This person will be the bridge</div><div>between marketing, sales, and leadership, ensuring that Salesforce, HubSpot, and related tools</div><div>are seamlessly connected and delivering actionable insights.</div><div>The ideal candidate has deep experience managing CRM and marketing automation platforms,</div><div>thrives in data-driven environments, and can translate complex reporting into clear</div><div>recommendations that drive growth.</div><div><br /></div><div>Key Responsibilities</div><div>Systems &amp; Platform Management</div><div>● Own day-to-day administration of Salesforce and HubSpot, ensuring data integrity,</div><div>accurate tracking, and smooth integrations.</div><div>● Manage lead lifecycle, including routing, scoring, nurturing, and MQL/SQL handoff</div><div>processes.</div><div>● Optimize and troubleshoot workflows, automation, and campaigns.</div><div>Data &amp; Reporting</div><div>● Build and maintain dashboards and reports across Salesforce, HubSpot, and BI tools.</div><div>● Track and analyze marketing funnel metrics (Lead → MQL → SQL → Opportunity →</div><div>Closed/Won).</div><div>● Provide actionable insights on campaign performance, pipeline contribution, and ROI.</div><div>● Partner with Finance and Sales Ops on forecasting, attribution, and revenue analytics.</div><div>Process &amp; Enablement</div><div>● Define and document lead management processes, ensuring alignment with sales.</div><div>● Conduct regular audits to ensure consistent data quality</div><div>● Train marketing and sales teams on tool usage, best practices, and new features.</div><div>● Partner with campaign and demand gen teams to design experiments and measure</div><div>impact.</div><div><br /></div><div>Qualifications</div><div>● 5+ years of experience in marketing operations or revenue operations.</div><div>● Hands-on expertise with Salesforce CRM and HubSpot Marketing Hub.</div><div>● Strong analytical skills, with proven ability to design dashboards and extract insights.</div><div>● Experience with marketing attribution models and pipeline reporting.</div><div>● Familiarity with data visualization (Tableau, Power BI, Looker) a plus.</div><div>● Process-oriented mindset with excellent communication skills.</div><div>● Ability to balance strategic thinking with tactical execution.</div>",
+        "lists": [],
+        "closing": "",
+        "closingHtml": ""
+      },
+      "country": "US",
+      "followers": [
+        "794fbe58-4fdd-4525-9fe8-15c55522d95b",
+        "de02725d-9b4c-4f43-a8b9-2aa936e70c3c"
+      ],
+      "reqCode": null,
+      "requisitionCodes": [
+        "276"
+      ],
+      "urls": {
+        "list": "https://jobs.lever.co/incorta",
+        "show": "https://jobs.lever.co/incorta/79568a3a-1d9e-4a71-88fc-6bde1d81ab97",
+        "apply": "https://jobs.lever.co/incorta/79568a3a-1d9e-4a71-88fc-6bde1d81ab97/apply"
+      },
+      "confidentiality": "non-confidential",
+      "createdAt": 1761782945784,
+      "updatedAt": 1761782945784,
+      "workplaceType": "remote",
+      "salaryDescription": "SF Bay /NYC - 110k-122k //Non Metro 98k-110k\n",
+      "salaryDescriptionHtml": "<div>SF Bay /NYC - 110k-122k //Non Metro 98k-110k</div>",
+      "salaryRange": {
+        "min": 98000,
+        "max": 122000,
+        "currency": "USD",
+        "interval": "per-year-salary"
+      },
+      "screening": {
+        "enabled": false
+      },
+      "createdAt_readable": "2025-10-30T00:09:05.784000+00:00",
+      "updatedAt_readable": "2025-10-30T00:09:05.784000+00:00"
+    },
+    {
+      "id": "4cce7bc2-a719-41b5-9398-fefc185a4a33",
+      "text": "Senior Director, Channel Sales",
+      "state": "internal",
+      "distributionChannels": null,
+      "user": "be4f052d-29b2-4ab9-873c-623a823da54f",
+      "owner": "be4f052d-29b2-4ab9-873c-623a823da54f",
+      "hiringManager": null,
+      "categories": {
+        "commitment": "Full-time",
+        "department": "Sales & Marketing",
+        "level": null,
+        "location": "Remote",
+        "team": "Sales Management",
+        "allLocations": [
+          "Remote"
+        ]
+      },
+      "tags": [],
+      "content": {
+        "description": "",
+        "descriptionHtml": "",
+        "lists": [],
+        "closing": "",
+        "closingHtml": ""
+      },
+      "country": "US",
+      "followers": [
+        "be4f052d-29b2-4ab9-873c-623a823da54f"
+      ],
+      "reqCode": null,
+      "requisitionCodes": [
+        "280"
+      ],
+      "urls": {
+        "list": "https://jobs.lever.co/incorta",
+        "show": "https://jobs.lever.co/incorta/4cce7bc2-a719-41b5-9398-fefc185a4a33",
+        "apply": "https://jobs.lever.co/incorta/4cce7bc2-a719-41b5-9398-fefc185a4a33/apply"
+      },
+      "confidentiality": "non-confidential",
+      "createdAt": 1760742332981,
+      "updatedAt": 1760742332981,
+      "workplaceType": "remote",
+      "screening": {
+        "enabled": false
+      },
+      "createdAt_readable": "2025-10-17T23:05:32.981000+00:00",
+      "updatedAt_readable": "2025-10-17T23:05:32.981000+00:00"
+    },
+    {
+      "id": "f891724a-3437-4323-97d9-6869a5640fa3",
+      "text": "Digital Marketing Manager",
+      "state": "internal",
+      "distributionChannels": null,
+      "user": "be4f052d-29b2-4ab9-873c-623a823da54f",
+      "owner": "be4f052d-29b2-4ab9-873c-623a823da54f",
+      "hiringManager": "de02725d-9b4c-4f43-a8b9-2aa936e70c3c",
+      "categories": {
+        "commitment": "Full-time",
+        "department": "Marketing",
+        "level": null,
+        "location": "Remote",
+        "team": "Field Marketing",
+        "allLocations": [
+          "Remote"
+        ]
+      },
+      "tags": [],
+      "content": {
+        "description": "",
+        "descriptionHtml": "",
+        "lists": [],
+        "closing": "",
+        "closingHtml": ""
+      },
+      "country": "US",
+      "followers": [
+        "be4f052d-29b2-4ab9-873c-623a823da54f",
+        "de02725d-9b4c-4f43-a8b9-2aa936e70c3c"
+      ],
+      "reqCode": null,
+      "requisitionCodes": [
+        "268"
+      ],
+      "urls": {
+        "list": "https://jobs.lever.co/incorta",
+        "show": "https://jobs.lever.co/incorta/f891724a-3437-4323-97d9-6869a5640fa3",
+        "apply": "https://jobs.lever.co/incorta/f891724a-3437-4323-97d9-6869a5640fa3/apply"
+      },
+      "confidentiality": "non-confidential",
+      "createdAt": 1757092972175,
+      "updatedAt": 1757092972175,
+      "workplaceType": "remote",
+      "screening": {
+        "enabled": false
+      },
+      "createdAt_readable": "2025-09-05T17:22:52.175000+00:00",
+      "updatedAt_readable": "2025-09-05T17:22:52.175000+00:00"
+    },
+    {
+      "id": "6dc74b24-9a1e-404f-8a73-2662f2b9b89e",
+      "text": "Enterprise Account Executive",
+      "state": "internal",
+      "distributionChannels": null,
+      "user": "794fbe58-4fdd-4525-9fe8-15c55522d95b",
+      "owner": "794fbe58-4fdd-4525-9fe8-15c55522d95b",
+      "hiringManager": "d45032c6-5df4-40bc-817f-9bcefd2cdc77",
+      "categories": {
+        "commitment": "Full-time",
+        "department": "Sales & Marketing",
+        "level": null,
+        "location": "East Coast",
+        "team": "Enterprise AE",
+        "allLocations": [
+          "East Coast"
+        ]
+      },
+      "tags": [],
+      "content": {
+        "description": "The Account Executive role is focused on acquiring large enterprise clients for Incorta by demonstrating the transformative potential of our platform. You will play a key role in guiding prospects through the process of understanding how Incorta can address their business needs, providing compelling use cases, and justifying the investment through clear return on investment (ROI) analysis. We are seeking individuals with strong technical acumen who are not only skilled in sales but also passionate about analytics and customer engagement. Ideal candidates will have a deep understanding of the technical aspects of our platform and the ability to effectively communicate its value to prospective clients.\n",
+        "descriptionHtml": "<div><span style=\"font-size:15px\">The Account Executive role is focused on acquiring large enterprise clients for Incorta by demonstrating the transformative potential of our platform. You will play a key role in guiding prospects through the process of understanding how Incorta can address their business needs, providing compelling use cases, and justifying the investment through clear return on investment (ROI) analysis. We are seeking individuals with strong technical acumen who are not only skilled in sales but also passionate about analytics and customer engagement. Ideal candidates will have a deep understanding of the technical aspects of our platform and the ability to effectively communicate its value to prospective clients.</span></div>",
+        "lists": [
+          {
+            "content": "<li>6+ years of proven sales experience within your designated territory, with a track record of consistently achieving or exceeding sales targets.</li><li>Experience with a consultative, curiosity-driven sales approach, particularly in selling innovative technologies within early-stage or rapidly growing companies.</li>",
+            "text": "Qualifications and Experience"
+          }
+        ],
+        "closing": "",
+        "closingHtml": ""
+      },
+      "country": "US",
+      "followers": [
+        "794fbe58-4fdd-4525-9fe8-15c55522d95b",
+        "d45032c6-5df4-40bc-817f-9bcefd2cdc77"
+      ],
+      "reqCode": "",
+      "requisitionCodes": [
+        "228",
+        "259",
+        "267"
+      ],
+      "urls": {
+        "list": "https://jobs.lever.co/incorta",
+        "show": "https://jobs.lever.co/incorta/6dc74b24-9a1e-404f-8a73-2662f2b9b89e",
+        "apply": "https://jobs.lever.co/incorta/6dc74b24-9a1e-404f-8a73-2662f2b9b89e/apply"
+      },
+      "confidentiality": "non-confidential",
+      "createdAt": 1746812286749,
+      "updatedAt": 1755544055419,
+      "workplaceType": "remote",
+      "salaryDescription": "This range is based upon On Target Earnings and encompasses variable compensation. Base and variable split will be discussed during the interview process.\n",
+      "salaryDescriptionHtml": "<div><span style=\"font-size: 15px;\">This range is based upon On Target Earnings and encompasses variable compensation. Base and variable split will be discussed during the interview process.</span></div>",
+      "salaryRange": {
+        "min": 250000,
+        "max": 330000,
+        "currency": "USD",
+        "interval": "per-year-salary"
+      },
+      "screening": {
+        "enabled": false
+      },
+      "createdAt_readable": "2025-05-09T17:38:06.749000+00:00",
+      "updatedAt_readable": "2025-08-18T19:07:35.419000+00:00"
+    },
+    {
+      "id": "d7af1003-60e9-4a69-ae87-6ef556319f31",
+      "text": "Senior Director, People and Culture",
+      "state": "internal",
+      "distributionChannels": null,
+      "user": "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+      "owner": "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+      "hiringManager": "89088086-299f-49cb-9f08-1cf3073f12cb",
+      "categories": {
+        "commitment": "Full-time",
+        "department": "General & Administrative",
+        "level": null,
+        "location": "Cairo",
+        "team": "People Success",
+        "allLocations": [
+          "Cairo"
+        ]
+      },
+      "tags": [],
+      "content": {
+        "description": "",
+        "descriptionHtml": "",
+        "lists": [],
+        "closing": "",
+        "closingHtml": ""
+      },
+      "country": "EG",
+      "followers": [
+        "bdf8dcb4-e5c1-4347-a8c0-3bd3e14f2bb5",
+        "89088086-299f-49cb-9f08-1cf3073f12cb"
+      ],
+      "reqCode": "",
+      "requisitionCodes": [
+        "221",
+        "281"
+      ],
+      "urls": {
+        "list": "https://jobs.lever.co/incorta",
+        "show": "https://jobs.lever.co/incorta/d7af1003-60e9-4a69-ae87-6ef556319f31",
+        "apply": "https://jobs.lever.co/incorta/d7af1003-60e9-4a69-ae87-6ef556319f31/apply"
+      },
+      "confidentiality": "non-confidential",
+      "createdAt": 1744138862846,
+      "updatedAt": 1762336637505,
+      "workplaceType": "onsite",
+      "screening": {
+        "enabled": false
+      },
+      "createdAt_readable": "2025-04-08T19:01:02.846000+00:00",
+      "updatedAt_readable": "2025-11-05T09:57:17.505000+00:00"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+[
+  {
+    "id": "lead-new",
+    "text": "New lead"
+  },
+  {
+    "id": "lead-reached-out",
+    "text": "Reached out"
+  },
+  {
+    "id": "lead-responded",
+    "text": "Responded"
+  },
+  {
+    "id": "applicant-new",
+    "text": "New applicant"
+  },
+  {
+    "id": "9aa6cc00-08a9-4719-aa5f-2b5d99afa32b",
+    "text": "Application Review"
+  },
+  {
+    "id": "3e07aa06-e65e-4eaf-a5f4-c9b31ca585db",
+    "text": "Recruiter Screen"
+  },
+  {
+    "id": "df5e361a-181a-490f-a3b1-e62da035504a",
+    "text": "Hiring Manager Phone Interview"
+  },
+  {
+    "id": "515a50c4-8955-4f4e-b94b-1fcab6c6ef28",
+    "text": "Technical Assessment"
+  },
+  {
+    "id": "c2671812-5708-446d-82b4-cf0a3482881c",
+    "text": "Team interview"
+  },
+  {
+    "id": "b5f02cb6-49dc-4af5-bbeb-1bdff98d8ac1",
+    "text": "Reference check"
+  },
+  {
+    "id": "offer",
+    "text": "Offer"
+  }
+]
