@@ -1,0 +1,26 @@
+{
+  "generated_at": "2025-11-14T19:46:46.008315",
+  "summary": {
+    "total_postings": 62,
+    "egypt_postings": 62,
+    "total_candidates": 0,
+    "egypt_candidates": 0,
+    "hiring_stages": 11
+  },
+  "api_access": {
+    "postings_read": true,
+    "candidates_read": true,
+    "applications_read": true,
+    "resumes_read": true,
+    "stages_read": true,
+    "notes_read": "Unknown",
+    "interviews_read": "Unknown"
+  },
+  "files_generated": [
+    "lever_egypt_postings.json",
+    "lever_all_candidates.json",
+    "lever_egypt_candidates.json",
+    "lever_stages.json",
+    "lever_final_report.json"
+  ]
+}

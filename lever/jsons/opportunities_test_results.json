@@ -1,0 +1,42 @@
+{
+  "test_date": "2025-11-14 19:10:35 UTC",
+  "user": "SaiffMoh",
+  "results": {
+    "opportunities_basic": {
+      "success": false,
+      "status": 403,
+      "count": 0,
+      "error": {
+        "code": "ForbiddenError",
+        "message": "The key you provided does not have access to this endpoint"
+      }
+    },
+    "opportunities_expanded": {
+      "success": false,
+      "status": 403,
+      "count": 0,
+      "error": {
+        "code": "ForbiddenError",
+        "message": "The key you provided does not have access to this endpoint"
+      }
+    },
+    "opportunities_stage_filter": {
+      "success": false,
+      "status": 403,
+      "count": 0,
+      "error": {
+        "code": "ForbiddenError",
+        "message": "The key you provided does not have access to this endpoint"
+      }
+    },
+    "opportunities_archived": {
+      "success": false,
+      "status": 403,
+      "count": 0,
+      "error": {
+        "code": "ForbiddenError",
+        "message": "The key you provided does not have access to this endpoint"
+      }
+    }
+  }
+}
